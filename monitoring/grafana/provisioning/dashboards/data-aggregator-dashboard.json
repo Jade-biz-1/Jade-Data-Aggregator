@@ -1,0 +1,141 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Data Aggregator Platform",
+    "tags": ["data-pipeline"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Pipeline Execution Status",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(pipeline_status{status=\"running\"})",
+            "legendFormat": "Running"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Successful vs Failed Runs",
+        "type": "graph",
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(successful_pipeline_runs_total[5m])",
+            "legendFormat": "Successful"
+          },
+          {
+            "expr": "rate(failed_pipeline_runs_total[5m])",
+            "legendFormat": "Failed"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Backend API Requests",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(backend_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{path}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "System Resources",
+        "type": "row",
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 24,
+          "h": 1
+        }
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 17,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{name=\"backend\"}[1m])",
+            "legendFormat": "Backend"
+          },
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{name=\"frontend\"}[1m])",
+            "legendFormat": "Frontend"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 17,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{name=\"backend\"}",
+            "legendFormat": "Backend"
+          },
+          {
+            "expr": "container_memory_usage_bytes{name=\"frontend\"}",
+            "legendFormat": "Frontend"
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  },
+  "folderId": 0,
+  "overwrite": false
+}

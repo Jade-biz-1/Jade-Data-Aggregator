@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 
-import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -51,7 +51,7 @@ async def get_current_user(token: HTTPAuthorizationCredentials = security):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except jwt.JWTError:
+    except JWTError:
         raise credentials_exception
     # Here we would typically fetch the user from the database
     # For now, returning a dummy user

@@ -1,6 +1,6 @@
 # Data Aggregator Platform
 
-A comprehensive data integration solution designed to connect, process, and deliver data from multiple sources in a standardized format.
+A comprehensive data integration solution designed to connect, process, and deliver data from multiple sources in a standardized format. The platform provides real-time and batch processing capabilities with an intuitive user interface for configuration and management.
 
 ## Table of Contents
 
@@ -12,6 +12,7 @@ A comprehensive data integration solution designed to connect, process, and deli
 6. [Deployment](#deployment)
 7. [Monitoring](#monitoring)
 8. [Testing](#testing)
+9. [Features](#features)
 
 ## Architecture Overview
 
@@ -20,47 +21,78 @@ The Data Aggregator Platform is designed as a cloud-native, microservices-based 
 ### Key Components
 
 - **Backend Services**: Python FastAPI microservices for API, authentication, data processing
-- **Frontend**: Next.js application with Tailwind CSS (original UI)
-- **Frontend2**: Next.js application with enhanced UI theme (Windster theme with Flowbite components)
-- **Database**: PostgreSQL for primary data storage
-- **Cache**: Redis for session and temporary data storage
-- **Message Queue**: Apache Kafka for event streaming
-- **Infrastructure**: Containerized with Docker and orchestrated with Kubernetes
+- **Frontend**: Next.js 15.5.4 application with enhanced UI theme using Tailwind CSS 3.4.13 and React 19.1.0
+- **Database**: PostgreSQL 14+ for primary data storage (with partitioning for time-series data)
+- **Cache**: Redis 7+ for session management, caching, and pub/sub messaging
+- **Message Queue**: Apache Kafka for persistent event streaming
+- **Infrastructure**: Containerized with Docker (Kubernetes deployment planned)
+
+### Architecture Layers
+
+- **Presentation Layer**: User Interface Service and API Gateway
+- **Application Layer**: Pipeline Management, Connector, Transformation, and User Management Services
+- **Processing Layer**: Stream and Batch Processing Services
+- **Integration Layer**: Event Bus and API Management
+- **Data Layer**: Data Storage, Metadata Repository, and Monitoring Database
 
 ## Project Structure
 
 ```
 dataaggregator/
 ├── backend/                 # Backend services (Python/FastAPI)
-│   ├── api/                 # API definitions
+│   ├── api/                 # API definitions and endpoints
+│   │   └── v1/              # API version 1
+│   ├── auth/                # Authentication modules
+│   ├── connectors/          # Data source connectors
 │   ├── core/                # Core functionality (config, security, database)
 │   ├── crud/                # Database CRUD operations
+│   ├── middleware/          # Custom middleware
 │   ├── models/              # Database models
+│   ├── pipelines/           # Pipeline management
 │   ├── schemas/             # Pydantic schemas
-│   ├── services/            # Business logic
+│   ├── services/            # Business logic services
+│   ├── transformations/     # Data transformation logic
+│   ├── users/               # User management
 │   └── utils/               # Utility functions
-├── frontend/                # Original frontend application (Next.js)
-│   ├── app/                 # Next.js 13+ app directory
-│   ├── components/          # React components
-│   ├── lib/                 # Utility functions
+├── frontend/                # Frontend application with enhanced UI theme (Next.js)
+│   ├── src/
+│   │   ├── app/             # Next.js 15+ app directory structure
+│   │   │   ├── analytics/   # Analytics dashboard page
+│   │   │   ├── auth/        # Authentication pages
+│   │   │   │   ├── login/   # Login page
+│   │   │   │   └── register/# Registration page
+│   │   │   ├── connectors/  # Connectors management page
+│   │   │   ├── dashboard/   # Main dashboard page
+│   │   │   ├── docs/        # Documentation page
+│   │   │   ├── monitoring/  # Monitoring dashboard page
+│   │   │   ├── pipelines/   # Pipeline management page
+│   │   │   ├── settings/    # Settings page
+│   │   │   ├── transformations/ # Transformations page
+│   │   │   └── users/       # User management page
+│   │   ├── components/      # React components
+│   │   │   ├── charts/      # Chart components
+│   │   │   ├── forms/       # Form components
+│   │   │   ├── layout/      # Layout components (header, sidebar, etc.)
+│   │   │   └── ui/          # UI components (buttons, cards, inputs)
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── lib/             # Utility functions and API client
+│   │   ├── stores/          # State management (Zustand stores)
+│   │   ├── types/           # TypeScript type definitions
+│   │   └── utils/           # Helper utilities
 │   ├── public/              # Static assets
-│   └── styles/              # Global styles
-├── frontend2/               # New frontend application with UI theme (Next.js)
-│   ├── app/                 # Next.js 13+ app directory
-│   ├── components/          # React components
-│   ├── lib/                 # Utility functions
-│   ├── public/              # Static assets
-│   └── styles/              # Global styles
+│   ├── Dockerfile           # Frontend Docker configuration
+│   ├── next.config.js       # Next.js configuration
+│   ├── package.json         # Frontend dependencies
+│   ├── tailwind.config.js   # Tailwind CSS configuration
+│   └── tsconfig.json        # TypeScript configuration
 ├── terraform/               # Infrastructure as Code (AWS)
 ├── monitoring/              # Monitoring stack (Prometheus, Grafana)
 ├── docs/                    # Documentation
 ├── theme/                   # UI theme files
 ├── .github/workflows/       # CI/CD pipelines
-├── docker-compose.yml       # Docker services
+├── docker-compose.yml       # Docker services configuration
 ├── Dockerfile               # Backend Dockerfile
-├── frontend/Dockerfile      # Frontend Dockerfile
-├── frontend2/Dockerfile     # Frontend2 Dockerfile
-└── pyproject.toml           # Backend dependencies
+└── pyproject.toml           # Backend dependencies and configuration
 ```
 
 ## Prerequisites
@@ -94,8 +126,7 @@ docker-compose up -d
 docker-compose logs -f
 
 # Access the services:
-# - Frontend: http://localhost:3000
-# - Frontend2 (with UI theme): http://localhost:3001
+# - Frontend (with enhanced UI): http://localhost:3000
 # - Backend API: http://localhost:8001
 # - Adminer (DB UI): http://localhost:8080
 ```
@@ -146,12 +177,22 @@ The backend is built with FastAPI and follows a modular architecture:
 
 ### Frontend Development
 
-The frontend follows Next.js app directory structure:
+The frontend follows Next.js 15+ app directory structure with modern React patterns:
 
-1. **Pages**: In `frontend/app/`
-2. **Components**: In `frontend/components/`
-3. **API Calls**: In `frontend/lib/api.ts`
-4. **Global Styles**: In `frontend/app/globals.css`
+1. **Pages**: In `frontend/src/app/` using Next.js App Router
+2. **Components**: In `frontend/src/components/` organized by functionality
+   - `ui/` - Reusable UI components (buttons, cards, inputs)
+   - `layout/` - Layout components (header, sidebar, navigation)
+   - `forms/` - Form-specific components
+   - `charts/` - Data visualization components
+3. **API Client**: In `frontend/src/lib/api.ts` with TypeScript
+4. **State Management**: In `frontend/src/stores/` using Zustand
+5. **Types**: In `frontend/src/types/` for TypeScript definitions
+6. **Hooks**: In `frontend/src/hooks/` for custom React hooks
+7. **Styling**:
+   - Global styles in `frontend/src/app/globals.css`
+   - Tailwind configuration in `frontend/tailwind.config.js`
+8. **Utils**: In `frontend/src/utils/` for helper functions
 
 ## Deployment
 
@@ -267,20 +308,70 @@ The backend API includes automatic documentation via FastAPI:
 - Swagger UI: http://localhost:8001/docs
 - ReDoc: http://localhost:8001/redoc
 
-## Services
+## Features
 
-The platform consists of multiple services:
+### Data Source Connectivity
+- REST API data sources with various authentication methods
+- Database connectivity (MySQL, PostgreSQL, SQL Server, Oracle, MongoDB)
+- File-based data sources (CSV, JSON, XML, Excel)
+- SaaS platform integrations (Salesforce, HubSpot, etc.)
 
-1. **Authentication Service**: Handles user authentication and authorization
-2. **Pipeline Management Service**: Orchestrates data processing workflows
-3. **Connector Service**: Manages connections to data sources and destinations
-4. **Transformation Engine**: Processes and transforms data
-5. **User Management Service**: Handles user profiles and permissions
+### Data Processing & Transformation
+- Schema mapping and normalization
+- Data validation and cleansing
+- Data transformation engine
+- Data deduplication
 
-## Security
+### Data Storage & Management
+- Multiple destination support (Snowflake, BigQuery, Redshift, various databases)
+- Data versioning and historical access
+- Data retention policies
 
+### Scheduling & Orchestration
+- Visual workflow builder
+- Cron-based scheduling
+- Event-driven triggers
+- Error handling and retry mechanisms
+
+### Security
 - OAuth 2.0 with JWT tokens
 - Role-based access control (RBAC)
 - End-to-end encryption for data in transit and at rest
-- Regular security scanning in CI/CD pipeline
 - API rate limiting and authentication
+
+### User Interface
+- Intuitive configuration interface
+- Visual data mapping tools
+- Transformation rule builder
+- Real-time monitoring dashboard
+- User management interface
+
+### Current Implementation Status (As of October 3, 2025)
+- **Core Features**: 9/9 (100%) complete
+- **Backend APIs**: **179 endpoints** across **23 service routers** - fully functional
+- **Frontend Pages**: 11 pages fully connected (auth, dashboard, pipelines, connectors, analytics, monitoring, transformations, users, settings, docs, connector config)
+- **Pipeline Execution Engine**: Fully functional
+- **Role-Based Access Control**: Complete
+- **Enhanced Authentication**: Complete (JWT, password reset, email verification, refresh tokens)
+
+### Platform Capabilities
+- Full-stack CRUD operations for pipelines, transformations, users, and connectors
+- Complete UI suite with 11 pages fully functional and integrated
+- Advanced authentication system with password reset and email verification
+- Pipeline execution engine with status tracking
+- Session management and automatic timeout handling
+- Comprehensive testing infrastructure (unit and integration tests)
+
+---
+
+## Product Vision & Mission
+
+### Vision Statement
+To become the premier solution for collecting, processing, and transforming data from multiple sources into unified, standardized formats, enabling organizations to make data-driven decisions by simplifying complex data integration challenges.
+
+### Mission Statement
+Enable organizations to focus on data insights rather than data integration challenges by providing a reliable, scalable, and intuitive platform that connects, processes, and delivers data from multiple sources in a standardized format.
+
+---
+
+*For more detailed documentation, see the [docs](/docs/) directory.*

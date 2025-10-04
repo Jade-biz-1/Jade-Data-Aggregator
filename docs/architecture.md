@@ -184,36 +184,210 @@ The architecture encompasses all components required for data ingestion, process
 ┌─────────────────────────────────────┐
 │        Authentication Service       │
 ├─────────────────────────────────────┤
-│ • User Authentication              │
-│ • OAuth 2.0 / OpenID Connect       │
-│ • JWT Token Generation             │
-│ • Session Management               │
+│ • User Authentication               │
+│ • OAuth 2.0 / OpenID Connect        │
+│ • JWT Token Generation              │
+│ • Session Management                │
 └─────────────────────────────────────┘
 ```
 - Technologies: Keycloak, Auth0, or custom OAuth provider with Python SDK
 - State: User credentials in secure database
 - Communication: Internal service calls, external OAuth providers
 
+### 3.3 Enhanced Backend Services (Planned)
+
+#### 3.3.1 Real-time Communication Service
+```
+┌─────────────────────────────────────┐
+│     Real-time Communication        │
+├─────────────────────────────────────┤
+│ • WebSocket Connection Management   │
+│ • Real-time Pipeline Status         │
+│ • Live Metrics Streaming           │
+│ • Event Broadcasting               │
+│ • User Notifications               │
+└─────────────────────────────────────┘
+```
+- Technologies: FastAPI WebSocket, Redis Pub/Sub, Socket.io
+- State: Connection registry in Redis
+- Communication: WebSocket connections, event streams
+
+#### 3.3.2 Visual Pipeline Engine
+```
+┌─────────────────────────────────────┐
+│       Visual Pipeline Engine        │
+├─────────────────────────────────────┤
+│ • Pipeline Graph Storage            │
+│ • Node-based Execution             │
+│ • Pipeline Validation              │
+│ • Template Management              │
+│ • Execution Tracking               │
+└─────────────────────────────────────┘
+```
+- Technologies: NetworkX, Custom execution engine, PostgreSQL JSONB
+- State: Pipeline definitions and execution state
+- Communication: REST APIs, WebSocket status updates
+
+#### 3.3.3 Schema Introspection Service
+```
+┌─────────────────────────────────────┐
+│     Schema Introspection Service    │
+├─────────────────────────────────────┤
+│ • Database Schema Discovery         │
+│ • API Schema Analysis              │
+│ • File Format Detection            │
+│ • Schema Mapping Management        │
+│ • Field-level Metadata             │
+└─────────────────────────────────────┘
+```
+- Technologies: SQLAlchemy inspection, OpenAPI parsing, Pandas
+- State: Schema metadata in PostgreSQL
+- Communication: REST APIs for schema operations
+
+#### 3.3.4 Advanced Analytics Engine
+```
+┌─────────────────────────────────────┐
+│      Advanced Analytics Engine      │
+├─────────────────────────────────────┤
+│ • Time-series Data Processing       │
+│ • Custom Analytics Queries          │
+│ • Performance Metrics Calculation   │
+│ • Data Export Services             │
+│ • Real-time Aggregation            │
+└─────────────────────────────────────┘
+```
+- Technologies: Apache Spark, Pandas, TimescaleDB, Redis
+- State: Aggregated metrics and historical data
+- Communication: REST APIs, WebSocket for real-time updates
+
+#### 3.3.5 Dynamic Configuration Service
+```
+┌─────────────────────────────────────┐
+│    Dynamic Configuration Service    │
+├─────────────────────────────────────┤
+│ • Configuration Schema Management   │
+│ • Dynamic Form Generation          │
+│ • Connection Testing               │
+│ • Configuration Validation         │
+│ • Template Management              │
+└─────────────────────────────────────┘
+```
+- Technologies: JSON Schema, Pydantic, Custom validation engine
+- State: Configuration schemas and templates
+- Communication: REST APIs for configuration management
+
+#### 3.3.6 File Processing Service
+```
+┌─────────────────────────────────────┐
+│       File Processing Service       │
+├─────────────────────────────────────┤
+│ • Chunked File Upload              │
+│ • File Format Conversion           │
+│ • File Validation & Scanning       │
+│ • Temporary File Management        │
+│ • Metadata Extraction              │
+└─────────────────────────────────────┘
+```
+- Technologies: Aiofiles, Pandas, Apache Tika, ClamAV
+- State: File metadata and processing status
+- Communication: REST APIs, background task processing
+
+### 3.4 Enhanced Data Layer
+
+#### 3.4.1 Event Store
+```
+┌─────────────────────────────────────┐
+│            Event Store              │
+├─────────────────────────────────────┤
+│ • Pipeline Execution Events        │
+│ • User Activity Logs               │
+│ • System State Changes             │
+│ • Audit Trail                      │
+│ • Event Replay Capability          │
+└─────────────────────────────────────┘
+```
+- Technologies: PostgreSQL, Redis Streams, Apache Kafka
+- Purpose: Event sourcing and audit trails
+- Retention: Configurable with archival policies
+
+#### 3.4.2 Time-series Database
+```
+┌─────────────────────────────────────┐
+│       Time-series Database          │
+├─────────────────────────────────────┤
+│ • Performance Metrics               │
+│ • System Resource Usage            │
+│ • Pipeline Execution Metrics       │
+│ • Real-time Analytics Data         │
+│ • Historical Trend Data            │
+└─────────────────────────────────────┘
+```
+- Technologies: **PostgreSQL with time-based table partitioning** (current implementation)
+- Future Enhancement: TimescaleDB extension or InfluxDB for advanced time-series features
+- Purpose: High-performance time-series data storage
+- Optimization: Table partitioning by date, automated data retention and archival
+
 ## 4. Technology Stack
 
 ### 4.1 Backend Technologies
-- **Programming Languages**: Python with FastAPI/Flask for APIs, AsyncIO for async operations
-- **Databases**: PostgreSQL (primary), Redis (caching)
-- **Message Queue**: Apache Kafka
-- **Stream Processing**: Apache Flink, Apache Storm, or Python-based alternatives like Faust
-- **Batch Processing**: Apache Spark, Pandas for data manipulation
-- **Containerization**: Docker
-- **Orchestration**: Kubernetes
+
+#### Current Implementation:
+- **Programming Languages**: Python 3.10+ with FastAPI for APIs, AsyncIO for async operations
+- **Web Framework**: FastAPI with Pydantic for data validation
+- **Databases**: PostgreSQL (primary), Redis (caching and sessions)
+- **ORM**: SQLAlchemy with Alembic for migrations
+- **Message Queue**: Apache Kafka for event processing
+- **Task Scheduling**: Celery with Redis broker for background tasks
+- **Authentication**: JWT with OAuth 2.0 support
+- **Containerization**: Docker with multi-stage builds
+- **Orchestration**: Kubernetes for production scaling
+
+#### Enhanced for Advanced Features:
+- **Real-time Communication**: FastAPI WebSocket, Redis Pub/Sub for live updates
+- **Event Streaming**: Redis Streams, Apache Kafka for event sourcing
+- **Time-series Storage**: TimescaleDB or PostgreSQL with time partitions
+- **Schema Management**: SQLAlchemy inspection, OpenAPI parsing for introspection
+- **File Processing**: Aiofiles for async file operations, Apache Tika for metadata
+- **Analytics Engine**: Pandas, NumPy for data processing and aggregation
+- **Graph Processing**: NetworkX for pipeline graph management
+- **Enhanced Logging**: Structlog for structured logging with correlation IDs
+- **Metrics Collection**: Prometheus client for custom application metrics
+- **Dynamic Configuration**: JSON Schema, Pydantic for configuration validation
+- **Security**: ClamAV for file scanning, enhanced input validation
+
+**Event Architecture Decision**:
+- **Apache Kafka**: Used for persistent event streaming, pipeline execution events, audit logs, and cross-service communication requiring durability
+- **Redis Pub/Sub**: Used for real-time WebSocket broadcasting, temporary notifications, and cache invalidation events
+- **Redis Streams**: Reserved for future use in high-throughput real-time processing scenarios
 
 ### 4.2 Frontend Technologies
-- **Framework**: Next.js 14+ with App Router
-- **Styling**: Tailwind CSS with custom design system
-- **UI Components**: Radix UI or Headless UI for accessible components
-- **State Management**: Zustand or React Query for client state
-- **Forms**: React Hook Form with Zod validation
-- **Data Fetching**: Server-side rendering (SSR) and static site generation (SSG) where appropriate
-- **Type Safety**: TypeScript throughout
-- **Icons**: Lucide React or Heroicons
+
+#### Current Implementation:
+- **Framework**: Next.js 15.5.4 with App Router and Server Components
+- **React Version**: React 19.1.0 with modern React patterns and concurrent features
+- **Styling**: Tailwind CSS 3.4.13 with custom design system and enhanced animations
+- **UI Components**: Custom components with enhanced styling and accessibility
+- **State Management**: Zustand 5.0.8 for client state management
+- **Forms**: React Hook Form 7.63.0 with Zod 4.1.11 validation
+- **Data Fetching**: Server-side rendering (SSR) and client-side API calls with Axios
+- **Type Safety**: TypeScript throughout with comprehensive type definitions
+- **Icons**: Lucide React 0.544.0 for consistent iconography
+
+#### Enhanced for Advanced Features:
+- **Visual Pipeline Builder**: React Flow (reactflow 11.10.4) for drag-and-drop pipeline creation
+- **Data Visualization**: Recharts 3.2.1 for interactive charts and dashboards
+- **Real-time Communication**: FastAPI WebSocket (native) for WebSocket connectivity
+- **Advanced Forms**: Dynamic form generation with conditional logic
+- **Drag & Drop**: React DnD for schema mapping and component interaction
+- **Data Tables**: TanStack Table or React Table for advanced data grids
+- **File Upload**: React Dropzone for file handling and upload
+- **Animation**: Framer Motion for enhanced UI animations (optional)
+- **Search**: Fuse.js or similar for advanced search functionality
+- **Date Management**: date-fns 4.1.0 for date manipulation and formatting
+- **Utilities**:
+  - js-cookie 3.0.5 for cookie management
+  - clsx & tailwind-merge for conditional styling
+  - lodash for data manipulation utilities
 
 ### 4.3 Python-Specific Libraries & Frameworks
 - **Web Frameworks**: FastAPI for high-performance APIs, Flask for legacy components
@@ -268,48 +442,259 @@ User Interface → API Gateway → Pipeline Service → Task Orchestrator
 
 ## 6. Frontend Architecture (Next.js + Tailwind CSS)
 
-### 6.1 Project Structure
+### 6.1 Current Project Structure
 ```
-frontend/
-├── app/
-│   ├── (dashboard)/
-│   │   ├── page.tsx
-│   │   ├── pipelines/
-│   │   │   ├── page.tsx
-│   │   │   └── [id]/
-│   │   │       └── page.tsx
-│   │   ├── connectors/
-│   │   │   └── page.tsx
-│   │   └── monitoring/
-│   │       └── page.tsx
-│   ├── auth/
-│   │   ├── login/
-│   │   └── register/
-│   ├── api/
-│   ├── layout.tsx
-│   └── globals.css
+frontend/src/
+├── app/                     # Next.js 15+ App Router
+│   ├── analytics/           # Analytics dashboard with charts
+│   ├── auth/               # Authentication pages
+│   │   ├── login/          # Login page
+│   │   └── register/       # Registration page
+│   ├── connectors/         # Connector management interface
+│   ├── dashboard/          # Main dashboard with real-time metrics
+│   ├── docs/               # Documentation viewer
+│   ├── monitoring/         # System monitoring dashboard
+│   ├── pipelines/          # Pipeline management interface
+│   ├── settings/           # User and system settings
+│   ├── transformations/    # Data transformation management
+│   ├── users/              # User management interface
+│   ├── layout.tsx          # Root layout
+│   ├── page.tsx            # Home page with auth redirect
+│   └── globals.css         # Global styles
 ├── components/
-│   ├── ui/
-│   ├── forms/
-│   ├── charts/
-│   └── data-grid/
-├── lib/
-│   ├── api.ts
-│   ├── auth.ts
-│   └── types.ts
-├── public/
-└── styles/
+│   ├── charts/             # Data visualization components (planned)
+│   ├── forms/              # Form components (planned)
+│   ├── layout/             # Layout components
+│   │   ├── dashboard-layout.tsx  # Main dashboard layout
+│   │   ├── header.tsx            # Navigation header
+│   │   └── sidebar.tsx           # Navigation sidebar
+│   └── ui/                 # Reusable UI components
+│       ├── button.tsx      # Enhanced button component
+│       ├── card.tsx        # Card component
+│       └── input.tsx       # Input component
+├── hooks/                  # Custom React hooks
+├── lib/                    # Utility libraries
+│   ├── api.ts              # API client with full CRUD operations
+│   └── utils.ts            # Utility functions
+├── stores/                 # State management (Zustand)
+│   └── auth.ts             # Authentication store
+├── types/                  # TypeScript type definitions
+└── utils/                  # Helper utilities
 ```
 
-### 6.2 Frontend Features
+### 6.2 Planned Advanced Architecture
+```
+frontend/src/components/
+├── charts/                 # Advanced data visualization
+│   ├── base/               # Base chart components
+│   │   ├── LineChart.tsx   # Time series visualization
+│   │   ├── BarChart.tsx    # Bar chart component
+│   │   ├── PieChart.tsx    # Pie chart component
+│   │   └── AreaChart.tsx   # Area chart component
+│   └── dashboard/          # Dashboard-specific charts
+│       ├── DataVolumeChart.tsx      # Data processing volume
+│       ├── PipelinePerformanceChart.tsx # Pipeline metrics
+│       └── SuccessRateChart.tsx     # Success rate visualization
+├── forms/                  # Dynamic form components
+│   ├── FormBuilder.tsx     # Dynamic form generation
+│   ├── fields/             # Form field components
+│   │   ├── TextField.tsx   # Text input fields
+│   │   ├── SelectField.tsx # Dropdown selections
+│   │   ├── FileField.tsx   # File upload fields
+│   │   └── JsonField.tsx   # JSON editor fields
+│   ├── connectors/         # Connector configuration forms
+│   │   ├── DatabaseConnectorForm.tsx # Database setup
+│   │   ├── ApiConnectorForm.tsx      # API configuration
+│   │   └── SaasConnectorForm.tsx     # SaaS integration
+│   └── validation/         # Form validation logic
+│       └── formValidation.ts
+├── pipeline-builder/       # Visual pipeline editor
+│   ├── PipelineCanvas.tsx  # Main pipeline workspace
+│   ├── nodes/              # Pipeline node components
+│   │   ├── DataSourceNode.tsx    # Data input nodes
+│   │   ├── TransformationNode.tsx # Processing nodes
+│   │   └── DestinationNode.tsx   # Output nodes
+│   ├── edges/              # Connection components
+│   │   └── PipelineEdge.tsx      # Data flow connections
+│   └── panels/             # Configuration panels
+│       ├── NodeConfigPanel.tsx   # Node settings
+│       └── PipelineSettingsPanel.tsx # Pipeline config
+├── schema-mapping/         # Visual schema mapping
+│   ├── SchemaMapper.tsx    # Schema mapping interface
+│   ├── SchemaTree.tsx      # Schema tree visualization
+│   ├── FieldMapping.tsx    # Field-to-field mapping
+│   └── TransformationPreview.tsx # Mapping preview
+├── transformation-builder/ # Rule builder interface
+│   ├── RuleBuilder.tsx     # Visual rule creation
+│   ├── functions/          # Transformation functions
+│   │   ├── FilterFunction.tsx    # Data filtering
+│   │   ├── MapFunction.tsx       # Field mapping
+│   │   └── AggregateFunction.tsx # Data aggregation
+│   └── preview/            # Transformation preview
+│       └── TransformationPreview.tsx
+├── monitoring/             # Advanced monitoring
+│   ├── SystemHealthDashboard.tsx # System status
+│   ├── PerformanceTrends.tsx     # Performance analytics
+│   ├── AlertManager.tsx          # Alert management
+│   └── LogAnalyzer.tsx           # Log analysis
+└── ui/                     # Enhanced UI components
+    ├── data-table/         # Advanced table components
+    │   ├── DataTable.tsx   # Sortable, filterable tables
+    │   ├── TablePagination.tsx # Pagination controls
+    │   ├── TableFilter.tsx     # Column filtering
+    │   └── TableExport.tsx     # Export functionality
+    ├── modal/              # Modal components
+    ├── notifications/      # Notification system
+    ├── tour/               # Guided tours
+    └── shortcuts/          # Keyboard shortcuts
+```
+
+### 6.3 Current Frontend Features (Implemented)
 - **Authentication Flow**: Secure login and registration with JWT handling
-- **Dashboard**: Real-time metrics and pipeline status overview
-- **Pipeline Builder**: Visual editor with drag-and-drop functionality
-- **Data Preview**: Interactive data preview with filtering and sorting
-- **Monitoring**: Real-time pipeline performance metrics
+- **Dashboard**: Basic metrics and pipeline status overview with modern UI
+- **Pipeline Management**: CRUD operations for pipeline management
 - **Connector Management**: Interface for managing data source connectors
-- **User Settings**: Profile management and preferences
-- **UI Template**: Based on a free Tailwind CSS template with customizations as needed
+- **Analytics Dashboard**: Basic analytics with placeholder visualizations
+- **User Management**: User administration and profile management
+- **Responsive Design**: Modern UI with Tailwind CSS and enhanced styling
+- **State Management**: Zustand-based client state management
+- **API Integration**: Comprehensive API client with error handling
+
+### 6.4 Planned Advanced Features (To Be Implemented)
+- **Visual Pipeline Builder**: Drag-and-drop pipeline creation with React Flow
+  - Node-based pipeline design with data sources, transformations, and destinations
+  - Real-time pipeline validation and execution visualization
+  - Visual connection management between pipeline components
+
+- **Advanced Data Visualization**: Interactive charts and dashboards
+  - Real-time performance metrics with Recharts integration
+  - Data volume trends and success rate analytics
+  - System health and resource utilization monitoring
+
+- **Schema Mapping Interface**: Visual field mapping and transformation
+  - Tree-based schema visualization
+  - Drag-and-drop field mapping between source and destination
+  - Real-time transformation preview and validation
+
+- **Dynamic Form Builder**: Context-aware configuration interfaces
+  - Auto-generated forms based on connector types
+  - Conditional field logic and validation
+  - Connection testing and validation workflows
+
+- **Real-time Monitoring**: Live system and pipeline monitoring
+  - WebSocket-based real-time updates
+  - Live pipeline execution status and logs
+  - Alert management and notification system
+
+- **Advanced Data Tables**: Enhanced data management interfaces
+  - Sortable, filterable, and paginated data tables
+  - Bulk operations and data export capabilities
+  - Column customization and search functionality
+
+## 7. Coordinated Frontend-Backend Architecture
+
+### 7.1 Real-time Communication Flow
+```
+┌─────────────────┐    WebSocket    ┌─────────────────┐    Redis Pub/Sub    ┌─────────────────┐
+│    Frontend     │ ◄─────────────► │   Backend API   │ ◄─────────────────► │  Event System   │
+│   Components    │                 │   WebSocket     │                     │   (Redis/Kafka) │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+         │                                   │                                       │
+         │                                   │                                       │
+         ▼                                   ▼                                       ▼
+┌─────────────────┐                 ┌─────────────────┐                     ┌─────────────────┐
+│   Real-time     │                 │   Pipeline      │                     │   Event Store   │
+│   Dashboard     │                 │   Execution     │                     │   & Audit Log   │
+│   Updates       │                 │   Engine        │                     │                 │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+```
+
+### 7.2 Visual Pipeline Builder Integration
+```
+┌─────────────────┐    REST API     ┌─────────────────┐    Graph Storage    ┌─────────────────┐
+│  React Flow     │ ◄─────────────► │  Pipeline API   │ ◄─────────────────► │   PostgreSQL    │
+│  Visual Editor  │                 │  Endpoints      │                     │   JSONB Schema  │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+         │                                   │                                       │
+         │ Node Configs                      │ Validation                           │
+         ▼                                   ▼                                       ▼
+┌─────────────────┐                 ┌─────────────────┐                     ┌─────────────────┐
+│   Configuration │                 │   Pipeline      │                     │   Execution     │
+│   Panels        │                 │   Validator     │                     │   History       │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+```
+
+### 7.3 Schema Mapping Data Flow
+```
+┌─────────────────┐   Schema APIs   ┌─────────────────┐   Introspection    ┌─────────────────┐
+│  Schema Mapping │ ◄─────────────► │  Schema Service │ ◄─────────────────► │  Data Sources   │
+│  UI Components  │                 │  (Backend)      │                     │  (DB/API/Files) │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+         │                                   │                                       │
+         │ Field Mappings                    │ Validation                           │ Schema Discovery
+         ▼                                   ▼                                       ▼
+┌─────────────────┐                 ┌─────────────────┐                     ┌─────────────────┐
+│  Transformation │                 │   Mapping       │                     │   Metadata      │
+│  Preview        │                 │   Storage       │                     │   Repository    │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+```
+
+### 7.4 Analytics and Monitoring Integration
+```
+┌─────────────────┐   Analytics API ┌─────────────────┐   Time-series DB   ┌─────────────────┐
+│   Recharts      │ ◄─────────────► │  Analytics      │ ◄─────────────────► │   TimescaleDB   │
+│   Components    │                 │  Engine         │                     │   or InfluxDB   │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+         │                                   │                                       │
+         │ Real-time Updates                 │ Metrics Processing                   │ Historical Data
+         ▼                                   ▼                                       ▼
+┌─────────────────┐                 ┌─────────────────┐                     ┌─────────────────┐
+│   Dashboard     │                 │   Prometheus    │                     │   Data          │
+│   Visualizations│                 │   Metrics       │                     │   Aggregation   │
+└─────────────────┘                 └─────────────────┘                     └─────────────────┘
+```
+
+### 7.5 Implementation Dependencies and Timeline
+
+#### Phase 1: Foundation (Months 5-6)
+**Backend Priority**: WebSocket infrastructure, Event system
+**Frontend Priority**: Real-time components, WebSocket client
+**Coordination**: WebSocket protocol definition, event schemas
+
+#### Phase 2: Visual Pipeline Builder (Months 7-8)
+**Backend Priority**: Pipeline graph storage, Validation APIs
+**Frontend Priority**: React Flow integration, Node components
+**Coordination**: Pipeline JSON schema, Validation rules
+
+#### Phase 3: Analytics & Visualization (Months 9-10)
+**Backend Priority**: Analytics APIs, Time-series processing
+**Frontend Priority**: Recharts integration, Dashboard components
+**Coordination**: Data formats, Aggregation strategies
+
+#### Phase 4: Forms & Configuration (Months 11-12)
+**Backend Priority**: Configuration schemas, Connection testing
+**Frontend Priority**: Dynamic forms, Schema mapping UI
+**Coordination**: Configuration templates, Validation rules
+
+### 7.6 Data Flow Patterns
+
+#### 7.6.1 Real-time Updates
+1. **Frontend** subscribes to WebSocket channels
+2. **Backend** publishes events to Redis/Kafka
+3. **WebSocket Service** broadcasts to subscribed clients
+4. **Frontend** updates UI components reactively
+
+#### 7.6.2 Pipeline Creation
+1. **Frontend** builds visual pipeline with React Flow
+2. **JSON Schema** validates pipeline structure
+3. **Backend API** persists pipeline definition
+4. **Execution Engine** processes pipeline steps
+
+#### 7.6.3 Schema Discovery
+1. **Frontend** requests schema introspection
+2. **Backend** connects to data source
+3. **Schema Service** extracts metadata
+4. **Frontend** displays mapping interface
 
 ### 6.3 UI/UX Considerations
 - **Responsive Design**: Mobile-first approach with responsive layouts

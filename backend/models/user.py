@@ -27,3 +27,7 @@ class User(Base):
 
     # Relationships
     auth_tokens = relationship("AuthToken", back_populates="user")
+    file_uploads = relationship("FileUpload", back_populates="user")
+    preferences = relationship("UserPreference", back_populates="user", uselist=False)
+    dashboard_layouts = relationship("DashboardLayout", back_populates="user")
+    widget_preferences = relationship("WidgetPreference", back_populates="user")
