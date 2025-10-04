@@ -36,26 +36,33 @@ Stores user accounts and authentication information.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | INTEGER | PRIMARY KEY | Auto-incrementing user ID |
+| username | VARCHAR | UNIQUE, NOT NULL | User's unique username |
 | email | VARCHAR(255) | UNIQUE, NOT NULL | User email address |
+| first_name | VARCHAR | NULL | User's first name |
+| last_name | VARCHAR | NULL | User's last name |
 | hashed_password | VARCHAR | NOT NULL | Bcrypt hashed password |
-| full_name | VARCHAR(255) | NULL | User's full name |
-| role | VARCHAR(50) | NOT NULL | User role (admin, editor, viewer) |
+| role | VARCHAR(50) | DEFAULT 'viewer' | User role (admin, editor, viewer) |
 | is_active | BOOLEAN | DEFAULT TRUE | Account status |
-| is_verified | BOOLEAN | DEFAULT FALSE | Email verification status |
+| is_superuser | BOOLEAN | DEFAULT FALSE | Superuser flag for admin privileges |
+| is_email_verified | BOOLEAN | DEFAULT FALSE | Email verification status |
 | created_at | TIMESTAMP | NOT NULL | Account creation timestamp |
-| updated_at | TIMESTAMP | NOT NULL | Last update timestamp |
+| updated_at | TIMESTAMP | NULL | Last update timestamp |
 
 **Indexes**:
 - `idx_users_email` on `email`
+- `idx_users_username` on `username`
 - `idx_users_role` on `role`
 - `idx_users_is_active` on `is_active`
 
 **Relationships**:
-- `pipelines` (one-to-many)
-- `connectors` (one-to-many)
-- `transformations` (one-to-many)
-- `file_uploads` (one-to-many)
-- `user_preferences` (one-to-one)
+- `pipelines` (one-to-many) ✅
+- `connectors` (one-to-many) ✅
+- `transformations` (one-to-many) ✅
+- `file_uploads` (one-to-many) ✅
+- `user_preferences` (one-to-one) ✅
+- `auth_tokens` (one-to-many) - for password reset, email verification, refresh tokens
+- `dashboard_layouts` (one-to-many) - customizable dashboard configurations
+- `widget_preferences` (one-to-many) - individual widget settings
 
 ---
 
@@ -71,12 +78,16 @@ Stores data pipeline definitions.
 | source_config | JSONB | NOT NULL | Source configuration |
 | transformation_config | JSONB | NULL | Transformation rules |
 | destination_config | JSONB | NOT NULL | Destination configuration |
-| schedule | VARCHAR(100) | NULL | Cron schedule |
+| schedule | VARCHAR | NULL | Cron schedule |
 | is_active | BOOLEAN | DEFAULT TRUE | Pipeline status |
-| visual_definition | JSONB | NULL | React Flow definition |
-| owner_id | INTEGER | FK(users.id) | Pipeline owner |
+| visual_definition | JSONB | NULL | React Flow definition (nodes & edges) |
+| pipeline_type | VARCHAR | DEFAULT 'traditional' | 'traditional' or 'visual' |
+| node_definitions | JSONB | NULL | Detailed node configurations for visual pipelines |
+| edge_definitions | JSONB | NULL | Connection definitions between nodes |
+| template_id | INTEGER | NULL | Reference to pipeline template if used |
+| owner_id | INTEGER | FK(users.id), NOT NULL | Pipeline owner ✅ FIXED |
 | created_at | TIMESTAMP | NOT NULL | Creation timestamp |
-| updated_at | TIMESTAMP | NOT NULL | Last update timestamp |
+| updated_at | TIMESTAMP | NULL | Last update timestamp |
 
 **Indexes**:
 - `idx_pipelines_owner_id` on `owner_id`
@@ -123,13 +134,13 @@ Stores data source and destination connector configurations.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | INTEGER | PRIMARY KEY | Connector ID |
-| name | VARCHAR(255) | NOT NULL | Connector name |
-| connector_type | VARCHAR(100) | NOT NULL | Type (postgresql, mysql, rest_api, etc.) |
+| name | VARCHAR | NOT NULL | Connector name |
+| connector_type | VARCHAR | NOT NULL | Type (postgresql, mysql, rest_api, etc.) |
 | config | JSONB | NOT NULL | Connection configuration |
 | is_active | BOOLEAN | DEFAULT TRUE | Connector status |
-| owner_id | INTEGER | FK(users.id) | Connector owner |
+| owner_id | INTEGER | FK(users.id), NOT NULL | Connector owner ✅ FIXED |
 | created_at | TIMESTAMP | NOT NULL | Creation timestamp |
-| updated_at | TIMESTAMP | NOT NULL | Last update timestamp |
+| updated_at | TIMESTAMP | NULL | Last update timestamp |
 
 **Indexes**:
 - `idx_connectors_owner_id` on `owner_id`
@@ -148,14 +159,17 @@ Stores data transformation definitions.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | INTEGER | PRIMARY KEY | Transformation ID |
-| name | VARCHAR(255) | NOT NULL | Transformation name |
-| transformation_type | VARCHAR(100) | NOT NULL | Type (filter, map, aggregate, etc.) |
+| name | VARCHAR | NOT NULL | Transformation name |
+| description | TEXT | NULL | Transformation description |
+| transformation_type | VARCHAR | NOT NULL | Type (filter, map, aggregate, etc.) |
 | transformation_code | TEXT | NULL | Python/SQL transformation code |
-| config | JSONB | NULL | Transformation configuration |
+| source_fields | JSONB | NULL | List of source field names |
+| target_fields | JSONB | NULL | List of target field names |
+| transformation_rules | JSONB | NULL | Transformation rules configuration |
 | is_active | BOOLEAN | DEFAULT TRUE | Status |
-| owner_id | INTEGER | FK(users.id) | Owner |
+| owner_id | INTEGER | FK(users.id), NOT NULL | Owner ✅ FIXED |
 | created_at | TIMESTAMP | NOT NULL | Creation timestamp |
-| updated_at | TIMESTAMP | NOT NULL | Last update timestamp |
+| updated_at | TIMESTAMP | NULL | Last update timestamp |
 
 **Indexes**:
 - `idx_transformations_owner_id` on `owner_id`
