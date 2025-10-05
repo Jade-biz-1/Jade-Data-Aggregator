@@ -57,11 +57,45 @@ This platform addresses the complex challenges of data integration by providing:
 ### 1.3 Platform Capabilities
 
 - **Data Source Connectivity**: Support for REST APIs, databases, file systems, and SaaS platforms
+  - Industrial protocols (OPC-UA, Modbus, DNP3, IEC 61850) for energy and manufacturing
+  - Real-time data streams with sub-second latency
+  - Cloud storage integration (AWS S3, Google Cloud Storage, Azure Blob)
 - **Data Processing & Transformation**: Schema mapping, data validation, cleansing, and transformation
+  - Advanced time-series analytics for IoT and sensor data
+  - Predictive analytics and machine learning model integration
+  - Complex event processing for real-time decision-making
 - **Data Storage & Management**: Multi-destination support with versioning and retention policies
+  - Time-series optimized storage with partitioning
+  - Data lake and data warehouse destinations
 - **Scheduling & Orchestration**: Visual workflow builder with dependency management
+  - Real-time event-driven triggers
+  - High-frequency scheduling (sub-minute intervals)
 - **Comprehensive UI**: Intuitive web interface for configuration, monitoring, and management
+  - Real-time dashboards with WebSocket connectivity
+  - Interactive visualizations and alerts
 - **Security**: Role-based access control, encryption, and compliance with industry standards
+  - Grid compliance monitoring (NERC, FERC regulations)
+  - Audit trails for regulatory reporting
+
+### 1.4 Industry Applications
+
+The Data Aggregator Platform is designed to serve diverse industries with specialized requirements:
+
+#### Renewable Energy Sector
+- **Wind & Solar Farm Management**: Aggregate data from thousands of turbines, inverters, SCADA systems, and weather stations
+- **Predictive Maintenance**: ML-based failure prediction for gearboxes, generators, and power electronics
+- **Energy Trading Optimization**: Real-time forecasting and dispatch optimization for wholesale markets
+- **Grid Compliance**: Automated monitoring of frequency response, voltage ride-through, and ancillary services
+- **Performance Analytics**: Power curve analysis, degradation tracking, and loss attribution
+- See detailed use case in [UseCases.md](UseCases.md#renewable-energy-farm-data-management)
+
+#### Other Industries
+- **E-commerce**: Multi-platform sales data integration and customer analytics
+- **Financial Services**: Regulatory compliance reporting and risk management
+- **Healthcare**: Patient data integration with HIPAA compliance
+- **Manufacturing**: IoT sensor data processing and equipment monitoring
+- **Telecommunications**: Network performance and customer experience analytics
+- See additional use cases in [UseCases.md](UseCases.md)
 
 ## 2. Getting Started
 
@@ -610,6 +644,192 @@ Let's create a pipeline that aggregates sales data from multiple sources:
   }
 }
 ```
+
+**Advanced Example: Renewable Energy Wind Turbine Monitoring Pipeline**
+
+This example demonstrates a high-frequency, real-time pipeline for wind farm operations:
+
+**Step 1: Define multiple real-time sources**
+```json
+{
+  "sources": [
+    {
+      "name": "turbine_scada",
+      "connector_type": "OPC_UA",
+      "config": {
+        "endpoint": "opc.tcp://windfarm-01.example.com:4840",
+        "security_mode": "SignAndEncrypt",
+        "nodes": [
+          "ns=2;s=Turbine.PowerOutput",
+          "ns=2;s=Turbine.RotorSpeed",
+          "ns=2;s=Turbine.WindSpeed",
+          "ns=2;s=Turbine.GearboxTemp"
+        ],
+        "sampling_interval": 1000
+      }
+    },
+    {
+      "name": "weather_api",
+      "connector_type": "REST_API",
+      "config": {
+        "url": "https://api.weather.com/v1/forecasts",
+        "refresh_interval": 900000
+      }
+    },
+    {
+      "name": "grid_operator",
+      "connector_type": "API",
+      "config": {
+        "url": "https://api.grid-operator.com/v1/realtime",
+        "auth_method": "oauth2",
+        "refresh_interval": 5000
+      }
+    }
+  ]
+}
+```
+
+**Step 2: Real-time transformations and analytics**
+```json
+{
+  "transformations": [
+    {
+      "type": "power_curve_analysis",
+      "parameters": {
+        "wind_speed_field": "WindSpeed",
+        "power_output_field": "PowerOutput",
+        "manufacturer_curve": "vestas_v150_4.2mw",
+        "calculate_deviation": true
+      }
+    },
+    {
+      "type": "predictive_maintenance_scoring",
+      "algorithm": "random_forest",
+      "features": [
+        "GearboxTemp",
+        "VibrationLevel",
+        "OilPressure",
+        "OperatingHours"
+      ],
+      "output_field": "failure_probability",
+      "model_path": "/models/gearbox_failure_v2.pkl"
+    },
+    {
+      "type": "grid_compliance_check",
+      "regulations": ["NERC_PRC-024-2", "FERC_Order_842"],
+      "parameters": {
+        "frequency_tolerance": 0.2,
+        "voltage_tolerance": 0.1
+      }
+    },
+    {
+      "type": "energy_forecast",
+      "horizon": "PT6H",
+      "resolution": "PT15M",
+      "algorithm": "gradient_boosting",
+      "weather_integration": true
+    }
+  ]
+}
+```
+
+**Step 3: Multiple destinations with different purposes**
+```json
+{
+  "destinations": [
+    {
+      "name": "timescale_db",
+      "connector_type": "TimescaleDB",
+      "purpose": "time_series_storage",
+      "config": {
+        "table": "turbine_metrics",
+        "hypertable": true,
+        "retention_policy": "P90D"
+      }
+    },
+    {
+      "name": "real_time_dashboard",
+      "connector_type": "WebSocket",
+      "purpose": "live_monitoring",
+      "config": {
+        "channel": "operations_dashboard",
+        "update_frequency": 1000
+      }
+    },
+    {
+      "name": "alert_system",
+      "connector_type": "Kafka",
+      "purpose": "event_streaming",
+      "config": {
+        "topic": "turbine_alerts",
+        "filter": "failure_probability > 0.8 OR grid_violation = true"
+      }
+    },
+    {
+      "name": "data_warehouse",
+      "connector_type": "Snowflake",
+      "purpose": "analytics",
+      "config": {
+        "database": "RENEWABLE_ENERGY",
+        "schema": "WIND_OPERATIONS",
+        "table": "turbine_performance_daily",
+        "aggregation_period": "P1D"
+      }
+    }
+  ]
+}
+```
+
+**Step 4: High-frequency scheduling**
+```json
+{
+  "schedule": {
+    "type": "real_time",
+    "trigger": "data_arrival",
+    "max_latency_ms": 1000,
+    "batch_size": 100
+  }
+}
+```
+
+**Step 5: Advanced error handling and alerting**
+```json
+{
+  "error_handling": {
+    "retry_policy": {
+      "max_retries": 3,
+      "backoff_multiplier": 1.5,
+      "initial_delay_seconds": 1
+    },
+    "dead_letter_queue": {
+      "enabled": true,
+      "storage": "s3://failed-records/turbine-data/"
+    },
+    "alerts": [
+      {
+        "condition": "failure_probability > 0.8",
+        "severity": "high",
+        "notify": ["maintenance_team@example.com"],
+        "action": "create_work_order"
+      },
+      {
+        "condition": "grid_compliance_violation = true",
+        "severity": "critical",
+        "notify": ["grid_operator@example.com", "operations_manager@example.com"],
+        "action": "immediate_notification",
+        "escalation_time_minutes": 5
+      }
+    ]
+  }
+}
+```
+
+**Business Impact:**
+- **Real-time visibility**: Sub-second monitoring of 500+ wind turbines
+- **Predictive maintenance**: 30% reduction in unplanned downtime
+- **Grid compliance**: 100% automated monitoring with zero violations
+- **Energy optimization**: 2-5% increase in annual energy production
+- **Revenue improvement**: $1.5M annual benefit for 100 MW wind farm
 
 #### 5.1.3 Pipeline Execution
 
