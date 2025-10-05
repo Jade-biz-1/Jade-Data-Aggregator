@@ -1,0 +1,150 @@
+'use client';
+
+import { useState } from 'react';
+import { useAuthStore } from '@/stores/auth';
+import { Button } from '@/components/ui/button';
+import { 
+  Bell, 
+  ChevronDown, 
+  LogOut, 
+  Menu, 
+  Search, 
+  Settings, 
+  User 
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface HeaderProps {
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
+}
+
+export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+  };
+
+  return (
+    <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 shadow-soft">
+      {/* Left side */}
+      <div className="flex items-center space-x-4">
+        {showMenuButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            className="lg:hidden hover:bg-primary-50"
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        )}
+
+        {/* Search */}
+        <div className="hidden md:block">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400 group-focus-within:text-primary-600 transition-colors" />
+            </div>
+            <input
+              type="text"
+              className="block w-72 pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white text-sm transition-all duration-200"
+              placeholder="Search pipelines, connectors, transformations..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Right side */}
+      <div className="flex items-center space-x-3">
+        {/* Search button for mobile */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+        >
+          <Search className="h-5 w-5" />
+        </Button>
+
+        {/* Notifications */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="hover:bg-primary-50 relative"
+          >
+            <Bell className="h-5 w-5" />
+            {/* Notification badge */}
+            <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-gradient-to-r from-red-500 to-red-600 ring-2 ring-white shadow-medium animate-pulse" />
+          </Button>
+
+          {/* Notifications dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-large border border-gray-100 z-50 animate-slide-down">
+              <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-xl">
+                <h3 className="text-sm font-semibold text-primary-900">Notifications</h3>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                <div className="p-6 text-center text-sm text-gray-500">
+                  <Bell className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  No new notifications
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center space-x-3 p-2 rounded-xl hover:bg-primary-50 transition-all duration-200 group"
+          >
+            <div className="h-9 w-9 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-medium group-hover:shadow-large transition-shadow duration-200">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-sm font-semibold text-gray-900">
+            {user?.first_name && user?.last_name
+              ? `${user.first_name} ${user.last_name}`
+              : user?.username || 'User'}
+          </p>
+              <p className="text-xs text-gray-500">{user?.email}</p>
+            </div>
+            <ChevronDown className={cn(
+              'h-4 w-4 text-gray-400 transition-transform duration-200',
+              showUserMenu && 'rotate-180'
+            )} />
+          </button>
+
+          {/* User dropdown */}
+          {showUserMenu && (
+            <div className="absolute right-0 mt-3 w-52 bg-white rounded-xl shadow-large border border-gray-100 z-50 animate-slide-down">
+              <div className="py-2">
+                <a
+                  href="/settings"
+                  className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors duration-200"
+                >
+                  <Settings className="mr-3 h-4 w-4" />
+                  Settings
+                </a>
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors duration-200"
+                >
+                  <LogOut className="mr-3 h-4 w-4" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
