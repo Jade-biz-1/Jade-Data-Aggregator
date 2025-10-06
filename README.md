@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="docs/logo.png" alt="Data Aggregator Platform Logo" width="400"/>
+</div>
+
 # Data Aggregator Platform
 
 A comprehensive data integration solution designed to connect, process, and deliver data from multiple sources in a standardized format. The platform provides real-time and batch processing capabilities with an intuitive user interface for configuration and management.
