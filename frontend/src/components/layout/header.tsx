@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
-import { 
-  Bell, 
-  ChevronDown, 
-  LogOut, 
-  Menu, 
-  Search, 
-  Settings, 
-  User 
+import GlobalSearch from '@/components/search/GlobalSearch';
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,31 +45,18 @@ export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
           </Button>
         )}
 
-        {/* Search */}
+        {/* Global Search */}
         <div className="hidden md:block">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400 group-focus-within:text-primary-600 transition-colors" />
-            </div>
-            <input
-              type="text"
-              className="block w-72 pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white text-sm transition-all duration-200"
-              placeholder="Search pipelines, connectors, transformations..."
-            />
-          </div>
+          <GlobalSearch />
         </div>
       </div>
 
       {/* Right side */}
       <div className="flex items-center space-x-3">
         {/* Search button for mobile */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-        >
-          <Search className="h-5 w-5" />
-        </Button>
+        <div className="md:hidden">
+          <GlobalSearch />
+        </div>
 
         {/* Notifications */}
         <div className="relative">

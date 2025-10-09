@@ -1,0 +1,299 @@
+# Promtail Configuration for Data Aggregator Platform
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ==========================================================================
+  # Application Logs - Backend
+  # ==========================================================================
+  - job_name: backend
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: backend
+          app: data-aggregator
+          environment: production
+          __path__: /var/log/data-aggregator/backend/*.log
+
+    pipeline_stages:
+      # Parse JSON logs
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            logger: logger
+            user_id: user_id
+            request_id: request_id
+            endpoint: endpoint
+
+      # Extract timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+      # Add level as label
+      - labels:
+          level:
+          logger:
+
+      # Drop debug logs in production
+      - match:
+          selector: '{level="DEBUG"}'
+          action: drop
+
+  # ==========================================================================
+  # Application Logs - Frontend (Next.js)
+  # ==========================================================================
+  - job_name: frontend
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: frontend
+          app: data-aggregator
+          environment: production
+          __path__: /var/log/data-aggregator/frontend/*.log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            component: component
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+      - labels:
+          level:
+          component:
+
+  # ==========================================================================
+  # System Logs
+  # ==========================================================================
+  - job_name: syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          __path__: /var/log/syslog
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<process>\S+?)(\[(?P<pid>\d+)\])?:\s+(?P<message>.*)$'
+
+      - timestamp:
+          source: timestamp
+          format: Jan 02 15:04:05
+
+      - labels:
+          hostname:
+          process:
+
+  # ==========================================================================
+  # Nginx Access Logs
+  # ==========================================================================
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          type: access
+          __path__: /var/log/nginx/access.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<method>\S+) (?P<path>\S+) (?P<protocol>\S+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+
+      - timestamp:
+          source: time_local
+          format: 02/Jan/2006:15:04:05 -0700
+
+      - labels:
+          method:
+          status:
+
+  # ==========================================================================
+  # Nginx Error Logs
+  # ==========================================================================
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          type: error
+          __path__: /var/log/nginx/error.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] (?P<pid>\d+)#(?P<tid>\d+): \*(?P<cid>\d+) (?P<message>.*)$'
+
+      - timestamp:
+          source: timestamp
+          format: 2006/01/02 15:04:05
+
+      - labels:
+          level:
+
+  # ==========================================================================
+  # Docker Container Logs
+  # ==========================================================================
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values:
+              - "logging=promtail"
+
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: 'project'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
+
+    pipeline_stages:
+      # Try to parse as JSON first
+      - json:
+          expressions:
+            timestamp: time
+            level: level
+            message: msg
+
+      # If JSON parsing fails, treat entire line as message
+      - match:
+          selector: '{job="docker"}'
+          stages:
+            - regex:
+                expression: '^(?P<message>.*)$'
+
+  # ==========================================================================
+  # PostgreSQL Logs
+  # ==========================================================================
+  - job_name: postgres
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: postgres
+          __path__: /var/log/postgresql/*.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\] (?P<level>\w+):  (?P<message>.*)$'
+
+      - timestamp:
+          source: timestamp
+          format: 2006-01-02 15:04:05.000 MST
+
+      - labels:
+          level:
+
+  # ==========================================================================
+  # Redis Logs
+  # ==========================================================================
+  - job_name: redis
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: redis
+          __path__: /var/log/redis/*.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<pid>\d+):(?P<role>\w+) (?P<timestamp>\d+ \w+ \d{2}:\d{2}:\d{2}\.\d{3}) (?P<level>[\*\#\-\.]) (?P<message>.*)$'
+
+      - timestamp:
+          source: timestamp
+          format: 02 Jan 15:04:05.000
+
+      - labels:
+          level:
+          role:
+
+  # ==========================================================================
+  # Application Error Logs (Critical)
+  # ==========================================================================
+  - job_name: errors
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: errors
+          severity: critical
+          __path__: /var/log/data-aggregator/errors/*.log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            error_type: error_type
+            stack_trace: stack_trace
+            user_id: user_id
+            request_id: request_id
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+      - labels:
+          level:
+          error_type:
+
+  # ==========================================================================
+  # Audit Logs (Security)
+  # ==========================================================================
+  - job_name: audit
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: audit
+          type: security
+          __path__: /var/log/data-aggregator/audit/*.log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            action: action
+            user_id: user_id
+            resource: resource
+            result: result
+            ip_address: ip_address
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+      - labels:
+          action:
+          result:

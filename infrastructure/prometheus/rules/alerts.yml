@@ -1,0 +1,314 @@
+# Prometheus Alert Rules for Data Aggregator Platform
+
+groups:
+  # ==========================================================================
+  # Application Alerts
+  # ==========================================================================
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.endpoint }}"
+
+      # Slow API response time
+      - alert: SlowAPIResponse
+        expr: |
+          histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API response time is slow"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.endpoint }}"
+
+      # High request rate
+      - alert: HighRequestRate
+        expr: |
+          rate(http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is {{ $value }} req/s"
+
+  # ==========================================================================
+  # Authentication Alerts
+  # ==========================================================================
+  - name: authentication_alerts
+    interval: 30s
+    rules:
+      # High authentication failure rate
+      - alert: HighAuthFailureRate
+        expr: |
+          rate(auth_attempts_total{result="failed"}[5m]) / rate(auth_attempts_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value | humanizePercentage }}"
+
+      # Potential brute force attack
+      - alert: PotentialBruteForceAttack
+        expr: |
+          rate(auth_attempts_total{result="failed"}[1m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          component: auth
+        annotations:
+          summary: "Potential brute force attack detected"
+          description: "{{ $value }} failed login attempts per second"
+
+  # ==========================================================================
+  # Database Alerts
+  # ==========================================================================
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # Database connection pool exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          db_connections_active / (db_connections_active + db_connections_idle) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value | humanizePercentage }} of database connections in use"
+
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database queries are slow"
+          description: "95th percentile query time is {{ $value }}s for {{ $labels.operation }}"
+
+      # High database error rate
+      - alert: HighDatabaseErrorRate
+        expr: |
+          rate(db_queries_total{status="error"}[5m]) / rate(db_queries_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "High database error rate"
+          description: "Database error rate is {{ $value | humanizePercentage }}"
+
+  # ==========================================================================
+  # Pipeline Alerts
+  # ==========================================================================
+  - name: pipeline_alerts
+    interval: 60s
+    rules:
+      # Pipeline execution failures
+      - alert: HighPipelineFailureRate
+        expr: |
+          rate(pipeline_executions_total{status="failed"}[10m]) / rate(pipeline_executions_total[10m]) > 0.2
+        for: 10m
+        labels:
+          severity: critical
+          component: pipeline
+        annotations:
+          summary: "High pipeline failure rate"
+          description: "Pipeline {{ $labels.pipeline_id }} failure rate is {{ $value | humanizePercentage }}"
+
+      # Long-running pipeline
+      - alert: LongRunningPipeline
+        expr: |
+          histogram_quantile(0.95, rate(pipeline_execution_duration_seconds_bucket[10m])) > 3600
+        for: 10m
+        labels:
+          severity: warning
+          component: pipeline
+        annotations:
+          summary: "Pipeline execution is taking too long"
+          description: "Pipeline {{ $labels.pipeline_id }} 95th percentile execution time is {{ $value }}s"
+
+  # ==========================================================================
+  # Connector Alerts
+  # ==========================================================================
+  - name: connector_alerts
+    interval: 60s
+    rules:
+      # Connector failures
+      - alert: HighConnectorFailureRate
+        expr: |
+          rate(connector_requests_total{status="failed"}[10m]) / rate(connector_requests_total[10m]) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          component: connector
+        annotations:
+          summary: "High connector failure rate"
+          description: "Connector {{ $labels.connector_id }} failure rate is {{ $value | humanizePercentage }}"
+
+      # Slow connector response
+      - alert: SlowConnectorResponse
+        expr: |
+          histogram_quantile(0.95, rate(connector_response_time_seconds_bucket[10m])) > 30
+        for: 10m
+        labels:
+          severity: warning
+          component: connector
+        annotations:
+          summary: "Connector response time is slow"
+          description: "Connector {{ $labels.connector_id }} 95th percentile response time is {{ $value }}s"
+
+  # ==========================================================================
+  # System Resource Alerts
+  # ==========================================================================
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          system_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      # Critical CPU usage
+      - alert: CriticalCPUUsage
+        expr: |
+          system_cpu_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (system_memory_usage_bytes{type="used"} / system_memory_usage_bytes{type="total"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: |
+          (system_disk_usage_bytes{type="used"} / system_disk_usage_bytes{type="total"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value }}%"
+
+  # ==========================================================================
+  # Cache Alerts
+  # ==========================================================================
+  - name: cache_alerts
+    interval: 60s
+    rules:
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: |
+          rate(cache_hits_total[10m]) / (rate(cache_hits_total[10m]) + rate(cache_misses_total[10m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for {{ $labels.cache_type }}"
+
+  # ==========================================================================
+  # Rate Limiting Alerts
+  # ==========================================================================
+  - name: rate_limit_alerts
+    interval: 60s
+    rules:
+      # High rate limit exceeded events
+      - alert: HighRateLimitExceeded
+        expr: |
+          rate(rate_limit_exceeded_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: rate_limiter
+        annotations:
+          summary: "High rate limit exceeded events"
+          description: "{{ $value }} rate limit exceeded events per second for {{ $labels.endpoint }}"
+
+  # ==========================================================================
+  # WebSocket Alerts
+  # ==========================================================================
+  - name: websocket_alerts
+    interval: 60s
+    rules:
+      # High WebSocket error rate
+      - alert: HighWebSocketErrorRate
+        expr: |
+          rate(websocket_errors_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+        annotations:
+          summary: "High WebSocket error rate"
+          description: "{{ $value }} WebSocket errors per second for {{ $labels.endpoint }}"
+
+  # ==========================================================================
+  # Prometheus Self-Monitoring
+  # ==========================================================================
+  - name: prometheus_alerts
+    interval: 60s
+    rules:
+      # Prometheus scrape failures
+      - alert: PrometheusScrapeFailing
+        expr: |
+          up == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: prometheus
+        annotations:
+          summary: "Prometheus scrape failing"
+          description: "Prometheus cannot scrape {{ $labels.job }} target"
+
+      # Prometheus evaluation slow
+      - alert: PrometheusEvaluationSlow
+        expr: |
+          prometheus_rule_group_last_duration_seconds > prometheus_rule_group_interval_seconds
+        for: 5m
+        labels:
+          severity: warning
+          component: prometheus
+        annotations:
+          summary: "Prometheus rule evaluation is slow"
+          description: "Rule group {{ $labels.rule_group }} evaluation took {{ $value }}s"

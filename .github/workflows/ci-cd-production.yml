@@ -1,0 +1,370 @@
+# CI/CD Pipeline for Production Deployment
+# Data Aggregator Platform
+
+name: Production CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: 'Deployment type'
+        required: true
+        default: 'blue-green'
+        type: choice
+        options:
+          - blue-green
+          - rolling
+          - canary
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ==========================================================================
+  # Test Stage
+  # ==========================================================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install poetry
+          poetry install
+
+      - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          cd backend
+          poetry run pytest --cov=. --cov-report=xml --cov-report=term
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test
+
+      - name: Run E2E tests
+        run: |
+          cd frontend
+          npx playwright install --with-deps
+          npm run test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+
+  # ==========================================================================
+  # Security Scan Stage
+  # ==========================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --file=backend/pyproject.toml
+
+  # ==========================================================================
+  # Build Stage
+  # ==========================================================================
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [test, security]
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      backend_image: ${{ steps.meta-backend.outputs.tags }}
+      frontend_image: ${{ steps.meta-frontend.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract backend metadata
+        id: meta-backend
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:buildcache,mode=max
+
+      - name: Extract frontend metadata
+        id: meta-frontend
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:buildcache,mode=max
+
+  # ==========================================================================
+  # Deploy to Production (Blue-Green)
+  # ==========================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    environment:
+      name: production
+      url: https://dataaggregator.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name dataaggregator-prod --region us-east-1
+
+      - name: Deploy with blue-green strategy
+        run: |
+          # Deploy to green environment
+          kubectl apply -f infrastructure/kubernetes/production/deployment-green.yaml
+
+          # Wait for green deployment to be ready
+          kubectl rollout status deployment/dataaggregator-backend-green -n production --timeout=5m
+          kubectl rollout status deployment/dataaggregator-frontend-green -n production --timeout=5m
+
+          # Run smoke tests on green environment
+          kubectl run smoke-test --rm -i --restart=Never \
+            --image=curlimages/curl:latest \
+            -- sh -c "curl -f http://dataaggregator-backend-green:8001/health/ready || exit 1"
+
+          # Switch traffic to green (update service selector)
+          kubectl patch service dataaggregator-backend -n production \
+            -p '{"spec":{"selector":{"version":"green"}}}'
+          kubectl patch service dataaggregator-frontend -n production \
+            -p '{"spec":{"selector":{"version":"green"}}}'
+
+          # Monitor for 5 minutes
+          sleep 300
+
+          # Check for errors
+          ERROR_RATE=$(kubectl logs -n production -l app=dataaggregator,version=green --tail=1000 | grep ERROR | wc -l)
+          if [ $ERROR_RATE -gt 10 ]; then
+            echo "High error rate detected, rolling back"
+            exit 1
+          fi
+
+          # Delete old blue deployment
+          kubectl delete deployment dataaggregator-backend-blue -n production || true
+          kubectl delete deployment dataaggregator-frontend-blue -n production || true
+
+          # Rename green to blue for next deployment
+          kubectl label deployment dataaggregator-backend-green -n production version=blue --overwrite
+          kubectl label deployment dataaggregator-frontend-green -n production version=blue --overwrite
+
+      - name: Run database migrations
+        run: |
+          kubectl run migration --rm -i --restart=Never \
+            --image=${{ needs.build.outputs.backend_image }} \
+            --env-file=infrastructure/environments/.env.production \
+            -- poetry run alembic upgrade head
+
+      - name: Notify Sentry of deployment
+        run: |
+          curl -X POST https://sentry.io/api/0/organizations/${{ secrets.SENTRY_ORG }}/releases/ \
+            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "version": "${{ github.sha }}",
+              "projects": ["dataaggregator"],
+              "refs": [{
+                "repository": "${{ github.repository }}",
+                "commit": "${{ github.sha }}"
+              }]
+            }'
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "✅ Production deployment successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment Successful* ✅\n*Commit:* ${{ github.sha }}\n*Actor:* ${{ github.actor }}\n*Environment:* Production"
+                  }
+                }
+              ]
+            }
+
+  # ==========================================================================
+  # Rollback (Manual trigger)
+  # ==========================================================================
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deployment_type == 'rollback'
+
+    environment:
+      name: production
+
+    steps:
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name dataaggregator-prod --region us-east-1
+
+      - name: Rollback to previous version
+        run: |
+          # Switch traffic back to blue
+          kubectl patch service dataaggregator-backend -n production \
+            -p '{"spec":{"selector":{"version":"blue"}}}'
+          kubectl patch service dataaggregator-frontend -n production \
+            -p '{"spec":{"selector":{"version":"blue"}}}'
+
+          # Delete green deployment
+          kubectl delete deployment dataaggregator-backend-green -n production || true
+          kubectl delete deployment dataaggregator-frontend-green -n production || true
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "⚠️ Production rollback executed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Rollback* ⚠️\n*Actor:* ${{ github.actor }}\n*Reason:* Manual rollback triggered"
+                  }
+                }
+              ]
+            }

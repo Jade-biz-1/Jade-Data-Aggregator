@@ -1,0 +1,233 @@
+# Alertmanager Configuration for Data Aggregator Platform
+
+global:
+  # Global configuration
+  resolve_timeout: 5m
+  smtp_from: 'alerts@dataaggregator.com'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  # Default receiver
+  receiver: 'default'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'service']
+
+  # Wait before sending initial notification
+  group_wait: 10s
+
+  # Wait before sending additional alerts for same group
+  group_interval: 10s
+
+  # Minimum interval before resending alert
+  repeat_interval: 3h
+
+  # Child routes
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 1h
+      continue: true
+
+    # Warning alerts - less urgent
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 6h
+
+    # Database alerts
+    - match:
+        component: database
+      receiver: 'database-team'
+      group_by: ['alertname', 'component']
+
+    # Security alerts
+    - match:
+        component: auth
+      receiver: 'security-team'
+      group_by: ['alertname']
+      group_wait: 5s
+
+    # Pipeline alerts
+    - match:
+        component: pipeline
+      receiver: 'data-engineering-team'
+
+    # System resource alerts
+    - match:
+        component: system
+      receiver: 'infrastructure-team'
+
+# Inhibit rules - suppress certain alerts when others are firing
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+  # Inhibit individual component alerts if system is down
+  - source_match:
+      alertname: 'SystemDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['cluster']
+
+# Receivers configuration
+receivers:
+  # ==========================================================================
+  # Default receiver
+  # ==========================================================================
+  - name: 'default'
+    email_configs:
+      - to: 'team@dataaggregator.com'
+        headers:
+          Subject: '[DataAggregator] Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <body>
+            <h2>Alert: {{ .GroupLabels.alertname }}</h2>
+            <p><strong>Status:</strong> {{ .Status }}</p>
+            <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+            <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+            <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+            <hr>
+            <p><strong>Details:</strong></p>
+            <ul>
+            {{ range .Alerts }}
+              <li>{{ .Labels.instance }}: {{ .Annotations.message }}</li>
+            {{ end }}
+            </ul>
+          </body>
+          </html>
+
+  # ==========================================================================
+  # Critical alerts - multiple channels
+  # ==========================================================================
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@dataaggregator.com'
+        headers:
+          Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }}'
+        send_resolved: true
+
+    # Slack integration
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-critical'
+        title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Status:* {{ .Status }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+        send_resolved: true
+
+    # PagerDuty integration
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .CommonAnnotations.summary }}'
+        severity: 'critical'
+
+    # Webhook for custom integration
+    webhook_configs:
+      - url: 'http://alertmanager-webhook:5000/critical'
+        send_resolved: true
+
+  # ==========================================================================
+  # Warning alerts - email only
+  # ==========================================================================
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'team@dataaggregator.com'
+        headers:
+          Subject: '⚠️ [WARNING] {{ .GroupLabels.alertname }}'
+        send_resolved: true
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts-warning'
+        title: '⚠️ Warning: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+
+  # ==========================================================================
+  # Database team
+  # ==========================================================================
+  - name: 'database-team'
+    email_configs:
+      - to: 'dba@dataaggregator.com'
+        headers:
+          Subject: '[Database] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#team-database'
+        title: 'Database Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+
+  # ==========================================================================
+  # Security team
+  # ==========================================================================
+  - name: 'security-team'
+    email_configs:
+      - to: 'security@dataaggregator.com'
+        headers:
+          Subject: '🔒 [SECURITY] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#security-alerts'
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Requires immediate investigation*
+
+  # ==========================================================================
+  # Data engineering team
+  # ==========================================================================
+  - name: 'data-engineering-team'
+    email_configs:
+      - to: 'data-eng@dataaggregator.com'
+        headers:
+          Subject: '[Pipeline] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#team-data-eng'
+        title: 'Pipeline Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+
+  # ==========================================================================
+  # Infrastructure team
+  # ==========================================================================
+  - name: 'infrastructure-team'
+    email_configs:
+      - to: 'infra@dataaggregator.com'
+        headers:
+          Subject: '[Infrastructure] {{ .GroupLabels.alertname }}'
+
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#team-infrastructure'
+        title: 'Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+
+  # ==========================================================================
+  # Null receiver (for testing/silencing)
+  # ==========================================================================
+  - name: 'null'
