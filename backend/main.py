@@ -5,8 +5,9 @@ from backend.api.v1.api import api_router
 from backend.core.config import settings
 from backend.core.security import get_current_active_user
 from backend.schemas.user import User
-from backend.core.database import engine, Base
+from backend.core.database import engine, Base, get_db
 from backend.middleware.session_timeout import SessionTimeoutMiddleware
+from backend.core.init_db import init_db
 # Import all models to register them with SQLAlchemy
 from backend import models
 from backend.models import pipeline_run, auth_token
@@ -39,6 +40,14 @@ def create_app():
         # Create database tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+        # Initialize database with default data (admin user, etc.)
+        async for db in get_db():
+            try:
+                await init_db(db)
+            finally:
+                await db.close()
+            break  # Only run once
 
     @app.get("/health")
     async def health_check():

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
 import GlobalSearch from '@/components/search/GlobalSearch';
+import ChangePasswordModal from '@/components/auth/ChangePasswordModal';
 import {
   Bell,
   ChevronDown,
@@ -11,7 +12,8 @@ import {
   Menu,
   Search,
   Settings,
-  User
+  User,
+  KeyRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,10 +25,16 @@ interface HeaderProps {
 export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
+    setShowUserMenu(false);
+  };
+
+  const handleChangePasswordClick = () => {
+    setShowChangePassword(true);
     setShowUserMenu(false);
   };
 
@@ -122,6 +130,13 @@ export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
                   Settings
                 </a>
                 <button
+                  onClick={handleChangePasswordClick}
+                  className="flex w-full items-center px-4 py-3 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors duration-200"
+                >
+                  <KeyRound className="mr-3 h-4 w-4" />
+                  Change Password
+                </button>
+                <button
                   onClick={handleLogout}
                   className="flex w-full items-center px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors duration-200"
                 >
@@ -133,6 +148,12 @@ export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
           )}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
     </header>
   );
 }

@@ -31,6 +31,7 @@ class User(Base):
     preferences = relationship("UserPreference", back_populates="user", uselist=False)
     dashboard_layouts = relationship("DashboardLayout", back_populates="user")
     widget_preferences = relationship("WidgetPreference", back_populates="user")
+    activity_logs = relationship("UserActivityLog", back_populates="user")
 
     # CRITICAL FIX: Added missing relationships as per documentation
     pipelines = relationship("Pipeline", back_populates="owner")

@@ -25,13 +25,13 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const result = await apiClient.login(credentials.username, credentials.password);
-          
-          // For now, we'll get the user from the current user endpoint
-          const user = await apiClient.getCurrentUser();
-          
-          // Store token in cookies
+
+          // Store token in cookies first
           Cookies.set('access_token', result.access_token, { expires: 7 });
-          
+
+          // Now get the user with the token set
+          const user = await apiClient.getCurrentUser();
+
           set({
             user,
             isAuthenticated: true,
@@ -54,13 +54,16 @@ export const useAuthStore = create<AuthState>()(
       register: async (userData) => {
         set({ isLoading: true });
         try {
-          // Note: The API doesn't seem to have a register endpoint yet
-          // This is a placeholder - we may need to implement this
-          const user = await apiClient.getCurrentUser();
-          
-          // For now, we'll just set a dummy token
-          Cookies.set('access_token', 'dummy_token', { expires: 7 });
-          
+          // Register the user - backend returns the user object
+          const user = await apiClient.register(userData);
+
+          // After registration, log them in to get a token
+          const result = await apiClient.login(userData.username, userData.password);
+
+          // Store token in cookies
+          Cookies.set('access_token', result.access_token, { expires: 7 });
+
+          // Use the user data we already got from registration
           set({
             user,
             isAuthenticated: true,

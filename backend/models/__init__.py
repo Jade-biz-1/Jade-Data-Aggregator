@@ -2,6 +2,7 @@ from .user import User
 from .pipeline import Pipeline
 from .connector import Connector
 from .transformation import Transformation
+from .activity_log import UserActivityLog
 from .file_upload import (
     FileUpload,
     FileProcessingJob,
@@ -27,6 +28,7 @@ __all__ = [
     "Pipeline",
     "Connector",
     "Transformation",
+    "UserActivityLog",
     "FileUpload",
     "FileProcessingJob",
     "FileConversion",

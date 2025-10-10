@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Form, BackgroundTasks, Request
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +20,12 @@ from backend.core.database import get_db
 from backend.core.config import settings
 from backend.core.security import get_current_active_user
 from backend.services.auth_service import auth_service
+from backend.services.activity_log_service import (
+    log_login,
+    log_logout,
+    log_failed_login,
+    log_password_change
+)
 
 
 router = APIRouter()
@@ -27,7 +33,8 @@ router = APIRouter()
 
 @router.post("/login", response_model=Token)
 async def login(
-    username: str = Form(...), 
+    request: Request,
+    username: str = Form(...),
     password: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
@@ -37,23 +44,31 @@ async def login(
     # Fetch user from the database
     user = await crud.user.get_by_username(db, username=username)
     if not user or not security.verify_password(password, user.hashed_password):
+        # Log failed login attempt
+        await log_failed_login(db, username, request)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
+        # Log failed login attempt for inactive user
+        await log_failed_login(db, username, request)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Inactive user",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
         subject=user.username, expires_delta=access_token_expires
     )
+
+    # Log successful login
+    await log_login(db, user.id, request)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -222,3 +237,64 @@ async def cleanup_expired_tokens(
         return {"message": f"Cleaned up {count} expired tokens"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/change-password")
+async def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Change password for the currently authenticated user
+    Requires current password verification
+    """
+    # Fetch full user from database (with hashed_password)
+    from backend.models.user import User as UserModel
+    from sqlalchemy import select
+
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == current_user.id)
+    )
+    db_user = result.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Verify current password
+    if not security.verify_password(current_password, db_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+
+    # Validate new password strength
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters long"
+        )
+
+    # Check if new password contains both letters and numbers
+    has_letter = any(c.isalpha() for c in new_password)
+    has_number = any(c.isdigit() for c in new_password)
+
+    if not (has_letter and has_number):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must contain both letters and numbers"
+        )
+
+    # Update password
+    db_user.hashed_password = security.get_password_hash(new_password)
+    await db.commit()
+
+    # Log password change event
+    await log_password_change(db, current_user.id, request)
+
+    return {"message": "Password changed successfully"}

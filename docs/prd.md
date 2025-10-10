@@ -131,10 +131,50 @@ Mid to large enterprises with multiple data sources requiring integration and st
   - Performance metrics
   - Error log visualization
 
-- **FR-5.3**: User management
-  - Role-based access control
-  - User authentication and authorization
-  - Activity logging
+- **FR-5.3**: User authentication and access control
+  - **FR-5.3.1**: Initial application access
+    - Application must show login screen on launch
+    - Registration option available for new users
+    - No access to application features without authentication
+
+  - **FR-5.3.2**: Default administrator account
+    - System must provide a default admin user on first deployment
+    - Default credentials: Username: `admin`, Password: `password`
+    - Admin must be prompted to change password on first login (recommended)
+
+  - **FR-5.3.3**: User password management
+    - All authenticated users must have access to "Change Password" functionality
+    - Change password requires current password verification
+    - Password strength validation (minimum 8 characters, mix of letters and numbers)
+    - Password change confirmation via email notification
+
+  - **FR-5.3.4**: Administrator user management
+    - Admin users can view all system users
+    - Admin users can create new user accounts
+    - Admin users can edit user details (username, email, role)
+    - Admin users can reset user passwords (generate temporary password)
+    - Admin users can activate/deactivate user accounts
+    - Admin users can assign roles (admin, user)
+
+  - **FR-5.3.5**: Inactive user restrictions
+    - Inactive users cannot access any application pages except login
+    - Inactive users attempting to access application see dedicated "Account Inactive" page
+    - "Account Inactive" page displays message: "Your account is inactive. Please contact the administrator."
+    - Page must display administrator contact information (email from system settings)
+    - All API calls from inactive users must return 403 Forbidden status
+    - Frontend must prevent inactive users from navigating to any protected routes
+
+  - **FR-5.3.6**: Role-based access control
+    - Two primary roles: Admin and User
+    - Admin role has full system access including user management
+    - User role has access to pipelines, connectors, transformations, and monitoring
+    - Role-based menu visibility and feature access
+
+  - **FR-5.3.7**: Activity logging
+    - Log all user authentication events (login, logout, failed attempts)
+    - Log all user management actions (create, update, deactivate)
+    - Log all password change events
+    - Admin audit trail for compliance
 
 ### 3.6 API & Integration
 - **FR-6.1**: Public API

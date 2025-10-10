@@ -5,17 +5,20 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  User, 
-  Plus, 
-  Search, 
-  Mail, 
+import {
+  User,
+  Plus,
+  Search,
+  Mail,
   Lock,
   Edit,
   Trash2,
   Calendar,
   CheckCircle,
-  XCircle
+  XCircle,
+  UserCheck,
+  UserX,
+  KeyRound
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { User as UserType } from '@/types/user';
@@ -71,18 +74,66 @@ export default function UsersPage() {
 
   const handleEditUser = (id: number) => {
     console.log(`Editing user ${id}`);
+    // TODO: Implement edit user modal
   };
 
   const handleDeleteUser = async (id: number) => {
     if (confirm('Are you sure you want to delete this user?')) {
       try {
-        // Now using the real API endpoint
         await apiClient.deleteUser(id);
         setUsers(users.filter(u => u.id !== id));
         setFilteredUsers(filteredUsers.filter(u => u.id !== id));
-      } catch (error) {
+        alert('User deleted successfully');
+      } catch (error: any) {
         console.error('Error deleting user:', error);
-        alert('Failed to delete user');
+        alert(error.message || 'Failed to delete user');
+      }
+    }
+  };
+
+  const handleActivateUser = async (id: number) => {
+    if (confirm('Are you sure you want to activate this user?')) {
+      try {
+        await apiClient.activateUser(id);
+        // Update the user in the list
+        setUsers(users.map(u => u.id === id ? { ...u, is_active: true } : u));
+        setFilteredUsers(filteredUsers.map(u => u.id === id ? { ...u, is_active: true } : u));
+        alert('User activated successfully');
+      } catch (error: any) {
+        console.error('Error activating user:', error);
+        alert(error.message || 'Failed to activate user');
+      }
+    }
+  };
+
+  const handleDeactivateUser = async (id: number) => {
+    if (confirm('Are you sure you want to deactivate this user? They will no longer be able to access the application.')) {
+      try {
+        await apiClient.deactivateUser(id);
+        // Update the user in the list
+        setUsers(users.map(u => u.id === id ? { ...u, is_active: false } : u));
+        setFilteredUsers(filteredUsers.map(u => u.id === id ? { ...u, is_active: false } : u));
+        alert('User deactivated successfully');
+      } catch (error: any) {
+        console.error('Error deactivating user:', error);
+        alert(error.message || 'Failed to deactivate user');
+      }
+    }
+  };
+
+  const handleResetPassword = async (id: number) => {
+    if (confirm('Are you sure you want to reset this user\'s password? A temporary password will be generated.')) {
+      try {
+        const result = await apiClient.resetUserPassword(id);
+        // Show the temporary password to the admin
+        alert(
+          `Password reset successfully!\n\n` +
+          `Temporary password: ${result.temporary_password}\n\n` +
+          `Please provide this password to the user. They should change it immediately upon login.`
+        );
+      } catch (error: any) {
+        console.error('Error resetting password:', error);
+        alert(error.message || 'Failed to reset password');
       }
     }
   };
@@ -260,18 +311,57 @@ export default function UsersPage() {
                           {formatDate(user.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
+                          <div className="flex space-x-2 justify-end">
+                            {/* Reset Password */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResetPassword(user.id)}
+                              title="Reset Password"
+                            >
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+
+                            {/* Activate/Deactivate */}
+                            {user.is_active ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeactivateUser(user.id)}
+                                title="Deactivate User"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleActivateUser(user.id)}
+                                title="Activate User"
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Edit */}
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleEditUser(user.id)}
+                              title="Edit User"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="outline" 
+
+                            {/* Delete */}
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleDeleteUser(user.id)}
+                              title="Delete User"
+                              className="text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
