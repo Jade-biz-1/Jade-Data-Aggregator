@@ -36,13 +36,17 @@
 23. **✅ docs/runbook.md** - Production operations runbook (on-call procedures, incident response)
 24. **✅ docs/frontend-optimization.md** - Frontend performance optimization guide
 
-### Phase 7G Documentation (Created October 9, 2025) ✨ **NEW**
+### Phase 7G Documentation (Created October 9, 2025)
 25. **✅ docs/PHASE_7G_USER_MANAGEMENT_SUMMARY.md** - Phase 7G implementation summary (User management features)
 26. **✅ PHASE_7G_QUICKSTART.md** - Quick start guide for Phase 7G (Enhanced user management)
 
+### Phase 8 Documentation (Created October 10, 2025) ✨ **NEW**
+27. **✅ PHASE_8_IMPLEMENTATION_PLAN.md** - Phase 8 detailed implementation plan (Enhanced RBAC & System Maintenance)
+28. **✅ PHASE_8_DEVELOPER_ROLE_ADDENDUM.md** - Developer role specification and implementation details
+
 ### Cloud Deployment Documentation
-27. **✅ docs/AzureDeploymentRequirements.md** - Detailed Azure deployment guide
-28. **✅ docs/GCPDeploymentRequirements.md** - Detailed GCP deployment guide
+29. **✅ docs/AzureDeploymentRequirements.md** - Detailed Azure deployment guide
+30. **✅ docs/GCPDeploymentRequirements.md** - Detailed GCP deployment guide
 
 ---
 
@@ -101,7 +105,7 @@
 
 ## 📊 Documentation Statistics (Updated October 10, 2025)
 
-- **Total Active Documents**: 28 documents (100% complete for Phase 7F/7G)
+- **Total Active Documents**: 30 documents (includes Phase 8 planning with Developer role)
 - **Total Archived Documents**: 7 historical completion summaries
 - **Production Documentation**: 7 critical docs ✅ (LICENSE, CONTRIBUTING, security, deployment, troubleshooting, runbook, frontend-optimization)
 - **API Endpoints Documented**: 185 (179 + 6 new in Phase 7G)

@@ -2,8 +2,8 @@
 
 ## Document Information
 - **Product Name**: Data Aggregator Platform
-- **Version**: 1.0
-- **Date**: October 9, 2025 (Last Updated)
+- **Version**: 1.1
+- **Date**: October 10, 2025 (Last Updated)
 - **Author**: Business Analyst
 
 ## 1. Product Overview
@@ -137,10 +137,20 @@ Mid to large enterprises with multiple data sources requiring integration and st
     - Registration option available for new users
     - No access to application features without authentication
 
-  - **FR-5.3.2**: Default administrator account
-    - System must provide a default admin user on first deployment
-    - Default credentials: Username: `admin`, Password: `password`
-    - Admin must be prompted to change password on first login (recommended)
+  - **FR-5.3.2**: Default system accounts
+    - **Default Administrator Account**:
+      - System must provide a default admin user on first deployment
+      - Default credentials: Username: `admin`, Password: `password`
+      - Admin must be prompted to change password on first login (recommended)
+
+    - **Default Developer Account** (Development environments only):
+      - Created when environment variable `CREATE_DEV_USER=true`
+      - Default credentials: Username: `dev`, Password: `dev12345`
+      - Initially created as **INACTIVE** (is_active=false)
+      - Assigned Developer role by default
+      - Admin must manually activate when needed
+      - **Security measure**: Failed login attempts to 'dev' user always return "Invalid username or password" (never reveals user existence)
+      - **Production**: Should be deactivated or removed before production deployment
 
   - **FR-5.3.3**: User password management
     - All authenticated users must have access to "Change Password" functionality
@@ -164,17 +174,144 @@ Mid to large enterprises with multiple data sources requiring integration and st
     - All API calls from inactive users must return 403 Forbidden status
     - Frontend must prevent inactive users from navigating to any protected routes
 
-  - **FR-5.3.6**: Role-based access control
-    - Two primary roles: Admin and User
-    - Admin role has full system access including user management
-    - User role has access to pipelines, connectors, transformations, and monitoring
-    - Role-based menu visibility and feature access
+  - **FR-5.3.6**: Role-based access control (Enhanced - 6 Roles)
+    - **Admin**: Full system administration capabilities
+      - User management (create, edit, delete, activate/deactivate)
+      - System configuration and settings
+      - Database cleanup and maintenance operations
+      - Access to all system features and data
+      - View and manage activity logs
+      - System health monitoring and diagnostics
+      - Can assign any role to any user including Developer role
+      - Cannot be modified by Developer role users
+
+    - **Developer**: Development and testing capabilities (Development-only role)
+      - **Purpose**: Testing, debugging, and development activities
+      - **Permissions**: Nearly admin-level access + Designer + Executor + Executive combined
+      - Full user management capabilities (except admin user modifications)
+      - Full pipeline design, execution, and monitoring
+      - Full access to analytics and reports
+      - System cleanup and maintenance operations
+      - View and manage activity logs
+      - **Restrictions on 'admin' user only**:
+        - Cannot change admin user's role
+        - Cannot reset admin user's password
+        - Cannot deactivate admin user
+        - Cannot delete admin user
+      - **Production safeguard**: Automatically restricted in production environments unless explicitly enabled
+      - **Assignment control**: Only Admin can assign/remove Developer role
+      - **Visibility**: Not intended for production use
+
+    - **Designer**: Pipeline and workflow design capabilities
+      - Create, edit, and delete pipelines
+      - Create, edit, and delete connectors
+      - Design data transformations
+      - Configure data workflows and mappings
+      - Test and validate pipeline configurations
+      - No access to user management or system administration
+      - No ability to execute pipelines in production
+
+    - **Executor**: Pipeline execution and monitoring capabilities
+      - Execute pipelines (start, stop, pause)
+      - Monitor pipeline execution status
+      - View dashboards and analytics
+      - Access to monitoring and alerting features
+      - View execution logs and metrics
+      - No ability to modify pipeline configurations
+      - No access to user management
+
+    - **Viewer** (Normal User): Read-only access
+      - View pipeline configurations (read-only)
+      - View dashboards and reports
+      - View execution history and logs
+      - No ability to create, edit, or execute pipelines
+      - No access to user management or system administration
+      - **Default role**: All newly created users are assigned Viewer role by default
+
+    - **Executive**: Business intelligence and analytics access
+      - Full access to dashboards and analytics
+      - View user activity and system metrics
+      - Access to business intelligence reports
+      - Export data and reports
+      - View all pipelines and execution history
+      - No ability to modify configurations or execute pipelines
+      - No access to system administration
+
+    - **Role Assignment**:
+      - Users can have only one primary role
+      - Admin can assign and modify user roles
+      - Developer role can only be assigned/removed by Admin
+      - Role changes take effect immediately upon login
+      - Role-based menu visibility and feature access
+      - API endpoints protected by role-based permissions
+      - New users default to Viewer role
 
   - **FR-5.3.7**: Activity logging
     - Log all user authentication events (login, logout, failed attempts)
     - Log all user management actions (create, update, deactivate)
     - Log all password change events
     - Admin audit trail for compliance
+
+  - **FR-5.3.8**: Password reset protection
+    - Password reset testing must not use the default 'admin' account
+    - System must prevent password reset on 'admin' account via UI
+    - Admin account password can only be changed via "Change Password" functionality
+    - Warning message displayed when attempting to reset admin password
+    - Separate test users must be created for password reset testing
+
+  - **FR-5.3.9**: Database initialization and reset
+    - Database initialization requires explicit confirmation on deployment
+    - System must prompt for confirmation before creating/resetting database
+    - Confirmation prompt must display warning about data loss
+    - Production deployments must have safety mechanism to prevent accidental reset
+    - Database reset operations must be logged in activity logs
+    - Option to skip database initialization for existing deployments
+
+  - **FR-5.3.10**: System cleanup and maintenance
+    - **Cleanup Services**: Admin-accessible backend services for system maintenance
+      - Clean old activity logs (older than configured retention period)
+      - Clean orphaned data (pipelines without owners, etc.)
+      - Clean temporary files and cache
+      - Clean old execution logs beyond retention period
+      - Vacuum and optimize database tables
+      - Clear expired sessions
+
+    - **Admin UI for Cleanup**:
+      - Dedicated admin panel for system maintenance
+      - One-click cleanup operations with confirmation
+      - Display statistics before and after cleanup
+      - Show disk space saved and records removed
+      - Schedule automatic cleanup tasks
+      - View cleanup history and logs
+      - Export cleanup reports
+
+  - **FR-5.3.11**: Developer role production safeguards
+    - **Purpose**: Prevent Developer role usage in production while allowing emergency override
+
+    - **Automatic Enforcement** (when `ENVIRONMENT=production`):
+      - System prevents creating new users with Developer role
+      - System prevents assigning Developer role to existing users
+      - Dashboard shows warning if Developer role users exist
+      - Activity logs flag all Developer role actions with WARNING level
+
+    - **Admin Override Capability**:
+      - Setting: `ALLOW_DEV_ROLE_IN_PRODUCTION` stored in database (not environment variable)
+      - Default: `false` for production environments
+      - Admin can enable via UI Settings panel for emergency debugging
+      - When enabled:
+        - Prominent warning banner: "Debug Mode Active - Developer access enabled"
+        - Banner visible only to Admin and Developer role users
+        - All Developer role assignments/usage logged in activity logs
+        - Auto-expires after configurable time (default: 24 hours)
+        - Email/notification sent to all admins when enabled
+        - Automatic reminder to disable after expiration
+
+    - **Security Measures**:
+      - Full audit trail of all Developer role activities in production
+      - Activity log entries marked with WARNING level
+      - Notifications to admin team when Debug Mode enabled/disabled
+      - Time-limited override with automatic expiration
+      - Clear visual indicators when Developer access is active
 
 ### 3.6 API & Integration
 - **FR-6.1**: Public API
@@ -296,7 +433,7 @@ Mid to large enterprises with multiple data sources requiring integration and st
 - Health check endpoints
 - **Status**: 100% Backend Complete, 60% Frontend Complete
 
-### 8.4 Phase 7: Frontend Completion & Production Hardening (Weeks 61-72) - 🚧 IN PROGRESS
+### 8.4 Phase 7: Frontend Completion & Production Hardening (Weeks 61-72) - ✅ COMPLETED
 - Complete frontend UI for all backend features
 - Advanced monitoring dashboards
 - Dark mode and theme system
@@ -304,8 +441,24 @@ Mid to large enterprises with multiple data sources requiring integration and st
 - Production infrastructure deployment
 - Documentation completion
 - Performance optimization
-- **Status**: In Progress
-- **Estimated Completion**: January 2026
+- User management with activity logging
+- **Status**: Complete (Phase 7F/7G)
+- **Completion Date**: October 10, 2025
+
+### 8.5 Phase 8: Enhanced RBAC & System Maintenance (Weeks 73-76) - 🚧 PLANNED
+- Granular role-based access control system (6 roles: Admin, Developer, Designer, Executor, Viewer, Executive)
+- Default 'dev' user for development/testing (inactive by default, CREATE_DEV_USER flag)
+- Developer role with near-admin access (restricted from modifying admin user)
+- Production safeguards for Developer role (ALLOW_DEV_ROLE_IN_PRODUCTION with override)
+- System cleanup and maintenance services
+- Admin UI for system maintenance operations
+- Database initialization safeguards and confirmation
+- Password reset protection for admin account
+- Enhanced security and audit capabilities
+- New users default to Viewer role
+- **Status**: Planned
+- **Estimated Start**: October 11, 2025
+- **Estimated Completion**: November 8, 2025
 
 ## 9. Release Criteria
 

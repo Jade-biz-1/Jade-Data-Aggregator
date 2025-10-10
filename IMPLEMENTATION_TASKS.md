@@ -1,8 +1,9 @@
 # Data Aggregator Platform - Comprehensive Implementation Roadmap
 
-**Last Updated:** October 9, 2025 (Phase 7F Complete - Production Ready!)
+**Last Updated:** October 10, 2025 (Phase 8 Planned - Enhanced RBAC with 6 Roles & System Maintenance)
 **Current Status:** ✅ **Production-Ready Backend (100%)** | ✅ **Frontend Complete (100%)** | 🚀 **PRODUCTION READY**
 **Phase 7 Status:** ✅ **COMPLETE** - All frontend optimizations and documentation complete!
+**Phase 8 Status:** 🚧 **PLANNED** - 6-role RBAC system (incl. Developer role) and system maintenance features
 
 ---
 
@@ -1329,9 +1330,439 @@ Based on updated PRD requirements (FR-5.3.1 through FR-5.3.7), the following enh
 
 ---
 
+---
+
+## **PHASE 8: ENHANCED RBAC & SYSTEM MAINTENANCE (Weeks 73-76)** - 4 WEEKS 🚀 **NEW**
+
+**Status:** 🚧 **PLANNED** | **Priority:** 🔴 **HIGH** | **Timeline:** 4 weeks
+**Added:** October 10, 2025
+
+### **Requirements Overview**
+
+Based on updated PRD v1.1 requirements (FR-5.3.2, FR-5.3.6, FR-5.3.8, FR-5.3.9, FR-5.3.10, FR-5.3.11), the following enhancements are needed:
+
+1. **Enhanced Role-Based Access Control**: 6 granular roles (Admin, Developer, Designer, Executor, Viewer, Executive)
+2. **Default Developer Account**: 'dev' user for testing (CREATE_DEV_USER flag, inactive by default)
+3. **Developer Role Production Safeguards**: ALLOW_DEV_ROLE_IN_PRODUCTION with override capability
+4. **Password Reset Protection**: Prevent password reset on admin account via UI
+5. **Database Initialization Safeguards**: Confirmation prompts before database reset
+6. **System Cleanup Services**: Backend services for maintenance and cleanup
+7. **Admin Cleanup UI**: Frontend interface for system maintenance operations
+8. **Default Viewer Role**: New users automatically assigned Viewer role
+
+---
+
+### **Sub-Phase 8A: Enhanced Role System (Week 73-74)** - 2 WEEKS
+
+#### Backend: Role System Enhancement (B022-B024 - HIGH Priority)
+
+**B022: Enhanced Role Model and Permissions** (Week 73, Days 1-2)
+- [ ] Update User model for enhanced roles
+  - [ ] Add support for 6 roles: admin, developer, designer, executor, viewer, executive
+  - [ ] Create Role enum with role definitions
+  - [ ] Update database migration for role field
+  - [ ] Set default role to 'viewer' for new users
+  - [ ] Add role-based permission matrix
+
+- [ ] Create permission service
+  - [ ] Define granular permissions for each role
+  - [ ] Implement permission checking utilities
+  - [ ] Create role hierarchy (for permission inheritance)
+  - [ ] Add special handling for Developer role (near-admin access with admin user restrictions)
+  - [ ] Add permission caching for performance
+
+- [ ] Update init_db script for default users
+  - [ ] Add CREATE_DEV_USER environment variable check
+  - [ ] Create 'dev' user (username: dev, password: dev12345) when flag is true
+  - [ ] Set 'dev' user as INACTIVE by default
+  - [ ] Assign Developer role to 'dev' user
+  - [ ] Log dev user creation with security warning
+
+**Effort:** 2 days | **Files:** `backend/models/user.py`, `backend/core/permissions.py`, `backend/services/permission_service.py`, `backend/core/init_db.py`
+
+**B023: Role-Based Endpoint Protection** (Week 73, Days 3-4)
+- [ ] Create role-based dependency injectors
+  - [ ] `require_admin()` - Admin-only endpoints
+  - [ ] `require_developer()` - Developer + Admin access
+  - [ ] `require_designer()` - Designer + Developer + Admin access
+  - [ ] `require_executor()` - Executor + Developer + Admin access
+  - [ ] `require_viewer()` - All authenticated users
+  - [ ] `require_executive()` - Executive + Developer + Admin access
+
+- [ ] Implement admin user protection middleware
+  - [ ] Check if target user is 'admin' user
+  - [ ] Block role changes on admin user by Developer role
+  - [ ] Block password reset on admin user by Developer role
+  - [ ] Block deactivation of admin user by Developer role
+  - [ ] Block deletion of admin user by Developer role
+  - [ ] Return appropriate error messages
+
+- [ ] Update all endpoints with role protection
+  - [ ] User management endpoints (admin + developer, with admin user restrictions)
+  - [ ] Pipeline CRUD endpoints (designer + developer + admin)
+  - [ ] Pipeline execution endpoints (executor + developer + admin)
+  - [ ] Connector management (designer + developer + admin)
+  - [ ] Transformation management (designer + developer + admin)
+  - [ ] Dashboard endpoints (all authenticated users)
+  - [ ] Analytics endpoints (executive + developer + admin)
+  - [ ] System maintenance endpoints (admin + developer)
+
+**Effort:** 2 days | **Files:** `backend/core/security.py`, `backend/api/v1/endpoints/*`, `backend/middleware/admin_protection.py`
+
+**B024: Role Management APIs and Production Safeguards** (Week 73, Day 5)
+- [ ] Enhanced user management endpoints
+  - [ ] Update PUT `/api/v1/users/{user_id}` with all 6 roles
+  - [ ] Add GET `/api/v1/roles` endpoint (list available roles)
+  - [ ] Add GET `/api/v1/roles/{role}/permissions` (role details)
+  - [ ] Add validation for role assignment (admin only for Developer role)
+  - [ ] Implement admin user protection checks
+
+- [ ] Role transition logic
+  - [ ] Implement role change validation
+  - [ ] Add activity logging for role changes
+  - [ ] Implement permission recalculation on role change
+  - [ ] Add special validation for Developer role assignment
+
+- [ ] Production safeguards for Developer role
+  - [ ] Create SystemSettings model (for ALLOW_DEV_ROLE_IN_PRODUCTION)
+  - [ ] Implement environment detection (ENVIRONMENT variable)
+  - [ ] Add middleware to check Developer role in production
+  - [ ] Create settings endpoint: PUT `/api/v1/admin/settings/dev-role-production`
+  - [ ] Add auto-expiration logic (24-hour default)
+  - [ ] Implement warning banner flag in API responses
+
+- [ ] Dev user login security
+  - [ ] Update login endpoint to mask 'dev' user failures
+  - [ ] Always return "Invalid username or password" for 'dev' user failures
+  - [ ] Log failed 'dev' login attempts
+
+**Effort:** 1.5 days | **Files:** `backend/api/v1/endpoints/users.py`, `backend/api/v1/endpoints/roles.py`, `backend/models/system_settings.py`, `backend/middleware/dev_role_protection.py`, `backend/api/v1/endpoints/auth.py`
+
+---
+
+#### Frontend: Role-Based UI (F035-F037 - HIGH Priority)
+
+**F035: Role-Based Navigation** (Week 74, Days 1-2)
+- [ ] Update navigation component with role-based visibility
+  - [ ] Admin: All menu items visible
+  - [ ] Developer: All menu items visible (same as Admin)
+  - [ ] Designer: Pipelines, Connectors, Transformations, Settings
+  - [ ] Executor: Dashboard, Monitoring, Pipeline execution
+  - [ ] Viewer: Dashboard (read-only), Reports
+  - [ ] Executive: Dashboard, Analytics, Reports, User data
+
+- [ ] Create role-based route guards
+  - [ ] Protect routes based on user role
+  - [ ] Redirect unauthorized access attempts
+  - [ ] Show appropriate error messages
+
+- [ ] Production warning banner
+  - [ ] Check for Developer role users in production
+  - [ ] Display warning banner if ALLOW_DEV_ROLE_IN_PRODUCTION is enabled
+  - [ ] Show banner only to Admin and Developer users
+  - [ ] Include auto-expire countdown timer
+
+**Effort:** 2 days | **Files:** `frontend/src/components/layout/Sidebar.tsx`, `frontend/src/middleware.ts`, `frontend/src/components/layout/DevWarningBanner.tsx`
+
+**F036: Enhanced User Management UI** (Week 74, Days 3-4)
+- [ ] Update user management page with all 6 roles
+  - [ ] Role dropdown with all 6 options (with Developer role highlighted for dev-only)
+  - [ ] Role descriptions/tooltips
+  - [ ] Visual role badges with colors
+  - [ ] Filter users by role
+  - [ ] Role statistics dashboard
+
+- [ ] Create role management interface
+  - [ ] Role details page
+  - [ ] Permission matrix visualization
+  - [ ] Role assignment confirmation dialog
+  - [ ] Bulk role assignment
+  - [ ] Special confirmation for Developer role assignment
+
+- [ ] Admin user protection UI
+  - [ ] Disable admin user modification buttons for Developer role users
+  - [ ] Show tooltip explaining restrictions
+  - [ ] Hide role/password reset/deactivate buttons when appropriate
+
+- [ ] Production environment indicators
+  - [ ] Show environment badge (dev/staging/production)
+  - [ ] Highlight Developer role users in production with warning icon
+  - [ ] Add settings toggle for ALLOW_DEV_ROLE_IN_PRODUCTION (admin only)
+
+**Effort:** 2 days | **Files:** `frontend/src/app/users/page.tsx`, `frontend/src/components/users/*`, `frontend/src/app/admin/settings/page.tsx`
+
+**F037: Role-Based Feature Visibility** (Week 74, Day 5)
+- [ ] Implement role-based UI element visibility
+  - [ ] Hide/disable action buttons based on role
+  - [ ] Show read-only views for viewer role
+  - [ ] Enable execution buttons only for executor/admin
+  - [ ] Show analytics only to executive/admin
+  - [ ] Display role-appropriate dashboards
+
+**Effort:** 1 day | **Files:** `frontend/src/components/**/*`, `frontend/src/hooks/usePermissions.ts`
+
+---
+
+### **Sub-Phase 8B: Password Reset Protection (Week 75, Days 1-2)**
+
+#### Backend: Admin Password Protection (B025 - MEDIUM Priority)
+
+**B025: Admin Password Reset Protection** (Week 75, Days 1-2)
+- [ ] Update password reset endpoint
+  - [ ] Check if user is 'admin' account
+  - [ ] Prevent password reset on admin account
+  - [ ] Return error message: "Cannot reset password for admin account"
+  - [ ] Log attempted admin password resets
+  - [ ] Allow admin password change only via "Change Password"
+
+- [ ] Update init_db script
+  - [ ] Add warning about changing default admin password
+  - [ ] Optionally prompt for custom admin password on first deploy
+  - [ ] Document admin password security best practices
+
+**Effort:** 2 days | **Files:** `backend/api/v1/endpoints/users.py`, `backend/core/init_db.py`
+
+---
+
+#### Frontend: Admin Password UI Protection (F038 - MEDIUM Priority)
+
+**F038: Admin Password Reset UI** (Week 75, Days 1-2)
+- [ ] Update user management page
+  - [ ] Disable "Reset Password" button for admin user
+  - [ ] Show tooltip explaining admin password restriction
+  - [ ] Display warning message when clicking disabled button
+  - [ ] Provide link to "Change Password" functionality
+
+**Effort:** 0.5 days | **Files:** `frontend/src/app/users/page.tsx`
+
+---
+
+### **Sub-Phase 8C: Database Initialization Safeguards (Week 75, Days 3-4)**
+
+#### Backend: Database Reset Confirmation (B026 - HIGH Priority)
+
+**B026: Database Initialization Confirmation** (Week 75, Days 3-4)
+- [ ] Update init_db script with confirmation prompts
+  - [ ] Check if database already has data
+  - [ ] Prompt for confirmation if data exists: "Database contains data. Reset? (yes/no)"
+  - [ ] Add environment variable `AUTO_INIT_DB=false` for production
+  - [ ] Only auto-init if `AUTO_INIT_DB=true` (default for dev)
+  - [ ] Log all database initialization attempts
+  - [ ] Add backup reminder before reset
+
+- [ ] Create database backup utility
+  - [ ] Implement automated backup before reset
+  - [ ] Store backup with timestamp
+  - [ ] Add restore functionality
+  - [ ] Document backup/restore procedures
+
+**Effort:** 2 days | **Files:** `backend/core/init_db.py`, `backend/core/database_backup.py`
+
+---
+
+### **Sub-Phase 8D: System Cleanup Services (Week 75, Day 5 - Week 76, Day 3)**
+
+#### Backend: Cleanup Services (B027-B029 - HIGH Priority)
+
+**B027: Cleanup Service Implementation** (Week 75, Day 5 - Week 76, Day 1)
+- [ ] Create SystemCleanupService
+  - [ ] Clean old activity logs (beyond retention period)
+  - [ ] Clean orphaned pipeline runs (no parent pipeline)
+  - [ ] Clean expired sessions from Redis
+  - [ ] Clean temporary files older than 24 hours
+  - [ ] Clean old execution logs (beyond retention period)
+  - [ ] Vacuum and optimize database tables
+  - [ ] Generate cleanup reports with statistics
+
+- [ ] Implement cleanup job scheduler
+  - [ ] Schedule automatic nightly cleanup
+  - [ ] Configure cleanup retention policies
+  - [ ] Add cleanup task queue (Celery/Redis)
+  - [ ] Implement cleanup job monitoring
+
+**Effort:** 2 days | **Files:** `backend/services/cleanup_service.py`, `backend/tasks/cleanup_tasks.py`
+
+**B028: Cleanup Statistics Service** (Week 76, Day 2)
+- [ ] Create cleanup statistics service
+  - [ ] Calculate disk space before/after cleanup
+  - [ ] Count records removed by category
+  - [ ] Track cleanup execution time
+  - [ ] Estimate space saved
+  - [ ] Generate cleanup summary reports
+
+**Effort:** 1 day | **Files:** `backend/services/cleanup_statistics_service.py`
+
+**B029: Cleanup API Endpoints** (Week 76, Day 3)
+- [ ] Implement cleanup management endpoints (admin only)
+  - [ ] POST `/api/v1/admin/cleanup/activity-logs` - Clean old activity logs
+  - [ ] POST `/api/v1/admin/cleanup/orphaned-data` - Clean orphaned records
+  - [ ] POST `/api/v1/admin/cleanup/temp-files` - Clean temporary files
+  - [ ] POST `/api/v1/admin/cleanup/execution-logs` - Clean old execution logs
+  - [ ] POST `/api/v1/admin/cleanup/database-vacuum` - Vacuum database
+  - [ ] POST `/api/v1/admin/cleanup/sessions` - Clean expired sessions
+  - [ ] POST `/api/v1/admin/cleanup/all` - Run all cleanup tasks
+  - [ ] GET `/api/v1/admin/cleanup/stats` - Get cleanup statistics
+  - [ ] GET `/api/v1/admin/cleanup/history` - Get cleanup history
+  - [ ] PUT `/api/v1/admin/cleanup/schedule` - Configure automatic cleanup
+
+**Effort:** 1 day | **Files:** `backend/api/v1/endpoints/admin_cleanup.py`
+
+---
+
+#### Frontend: Admin Cleanup UI (F039-F041 - HIGH Priority)
+
+**F039: System Maintenance Dashboard** (Week 76, Days 4-5)
+- [ ] Create system maintenance page (admin only)
+  - [ ] System health overview
+  - [ ] Disk space usage visualization
+  - [ ] Database size statistics
+  - [ ] Temp files count and size
+  - [ ] Activity log count and size
+  - [ ] Execution log count and size
+  - [ ] Last cleanup timestamp
+
+- [ ] Create cleanup action buttons
+  - [ ] "Clean Activity Logs" button with confirmation
+  - [ ] "Clean Orphaned Data" button with confirmation
+  - [ ] "Clean Temp Files" button with confirmation
+  - [ ] "Clean Execution Logs" button with confirmation
+  - [ ] "Vacuum Database" button with confirmation
+  - [ ] "Clean All" button with multiple confirmations
+  - [ ] Show loading states during cleanup
+
+**Effort:** 2 days | **Files:** `frontend/src/app/admin/maintenance/page.tsx`
+
+**F040: Cleanup Results Display** (Week 76, Day 5)
+- [ ] Create cleanup results component
+  - [ ] Before/after disk space comparison
+  - [ ] Records removed by category
+  - [ ] Time taken for cleanup
+  - [ ] Success/error messages
+  - [ ] Detailed cleanup log viewer
+  - [ ] Export cleanup report (PDF/CSV)
+
+**Effort:** 1 day | **Files:** `frontend/src/components/admin/CleanupResults.tsx`
+
+**F041: Cleanup Schedule Configuration** (Week 76, Day 5)
+- [ ] Create automated cleanup configuration UI
+  - [ ] Enable/disable automatic cleanup
+  - [ ] Set cleanup schedule (cron expression builder)
+  - [ ] Configure retention periods
+  - [ ] Set cleanup notification preferences
+  - [ ] View scheduled cleanup jobs
+  - [ ] Manual trigger for scheduled jobs
+
+**Effort:** 1 day | **Files:** `frontend/src/components/admin/CleanupScheduler.tsx`
+
+---
+
+### **Testing & Documentation (Week 76, Day 5)**
+
+#### Testing Checklist
+
+**Manual Testing:**
+- [ ] All 5 roles have correct permissions
+- [ ] Role-based navigation works correctly
+- [ ] Admin password reset is blocked via UI
+- [ ] Admin password can still be changed via "Change Password"
+- [ ] Database initialization asks for confirmation
+- [ ] Database backup created before reset
+- [ ] All cleanup services execute correctly
+- [ ] Cleanup statistics are accurate
+- [ ] Cleanup UI shows correct before/after stats
+- [ ] Automated cleanup schedule works
+
+**Automated Testing:**
+- [ ] Unit tests for permission service
+- [ ] Unit tests for cleanup service
+- [ ] E2E tests for role-based access
+- [ ] E2E tests for cleanup operations
+- [ ] Integration tests for database backup/restore
+
+---
+
+#### Documentation Updates
+
+**DOC012: Update PRD** ✅ COMPLETED
+- [x] Enhanced role-based access control (FR-5.3.6)
+- [x] Password reset protection (FR-5.3.8)
+- [x] Database initialization safeguards (FR-5.3.9)
+- [x] System cleanup services (FR-5.3.10)
+
+**DOC013: Update API Documentation**
+- [ ] Document new role system (5 roles)
+- [ ] Document new cleanup endpoints (10+ endpoints)
+- [ ] Document database backup/restore APIs
+- [ ] Update role assignment endpoints
+
+**DOC014: Update Security Documentation**
+- [ ] Document enhanced RBAC matrix (5 roles × features)
+- [ ] Document permission inheritance
+- [ ] Document admin password protection
+- [ ] Document cleanup audit logging
+
+**DOC015: Update Deployment Guide**
+- [ ] Document database initialization process
+- [ ] Document AUTO_INIT_DB environment variable
+- [ ] Document backup/restore procedures
+- [ ] Document cleanup schedule configuration
+
+**DOC016: Create Runbook Updates**
+- [ ] Add system maintenance procedures
+- [ ] Add database cleanup procedures
+- [ ] Add troubleshooting for role issues
+- [ ] Add cleanup monitoring procedures
+
+---
+
+### **Phase 8 Summary**
+
+**Total Duration:** 4 weeks (Weeks 73-76)
+
+**Resource Requirements:**
+- **1-2 Backend Developers** (4 weeks, full-time)
+- **1-2 Frontend Developers** (2 weeks, full-time)
+- **1 DevOps Engineer** (1 week, part-time for automation)
+- **1 QA Engineer** (1 week, full-time for testing)
+
+**Deliverables:**
+- ✅ PRD updated with Phase 8 requirements
+- ⏳ 5-role RBAC system (Admin, Designer, Executor, Viewer, Executive)
+- ⏳ Role-based endpoint protection and UI visibility
+- ⏳ Admin password reset protection
+- ⏳ Database initialization confirmation system
+- ⏳ Comprehensive system cleanup services
+- ⏳ Admin UI for system maintenance
+- ⏳ Automated cleanup scheduling
+- ⏳ Documentation updates
+
+**New API Endpoints (Estimated):**
+- GET `/api/v1/roles` - List available roles
+- GET `/api/v1/roles/{role}/permissions` - Role permissions
+- POST `/api/v1/admin/cleanup/*` - Cleanup operations (7 endpoints)
+- GET `/api/v1/admin/cleanup/stats` - Cleanup statistics
+- GET `/api/v1/admin/cleanup/history` - Cleanup history
+- PUT `/api/v1/admin/cleanup/schedule` - Configure automation
+
+**Total New Endpoints:** ~12 endpoints
+
+**Success Criteria:**
+- [ ] 5 roles fully implemented with correct permissions
+- [ ] All endpoints protected by role-based access control
+- [ ] UI adapts based on user role
+- [ ] Admin password protected from UI reset
+- [ ] Database initialization requires confirmation
+- [ ] All cleanup services operational
+- [ ] Cleanup UI functional for admins
+- [ ] Automated cleanup scheduler working
+- [ ] Documentation updated
+- [ ] 80%+ test coverage for new features
+
+---
+
 **For archived historical analysis, see:** `docs/archive/COMPREHENSIVE_ANALYSIS_AND_GAPS.md`
 
-**Last Updated:** October 9, 2025
-**Next Review:** Weekly during Phase 7 execution
-**Platform Status:** 82% Complete | 13 Weeks to Production (with Phase 7G)
-**Risk Level:** Medium (manageable with Phase 7 execution)
+**Last Updated:** October 10, 2025
+**Next Review:** Weekly during Phase 8 execution
+**Platform Status:** 85% Complete | 4 Weeks to Phase 8 Completion
+**Risk Level:** Low (enhancement phase, production already operational)
