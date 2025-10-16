@@ -9,8 +9,7 @@ from collections import defaultdict
 
 from backend.schemas.user import User
 from backend.core.database import get_db
-from backend.core.security import get_current_active_user
-from backend.core.rbac import require_any_authenticated
+from backend.core.rbac import require_viewer, require_executive
 from backend.models.pipeline import Pipeline
 from backend.models.connector import Connector
 from backend.models.transformation import Transformation
@@ -20,7 +19,7 @@ router = APIRouter()
 
 @router.get("/data")
 async def get_analytics_data(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -63,7 +62,7 @@ async def get_analytics_data(
 
 @router.get("/timeseries")
 async def get_time_series_data(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db),
     days: int = 7
 ) -> List[Dict[str, Any]]:
@@ -98,7 +97,7 @@ async def get_time_series_data(
 
 @router.get("/top-pipelines")
 async def get_top_pipelines(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db),
     limit: int = 5
 ) -> List[Dict[str, Any]]:
@@ -132,7 +131,7 @@ async def get_top_pipelines(
 
 @router.get("/pipeline-trends")
 async def get_pipeline_trends(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -171,7 +170,7 @@ async def get_pipeline_trends(
 
 @router.get("/aggregated")
 async def get_aggregated_analytics(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db),
     time_range: str = Query("7d", regex="^(24h|7d|30d|90d)$")
 ) -> Dict[str, Any]:
@@ -244,7 +243,7 @@ async def get_aggregated_analytics(
 
 @router.get("/performance-metrics")
 async def get_performance_metrics(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db),
     pipeline_id: Optional[int] = None
 ) -> Dict[str, Any]:
@@ -315,7 +314,7 @@ async def get_performance_metrics(
 
 @router.get("/export-data")
 async def export_analytics_data(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_executive()),
     db: AsyncSession = Depends(get_db),
     format: str = Query("json", regex="^(json|csv)$"),
     time_range: str = Query("7d", regex="^(24h|7d|30d|90d)$")

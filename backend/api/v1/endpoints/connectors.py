@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.connector import Connector, ConnectorCreate, ConnectorUpdate
 from backend.schemas.user import User
 from backend.core.database import get_db
-from backend.core.security import get_current_active_user
+from backend.core.rbac import require_viewer, require_designer
 from backend import crud
 
 
@@ -13,11 +13,11 @@ router = APIRouter()
 
 @router.get("/", response_model=list[Connector])
 async def read_connectors(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Retrieve connectors
+    Retrieve connectors (all authenticated users can view)
     """
     connectors = await crud.connector.get_multi(db)
     return connectors
@@ -26,11 +26,11 @@ async def read_connectors(
 @router.post("/", response_model=Connector)
 async def create_connector(
     connector: ConnectorCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Create a new connector
+    Create a new connector (Designer, Developer, Admin only)
     """
     db_connector = await crud.connector.create(db, obj_in=connector)
     return db_connector
@@ -39,11 +39,11 @@ async def create_connector(
 @router.get("/{connector_id}", response_model=Connector)
 async def read_connector(
     connector_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get a specific connector by ID
+    Get a specific connector by ID (all authenticated users can view)
     """
     connector = await crud.connector.get(db, id=connector_id)
     if not connector:
@@ -55,11 +55,11 @@ async def read_connector(
 async def update_connector(
     connector_id: int,
     connector_in: ConnectorUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Update a connector
+    Update a connector (Designer, Developer, Admin only)
     """
     connector = await crud.connector.get(db, id=connector_id)
     if not connector:
@@ -71,11 +71,11 @@ async def update_connector(
 @router.delete("/{connector_id}", response_model=Connector)
 async def delete_connector(
     connector_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Delete a connector
+    Delete a connector (Designer, Developer, Admin only)
     """
     connector = await crud.connector.get(db, id=connector_id)
     if not connector:

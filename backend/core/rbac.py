@@ -43,18 +43,44 @@ def require_role(allowed_roles: List[UserRole]):
 
 
 def require_admin():
-    """Dependency to require admin role."""
+    """Dependency to require admin role only."""
     return require_role([UserRole.ADMIN])
 
 
+def require_developer():
+    """Dependency to require developer or admin role."""
+    return require_role([UserRole.DEVELOPER, UserRole.ADMIN])
+
+
+def require_designer():
+    """Dependency to require designer, developer, or admin role."""
+    return require_role([UserRole.DESIGNER, UserRole.DEVELOPER, UserRole.ADMIN])
+
+
+def require_executor():
+    """Dependency to require executor, developer, or admin role."""
+    return require_role([UserRole.EXECUTOR, UserRole.DEVELOPER, UserRole.ADMIN])
+
+
+def require_executive():
+    """Dependency to require executive, developer, or admin role."""
+    return require_role([UserRole.EXECUTIVE, UserRole.DEVELOPER, UserRole.ADMIN])
+
+
+def require_viewer():
+    """Dependency to require any authenticated user (all roles)."""
+    return require_role([UserRole.VIEWER, UserRole.EXECUTOR, UserRole.DESIGNER, UserRole.EXECUTIVE, UserRole.DEVELOPER, UserRole.ADMIN])
+
+
+# Legacy aliases for backward compatibility
 def require_editor_or_admin():
-    """Dependency to require editor or admin role."""
-    return require_role([UserRole.EDITOR, UserRole.ADMIN])
+    """Dependency to require designer or higher (legacy)."""
+    return require_designer()
 
 
 def require_any_authenticated():
     """Dependency to require any authenticated user (all roles)."""
-    return require_role([UserRole.VIEWER, UserRole.EDITOR, UserRole.ADMIN])
+    return require_viewer()
 
 
 class RBACService:
@@ -115,6 +141,9 @@ class RBACService:
         Returns:
             Dictionary with permission mappings
         """
+        # Import here to avoid circular dependency
+        from backend.services.permission_service import PermissionService
+
         if user.is_superuser:
             return {
                 "can_read": True,
@@ -124,43 +153,13 @@ class RBACService:
                 "can_manage_users": True,
                 "can_execute_pipelines": True,
                 "can_view_system_logs": True,
+                "can_manage_system": True,
+                "can_view_analytics": True,
                 "role": "superuser"
             }
 
-        base_permissions = {
-            "role": user.role.value,
-            "can_read": True,  # All users can read
-        }
-
-        if user.role == UserRole.ADMIN:
-            base_permissions.update({
-                "can_write": True,
-                "can_delete": True,
-                "can_admin": True,
-                "can_manage_users": True,
-                "can_execute_pipelines": True,
-                "can_view_system_logs": True,
-            })
-        elif user.role == UserRole.EDITOR:
-            base_permissions.update({
-                "can_write": True,
-                "can_delete": False,  # Editors can't delete by default
-                "can_admin": False,
-                "can_manage_users": False,
-                "can_execute_pipelines": True,
-                "can_view_system_logs": False,
-            })
-        elif user.role == UserRole.VIEWER:
-            base_permissions.update({
-                "can_write": False,
-                "can_delete": False,
-                "can_admin": False,
-                "can_manage_users": False,
-                "can_execute_pipelines": False,
-                "can_view_system_logs": False,
-            })
-
-        return base_permissions
+        # Use new permission service for granular permissions
+        return PermissionService.get_user_permissions(user.role, user.is_superuser)
 
 
 # Convenience functions for common permission checks

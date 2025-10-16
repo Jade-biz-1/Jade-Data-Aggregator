@@ -14,18 +14,70 @@ const publicRoutes = [
   '/account-inactive',
 ];
 
-// Routes that require specific permissions (checked on client side)
-// This is just for basic protection, detailed permission checking happens in components
-const protectedRoutes: Record<string, string[]> = {
-  '/users': ['admin', 'developer'],
-  '/admin': ['admin', 'developer'],
-  '/analytics': ['admin', 'developer', 'executive', 'designer'],
-  '/pipelines': ['admin', 'developer', 'designer', 'executor', 'viewer'],
-  '/connectors': ['admin', 'developer', 'designer', 'executor', 'viewer'],
-  '/transformations': ['admin', 'developer', 'designer', 'executor', 'viewer'],
-  '/monitoring': ['admin', 'developer', 'designer', 'executor'],
-  '/dashboard': ['admin', 'developer', 'designer', 'executor', 'viewer', 'executive'],
+// Role hierarchy for permission checking
+const roleHierarchy: Record<string, number> = {
+  'viewer': 1,
+  'executor': 2,
+  'designer': 3,
+  'executive': 4,
+  'developer': 5,
+  'admin': 6,
 };
+
+// Routes with minimum required role level
+// Routes require authentication but no specific role are not listed here
+const protectedRoutes: Record<string, { minRole: string; exact?: boolean }> = {
+  // User management - Admin or Developer only
+  '/users': { minRole: 'developer' },
+
+  // Admin routes - Admin or Developer only
+  '/admin/maintenance': { minRole: 'developer' },
+  '/admin/activity-logs': { minRole: 'developer' },
+  '/admin/settings': { minRole: 'admin', exact: true }, // Admin only
+
+  // Analytics - Executive and above
+  '/analytics': { minRole: 'executive' },
+
+  // Monitoring - Executor and above
+  '/monitoring': { minRole: 'executor' },
+
+  // Design routes - Designer and above
+  '/pipelines/create': { minRole: 'designer' },
+  '/pipelines/edit': { minRole: 'designer' },
+  '/connectors/create': { minRole: 'designer' },
+  '/connectors/edit': { minRole: 'designer' },
+  '/transformations/create': { minRole: 'designer' },
+  '/transformations/edit': { minRole: 'designer' },
+
+  // Execution routes - Executor and above
+  '/pipelines/execute': { minRole: 'executor' },
+
+  // All authenticated users can access: dashboard, view pipelines/connectors/transformations, settings
+};
+
+function hasRequiredRole(userRole: string, requiredRole: string, exact: boolean = false): boolean {
+  const userLevel = roleHierarchy[userRole] || 0;
+  const requiredLevel = roleHierarchy[requiredRole] || 0;
+
+  if (exact) {
+    return userLevel === requiredLevel;
+  }
+
+  return userLevel >= requiredLevel;
+}
+
+function getUserRoleFromToken(token: string): string | null {
+  try {
+    // Decode JWT token (simple base64 decode for the payload)
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -35,8 +87,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow static files and API routes
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
+    return NextResponse.next();
+  }
+
   // Check for authentication token
-  const token = request.cookies.get('auth_token')?.value;
+  const token = request.cookies.get('access_token')?.value;
 
   if (!token) {
     // Redirect to login if not authenticated
@@ -45,9 +102,31 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // TODO: Optionally decode JWT to check role here
-  // For now, we'll let the client-side components handle detailed permission checks
+  // Check role-based access for protected routes
+  const userRole = getUserRoleFromToken(token);
 
+  if (!userRole) {
+    // Invalid token, redirect to login
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Check if route requires specific role
+  for (const [route, config] of Object.entries(protectedRoutes)) {
+    if (pathname.startsWith(route)) {
+      if (!hasRequiredRole(userRole, config.minRole, config.exact)) {
+        // User doesn't have required role, redirect to dashboard with error
+        const dashboardUrl = new URL('/dashboard', request.url);
+        dashboardUrl.searchParams.set('error', 'insufficient_permissions');
+        dashboardUrl.searchParams.set('required_role', config.minRole);
+        return NextResponse.redirect(dashboardUrl);
+      }
+      break;
+    }
+  }
+
+  // Allow access
   return NextResponse.next();
 }
 

@@ -5,7 +5,7 @@ import traceback
 from backend.schemas.transformation import Transformation, TransformationCreate, TransformationUpdate
 from backend.schemas.user import User
 from backend.core.database import get_db
-from backend.core.security import get_current_active_user
+from backend.core.rbac import require_viewer, require_designer
 from backend.crud.transformation import transformation
 
 
@@ -14,11 +14,11 @@ router = APIRouter()
 
 @router.get("/", response_model=list[Transformation])
 async def read_transformations(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Retrieve transformations
+    Retrieve transformations (all authenticated users can view)
     """
     try:
         print("Starting to retrieve transformations")
@@ -34,11 +34,11 @@ async def read_transformations(
 @router.post("/", response_model=Transformation)
 async def create_transformation(
     transformation_in: TransformationCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Create a new transformation
+    Create a new transformation (Designer, Developer, Admin only)
     """
     db_transformation = await transformation.create(db, obj_in=transformation_in)
     return db_transformation
@@ -47,11 +47,11 @@ async def create_transformation(
 @router.get("/{transformation_id}", response_model=Transformation)
 async def read_transformation(
     transformation_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get a specific transformation by ID
+    Get a specific transformation by ID (all authenticated users can view)
     """
     transformation_obj = await transformation.get(db, id=transformation_id)
     if not transformation_obj:
@@ -63,11 +63,11 @@ async def read_transformation(
 async def update_transformation(
     transformation_id: int,
     transformation_in: TransformationUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Update a transformation
+    Update a transformation (Designer, Developer, Admin only)
     """
     transformation_obj = await transformation.get(db, id=transformation_id)
     if not transformation_obj:
@@ -79,11 +79,11 @@ async def update_transformation(
 @router.delete("/{transformation_id}", response_model=Transformation)
 async def delete_transformation(
     transformation_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Delete a transformation
+    Delete a transformation (Designer, Developer, Admin only)
     """
     transformation_obj = await transformation.get(db, id=transformation_id)
     if not transformation_obj:

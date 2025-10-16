@@ -57,19 +57,48 @@ services:
       - "8001:8000"
     volumes:
       - ./backend:/app/backend
+      - ./temp:/app/temp
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
+      # Database Configuration
       - POSTGRES_SERVER=db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=dataaggregator
+
+      # Redis Configuration
       - REDIS_URL=redis://redis:6379/0
+
+      # Kafka Configuration
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - BACKEND_CORS_ORIGINS=["http://localhost:3000", "http://frontend:3000"]
+
+      # CORS Configuration - Allows frontend to communicate with backend
+      # For production, customize these origins to match your domain
+      - BACKEND_CORS_ORIGINS=["http://localhost", "http://localhost:3000", "http://localhost:8001", "http://frontend:3000"]
+
+      # Environment Setting - Controls user creation and other behaviors
+      # Options: development, staging, production
+      - ENVIRONMENT=development
+
+      # User Creation Flags - Only for development/testing
+      # CREATE_DEV_USER: Automatically creates 'dev' user (dev/dev12345) when true
+      # Set to 'false' in production for security
+      - CREATE_DEV_USER=true
+
+      # Production Safeguard - Prevents Developer role in production
+      # Keep as 'false' in production environments
+      - ALLOW_DEV_ROLE_IN_PRODUCTION=false
+
+      # File Storage Paths (Phase 9: Service Decoupling)
+      - TEMP_FILES_PATH=/app/temp
+      - UPLOAD_PATH=/app/uploads
+      - LOG_PATH=/app/logs
     command: python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
@@ -80,8 +109,12 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8001
+      # Backend API URL - Frontend uses this to communicate with backend
+      # Must include /api/v1 path prefix
+      - NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1
     depends_on:
       - backend
 

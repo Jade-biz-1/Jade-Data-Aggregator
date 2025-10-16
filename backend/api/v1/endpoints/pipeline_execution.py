@@ -9,8 +9,7 @@ from backend.schemas.pipeline_run import (
     PipelineRunExecuteResponse
 )
 from backend.core.database import get_db
-from backend.core.security import get_current_active_user
-from backend.core.rbac import require_editor_or_admin
+from backend.core.rbac import require_viewer, require_executor
 from backend.services.pipeline_executor import PipelineExecutor, PipelineExecutionError
 from backend.crud.pipeline_run import pipeline_run as crud_pipeline_run
 
@@ -23,7 +22,7 @@ async def execute_pipeline(
     pipeline_id: int,
     request: PipelineRunExecuteRequest,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(require_editor_or_admin()),
+    current_user: User = Depends(require_executor()),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -60,11 +59,11 @@ async def get_pipeline_runs(
     pipeline_id: int,
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get all runs for a specific pipeline.
+    Get all runs for a specific pipeline (all authenticated users can view)
     """
     executor = PipelineExecutor(db)
     runs = await executor.get_pipeline_runs(
@@ -78,11 +77,11 @@ async def get_pipeline_runs(
 @router.get("/runs/{run_id}", response_model=PipelineRun)
 async def get_pipeline_run(
     run_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get details of a specific pipeline run.
+    Get details of a specific pipeline run (all authenticated users can view)
     """
     executor = PipelineExecutor(db)
     run = await executor.get_run_status(run_id)
@@ -96,11 +95,11 @@ async def get_pipeline_run(
 @router.post("/runs/{run_id}/cancel", response_model=PipelineRun)
 async def cancel_pipeline_run(
     run_id: int,
-    current_user: User = Depends(require_editor_or_admin()),
+    current_user: User = Depends(require_executor()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Cancel a running pipeline.
+    Cancel a running pipeline (Executor, Developer, Admin only)
     """
     try:
         executor = PipelineExecutor(db)
@@ -115,11 +114,11 @@ async def cancel_pipeline_run(
 async def get_all_recent_runs(
     skip: int = 0,
     limit: int = 50,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get recent pipeline runs across all pipelines.
+    Get recent pipeline runs across all pipelines (all authenticated users can view)
     """
     runs = await crud_pipeline_run.get_recent_runs(db, skip=skip, limit=limit)
     return runs

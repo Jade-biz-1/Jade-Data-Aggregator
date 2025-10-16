@@ -112,46 +112,27 @@ export function usePermissions() {
         return;
       }
 
-      // Fetch user permissions
-      const permissionsResponse = await fetch('/api/v1/users/me/permissions', {
+      // Fetch all session info in a single API call (OPTIMIZED - Phase 9A-2)
+      // Replaces 3 separate calls: /me/permissions, /navigation/items, /features/access
+      const sessionResponse = await fetch('/api/v1/users/me/session-info', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (!permissionsResponse.ok) {
-        throw new Error('Failed to fetch permissions');
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to fetch session information');
       }
 
-      const permissionsData = await permissionsResponse.json();
-      setPermissions(permissionsData.permissions);
+      const sessionData = await sessionResponse.json();
 
-      // Fetch navigation items
-      const navResponse = await fetch('/api/v1/roles/navigation/items', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (navResponse.ok) {
-        const navData = await navResponse.json();
-        setNavigation(navData.navigation);
-      }
-
-      // Fetch feature access
-      const featuresResponse = await fetch('/api/v1/roles/features/access', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (featuresResponse.ok) {
-        const featuresData = await featuresResponse.json();
-        setFeatures(featuresData.features);
-      }
+      // Set all data from single response
+      setPermissions(sessionData.permissions);
+      setNavigation(sessionData.navigation);
+      setFeatures(sessionData.features);
 
       // Check for developer role warning
-      if (permissionsData.role === 'developer') {
+      if (sessionData.user.role === 'developer') {
         checkDeveloperRoleWarning();
       }
 

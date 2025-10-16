@@ -3,34 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { 
-  BarChart3, 
+import { usePermissions } from '@/hooks/usePermissions';
+import {
+  BarChart3,
   Code,
-  Database, 
-  GitBranch, 
-  Home, 
-  Settings, 
+  Database,
+  GitBranch,
+  Home,
+  Settings,
   Users,
   Activity,
   FileText,
-  HelpCircle
+  HelpCircle,
+  Wrench,
+  Loader2
 } from 'lucide-react';
-
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Pipelines', href: '/pipelines', icon: GitBranch },
-  { name: 'Connectors', href: '/connectors', icon: Database },
-  { name: 'Transformations', href: '/transformations', icon: Code },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Monitoring', href: '/monitoring', icon: Activity },
-  { name: 'Users', href: '/users', icon: Users },
-];
-
-const secondaryNavigation = [
-  { name: 'Documentation', href: '/docs', icon: FileText },
-  { name: 'Settings', href: '/settings', icon: Settings },
-  { name: 'Help', href: '/help', icon: HelpCircle },
-];
 
 interface SidebarProps {
   className?: string;
@@ -38,6 +25,52 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
+  const { navigation: navPermissions, permissions, loading } = usePermissions();
+
+  // Define all navigation items with their permission keys
+  const allNavigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home, permissionKey: 'dashboard' },
+    { name: 'Pipelines', href: '/pipelines', icon: GitBranch, permissionKey: 'pipelines' },
+    { name: 'Connectors', href: '/connectors', icon: Database, permissionKey: 'connectors' },
+    { name: 'Transformations', href: '/transformations', icon: Code, permissionKey: 'transformations' },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3, permissionKey: 'analytics' },
+    { name: 'Monitoring', href: '/monitoring', icon: Activity, permissionKey: 'monitoring' },
+    { name: 'Users', href: '/users', icon: Users, permissionKey: 'users' },
+    { name: 'Maintenance', href: '/admin/maintenance', icon: Wrench, permissionKey: 'maintenance' },
+  ];
+
+  const secondaryNavigation = [
+    { name: 'Documentation', href: '/docs', icon: FileText },
+    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Help', href: '/help', icon: HelpCircle },
+  ];
+
+  // Filter navigation items based on permissions
+  const visibleNavigation = loading
+    ? allNavigation // Show all while loading, they'll be filtered on render
+    : allNavigation.filter(item => {
+        if (!navPermissions) return false;
+        return navPermissions[item.permissionKey as keyof typeof navPermissions];
+      });
+
+  // Get role badge color
+  const getRoleBadgeColor = (role: string | undefined) => {
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800';
+      case 'developer': return 'bg-purple-100 text-purple-800';
+      case 'designer': return 'bg-blue-100 text-blue-800';
+      case 'executor': return 'bg-green-100 text-green-800';
+      case 'viewer': return 'bg-gray-100 text-gray-800';
+      case 'executive': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Get role display name
+  const getRoleDisplayName = (role: string | undefined) => {
+    if (!role) return 'User';
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  };
 
   return (
     <aside
@@ -59,36 +92,54 @@ export function Sidebar({ className }: SidebarProps) {
           </Link>
         </div>
 
+        {/* Role Badge */}
+        {permissions?.role && (
+          <div className="px-6 py-3 border-b border-gray-100">
+            <div className={cn(
+              'inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold',
+              getRoleBadgeColor(permissions.role)
+            )}>
+              {getRoleDisplayName(permissions.role)}
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group relative',
-                  isActive
-                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-medium'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-primary-700'
-                )}
-              >
-                <item.icon
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
+            </div>
+          ) : (
+            visibleNavigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
                   className={cn(
-                    'mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110',
-                    isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary-600'
+                    'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group relative',
+                    isActive
+                      ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-medium'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-primary-700'
                   )}
-                />
-                <span className="relative">
-                  {item.name}
-                  {isActive && (
-                    <div className="absolute -inset-1 bg-white bg-opacity-20 rounded-lg blur-sm"></div>
-                  )}
-                </span>
-              </Link>
-            );
-          })}
+                >
+                  <item.icon
+                    className={cn(
+                      'mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110',
+                      isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary-600'
+                    )}
+                  />
+                  <span className="relative">
+                    {item.name}
+                    {isActive && (
+                      <div className="absolute -inset-1 bg-white bg-opacity-20 rounded-lg blur-sm"></div>
+                    )}
+                  </span>
+                </Link>
+              );
+            })
+          )}
         </nav>
 
         {/* Secondary Navigation */}

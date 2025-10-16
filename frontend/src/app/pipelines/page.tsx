@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout-enhanced';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EnhancedTable, Column } from '@/components/table';
@@ -12,9 +12,11 @@ import {
   Pause,
   Edit,
   CheckCircle,
-  XCircle
+  XCircle,
+  Shield
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // Mock data - in real app this would come from API
 const mockPipelines = [
@@ -84,6 +86,7 @@ interface Pipeline {
 export default function PipelinesPage() {
   const [pipelines, setPipelines] = useState(mockPipelines);
   const [isLoading, setIsLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     // Simulate API call
@@ -175,6 +178,34 @@ export default function PipelinesPage() {
     }
   ];
 
+  // Check permission to view this page
+  if (permissionsLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.pipelines?.view) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-64">
+          <Shield className="h-16 w-16 text-gray-400 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h3>
+          <p className="text-gray-600 text-center max-w-md">
+            You don't have permission to view pipelines.
+          </p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -186,10 +217,12 @@ export default function PipelinesPage() {
               Manage your data processing pipelines
             </p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Pipeline
-          </Button>
+          {features?.pipelines?.create && (
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Pipeline
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -256,10 +289,10 @@ export default function PipelinesPage() {
               columns={columns}
               isLoading={isLoading}
               pageSize={10}
-              enableBulkActions={true}
+              enableBulkActions={features?.pipelines?.delete ?? false}
               enableColumnVisibility={true}
-              enableExport={true}
-              onDelete={handleDeletePipelines}
+              enableExport={features?.pipelines?.view ?? false}
+              onDelete={features?.pipelines?.delete ? handleDeletePipelines : undefined}
               onRowClick={handleRowClick}
               tableName="pipelines"
             />

@@ -1,8 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright Configuration for Data Aggregator Platform
- * E2E Testing Setup
+ * Playwright E2E Testing Configuration
+ * Phase 9B-1: E2E Testing Infrastructure
+ *
+ * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './tests/e2e',
@@ -10,28 +12,28 @@ export default defineConfig({
   /* Run tests in files in parallel */
   fullyParallel: true,
 
-  /* Fail the build on CI if you accidentally left test.only in the source code */
+  /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
 
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests on CI */
+  /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
 
-  /* Reporter to use */
+  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
+    ['html', { outputFolder: 'playwright-report' }],
     ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/junit.xml' }],
+    ['list'],
   ],
 
-  /* Shared settings for all the projects below */
+  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    /* Base URL to use in actions like \`await page.goto('/')\`. */
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
 
-    /* Collect trace when retrying the failed test */
+    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
     /* Screenshot on failure */
@@ -39,6 +41,9 @@ export default defineConfig({
 
     /* Video on failure */
     video: 'retain-on-failure',
+
+    /* Timeout for each action */
+    actionTimeout: 10000,
   },
 
   /* Configure projects for major browsers */
@@ -58,7 +63,7 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
 
-    /* Test against mobile viewports */
+    /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
@@ -75,5 +80,13 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+  },
+
+  /* Global timeout for each test */
+  timeout: 30000,
+
+  /* Expect timeout */
+  expect: {
+    timeout: 5000,
   },
 });

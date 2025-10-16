@@ -305,7 +305,8 @@ def get_role_description(role: UserRole) -> Dict[str, any]:
     }
 
     role_info = descriptions.get(role, {})
-    role_info["role"] = role.value
+    # Handle both UserRole enum and string values
+    role_info["role"] = role.value if hasattr(role, 'value') else role
     role_info["permissions"] = list(get_role_permissions(role))
     role_info["permission_count"] = len(role_info["permissions"])
 

@@ -6,6 +6,7 @@ export interface User {
   last_name?: string;
   is_active: boolean;
   is_superuser: boolean;
+  role?: 'admin' | 'developer' | 'designer' | 'executor' | 'executive' | 'viewer';
   created_at?: string;
 }
 

@@ -95,7 +95,7 @@ class CleanupStatisticsService:
     @staticmethod
     async def get_record_counts(db: AsyncSession) -> Dict[str, int]:
         """
-        Get record counts for major tables.
+        Get record counts for major tables using ORM.
 
         Args:
             db: Database session
@@ -103,26 +103,36 @@ class CleanupStatisticsService:
         Returns:
             Dict with record counts
         """
+        from backend.models.user import User
+        from backend.models.pipeline import Pipeline
+        from backend.models.pipeline_run import PipelineRun
+        from backend.models.connector import Connector
+        from backend.models.transformation import Transformation
+        from backend.models.activity_log import UserActivityLog
+        from backend.models.file_upload import FileUpload
+        from sqlalchemy.exc import SQLAlchemyError
+
         counts = {}
 
-        tables = [
-            "users",
-            "pipelines",
-            "pipeline_runs",
-            "connectors",
-            "transformations",
-            "user_activity_logs",
-            "file_uploads"
-        ]
+        # Define table mappings to models
+        model_mappings = {
+            "users": User,
+            "pipelines": Pipeline,
+            "pipeline_runs": PipelineRun,
+            "connectors": Connector,
+            "transformations": Transformation,
+            "user_activity_logs": UserActivityLog,
+            "file_uploads": FileUpload
+        }
 
         try:
-            for table in tables:
+            for table_name, model in model_mappings.items():
                 try:
-                    query = text(f"SELECT COUNT(*) FROM {table}")
-                    result = await db.execute(query)
-                    counts[table] = result.scalar()
-                except:
-                    counts[table] = 0
+                    result = await db.execute(select(func.count()).select_from(model))
+                    counts[table_name] = result.scalar() or 0
+                except SQLAlchemyError as e:
+                    logger.warning(f"Error counting {table_name}: {e}")
+                    counts[table_name] = 0
 
             return counts
 
@@ -177,7 +187,7 @@ class CleanupStatisticsService:
         days_threshold: int = 90
     ) -> Dict[str, int]:
         """
-        Count records older than threshold that could be cleaned.
+        Count records older than threshold that could be cleaned using ORM.
 
         Args:
             db: Database session
@@ -186,34 +196,36 @@ class CleanupStatisticsService:
         Returns:
             Dict with counts of old records per table
         """
+        from backend.models.activity_log import UserActivityLog
+        from backend.models.pipeline_run import PipelineRun
+        from sqlalchemy.exc import SQLAlchemyError
+
         cutoff_date = datetime.utcnow() - timedelta(days=days_threshold)
         counts = {}
 
         try:
             # Activity logs
-            result = await db.execute(
-                select(func.count()).select_from(
-                    text("user_activity_logs")
-                ).where(
-                    text("timestamp < :cutoff")
-                ),
-                {"cutoff": cutoff_date}
+            activity_stmt = select(func.count(UserActivityLog.id)).where(
+                UserActivityLog.timestamp < cutoff_date
             )
+            result = await db.execute(activity_stmt)
             counts["activity_logs"] = result.scalar() or 0
 
             # Pipeline runs (completed/failed)
-            query = text("""
-                SELECT COUNT(*) FROM pipeline_runs
-                WHERE created_at < :cutoff
-                AND status IN ('completed', 'failed')
-            """)
-            result = await db.execute(query, {"cutoff": cutoff_date})
+            pipeline_stmt = select(func.count(PipelineRun.id)).where(
+                PipelineRun.created_at < cutoff_date,
+                PipelineRun.status.in_(['completed', 'failed'])
+            )
+            result = await db.execute(pipeline_stmt)
             counts["pipeline_runs"] = result.scalar() or 0
 
             return counts
 
+        except SQLAlchemyError as e:
+            logger.error(f"Database error counting old records: {e}")
+            return counts
         except Exception as e:
-            logger.error(f"Error counting old records: {e}")
+            logger.error(f"Unexpected error counting old records: {e}")
             return counts
 
     @staticmethod

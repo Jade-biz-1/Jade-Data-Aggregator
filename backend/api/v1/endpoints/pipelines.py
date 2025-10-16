@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.pipeline import Pipeline, PipelineCreate, PipelineUpdate
 from backend.schemas.user import User
 from backend.core.database import get_db
-from backend.core.security import get_current_active_user
+from backend.core.rbac import require_viewer, require_designer
 from backend import crud
 
 
@@ -13,11 +13,11 @@ router = APIRouter()
 
 @router.get("/", response_model=list[Pipeline])
 async def read_pipelines(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Retrieve pipelines
+    Retrieve pipelines (all authenticated users can view)
     """
     pipelines = await crud.pipeline.get_multi(db)
     return pipelines
@@ -26,11 +26,11 @@ async def read_pipelines(
 @router.post("/", response_model=Pipeline)
 async def create_pipeline(
     pipeline: PipelineCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Create a new pipeline
+    Create a new pipeline (Designer, Developer, Admin only)
     """
     db_pipeline = await crud.pipeline.create(db, obj_in=pipeline)
     return db_pipeline
@@ -39,11 +39,11 @@ async def create_pipeline(
 @router.get("/{pipeline_id}", response_model=Pipeline)
 async def read_pipeline(
     pipeline_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get a specific pipeline by ID
+    Get a specific pipeline by ID (all authenticated users can view)
     """
     pipeline = await crud.pipeline.get(db, id=pipeline_id)
     if not pipeline:
@@ -55,11 +55,11 @@ async def read_pipeline(
 async def update_pipeline(
     pipeline_id: int,
     pipeline_in: PipelineUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Update a pipeline
+    Update a pipeline (Designer, Developer, Admin only)
     """
     pipeline = await crud.pipeline.get(db, id=pipeline_id)
     if not pipeline:
@@ -71,11 +71,11 @@ async def update_pipeline(
 @router.delete("/{pipeline_id}", response_model=Pipeline)
 async def delete_pipeline(
     pipeline_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_designer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Delete a pipeline
+    Delete a pipeline (Designer, Developer, Admin only)
     """
     pipeline = await crud.pipeline.get(db, id=pipeline_id)
     if not pipeline:

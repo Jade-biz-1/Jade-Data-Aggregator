@@ -7,8 +7,7 @@ from datetime import datetime, timedelta
 
 from backend.schemas.user import User
 from backend.core.database import get_db
-from backend.core.security import get_current_active_user
-from backend.core.rbac import require_any_authenticated
+from backend.core.rbac import require_viewer
 from backend.models.pipeline import Pipeline
 from backend.models.connector import Connector
 from backend.models.transformation import Transformation
@@ -18,7 +17,7 @@ router = APIRouter()
 
 @router.get("/stats")
 async def get_dashboard_stats(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -64,7 +63,7 @@ async def get_dashboard_stats(
 
 @router.get("/recent-activity")
 async def get_recent_activity(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db),
     limit: int = 10
 ) -> List[Dict[str, Any]]:
@@ -111,7 +110,7 @@ async def get_recent_activity(
 
 @router.get("/system-status")
 async def get_system_status(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -154,7 +153,7 @@ async def get_system_status(
 
 @router.get("/performance-metrics")
 async def get_performance_metrics(
-    current_user: User = Depends(require_any_authenticated()),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """

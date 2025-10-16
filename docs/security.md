@@ -175,85 +175,364 @@ is_valid = pwd_context.verify("user_password", hashed_password)
 
 Role-Based Access Control (RBAC) restricts system access based on user roles.
 
-### Roles
+### Enhanced RBAC with 6 Roles ✨ **PHASE 8**
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| **Admin** | Full system access | All operations |
-| **Editor** | Create and modify resources | Read, Create, Update pipelines/connectors |
-| **Viewer** | Read-only access | Read pipelines, view data, execute pipelines |
+The platform implements a granular 6-role system with 40+ permissions for fine-grained access control.
 
-### Permission Matrix
+### Role Hierarchy
 
-| Resource | Admin | Editor | Viewer |
-|----------|-------|--------|--------|
-| **Users** ||||
-| Create | ✅ | ❌ | ❌ |
-| Read | ✅ | ✅ (self) | ✅ (self) |
-| Update | ✅ | ✅ (self) | ✅ (self) |
-| Delete | ✅ | ❌ | ❌ |
-| **Pipelines** ||||
-| Create | ✅ | ✅ | ❌ |
-| Read | ✅ | ✅ | ✅ |
-| Update | ✅ | ✅ (own) | ❌ |
-| Delete | ✅ | ✅ (own) | ❌ |
-| Execute | ✅ | ✅ | ✅ |
-| **Connectors** ||||
-| Create | ✅ | ✅ | ❌ |
-| Read | ✅ | ✅ | ✅ |
-| Update | ✅ | ✅ (own) | ❌ |
-| Delete | ✅ | ✅ (own) | ❌ |
-| **Transformations** ||||
-| Create | ✅ | ✅ | ❌ |
-| Read | ✅ | ✅ | ✅ |
-| Update | ✅ | ✅ (own) | ❌ |
-| Delete | ✅ | ✅ (own) | ❌ |
-| **Settings** ||||
-| System Settings | ✅ | ❌ | ❌ |
-| User Settings | ✅ | ✅ (self) | ✅ (self) |
+| Role | Level | Description | Primary Use Case |
+|------|-------|-------------|------------------|
+| **Admin** | 100 | Full system access including user management | System administrators |
+| **Developer** | 90 | Development and testing access (non-production) | Development team, DevOps engineers |
+| **Designer** | 50 | Pipeline and workflow design | Data engineers, workflow designers |
+| **Executor** | 40 | Pipeline execution and monitoring | Operations team, data operators |
+| **Executive** | 30 | Analytics and business intelligence | Management, business analysts |
+| **Viewer** | 10 | Read-only access to most resources | Auditors, read-only users |
+
+### Navigation Permissions
+
+| Feature / Page | Admin | Developer | Designer | Executor | Executive | Viewer |
+|----------------|-------|-----------|----------|----------|-----------|--------|
+| **Dashboard** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Pipelines** | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ (read-only) |
+| **Connectors** | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ (read-only) |
+| **Transformations** | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ (read-only) |
+| **Monitoring** | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| **Analytics** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **Users** | ✅ | ✅* | ❌ | ❌ | ✅ (read-only) | ❌ |
+| **Maintenance** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+*Developer cannot modify admin user (see safeguards below)
+
+### Complete Permission Matrix
+
+#### Pipelines
+
+| Operation | Admin | Developer | Designer | Executor | Executive | Viewer |
+|-----------|-------|-----------|----------|----------|-----------|--------|
+| View | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Create | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Edit | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Delete | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Execute | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| View Logs | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+#### Connectors
+
+| Operation | Admin | Developer | Designer | Executor | Executive | Viewer |
+|-----------|-------|-----------|----------|----------|-----------|--------|
+| View | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Create | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Edit | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Delete | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Test Connection | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+#### Transformations
+
+| Operation | Admin | Developer | Designer | Executor | Executive | Viewer |
+|-----------|-------|-----------|----------|----------|-----------|--------|
+| View | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Create | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Edit | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Delete | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Execute | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Test | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+#### User Management
+
+| Operation | Admin | Developer | Designer | Executor | Executive | Viewer |
+|-----------|-------|-----------|----------|----------|-----------|--------|
+| View Users | ✅ | ✅* | ❌ | ❌ | ✅ | ❌ |
+| Create Users | ✅ | ✅* | ❌ | ❌ | ❌ | ❌ |
+| Edit Users | ✅ | ✅* | ❌ | ❌ | ❌ | ❌ |
+| Delete Users | ✅ | ✅* | ❌ | ❌ | ❌ | ❌ |
+| Change Roles | ✅ | ✅* | ❌ | ❌ | ❌ | ❌ |
+| Activate/Deactivate | ✅ | ✅* | ❌ | ❌ | ❌ | ❌ |
+| Reset Password | ✅ | ✅* | ❌ | ❌ | ❌ | ❌ |
+
+*Developer role cannot modify admin user (see protection below)
+
+#### Monitoring & Analytics
+
+| Operation | Admin | Developer | Designer | Executor | Executive | Viewer |
+|-----------|-------|-----------|----------|----------|-----------|--------|
+| View Monitoring | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| View Analytics | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Export Data | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Manage Alerts | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+
+#### System Administration
+
+| Operation | Admin | Developer | Designer | Executor | Executive | Viewer |
+|-----------|-------|-----------|----------|----------|-----------|--------|
+| System Settings | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| System Cleanup | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View Activity Logs | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Backup/Restore | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+### Developer Role Safeguards ✨ **PHASE 8**
+
+The Developer role has near-admin access but with critical protections:
+
+#### 1. Admin User Protection
+
+**Restrictions:**
+- ❌ Cannot modify admin user's profile
+- ❌ Cannot change admin user's role
+- ❌ Cannot reset admin user's password
+- ❌ Cannot deactivate admin user
+- ❌ Cannot delete admin user
+
+**Implementation:**
+```python
+# backend/middleware/admin_protection.py
+
+def check_admin_user_modification(current_user: User, target_user: User):
+    """Prevent developer role from modifying admin user."""
+    if target_user.username == "admin" and current_user.role == "developer":
+        raise HTTPException(
+            status_code=403,
+            detail="Developer role cannot modify admin user"
+        )
+```
+
+#### 2. Production Environment Restrictions
+
+**Default Behavior:**
+- Developer role is **blocked** in production by default
+- Set via `ALLOW_DEV_ROLE_IN_PRODUCTION=false`
+
+**Temporary Override (Security-Sensitive):**
+- Admin can enable temporarily via UI or API
+- Auto-expires after 24 hours (configurable)
+- Warning banner displayed to all developer role users
+- All developer activities logged
+
+**API Endpoint:**
+```bash
+# Enable developer role in production temporarily
+PUT /api/v1/admin/settings/dev-role-production
+{
+  "allow": true,
+  "duration_hours": 24
+}
+```
+
+**Frontend Warning:**
+When developer role is active in production, a prominent warning banner is displayed:
+```
+⚠️ Developer role is temporarily active in production
+Expires: 2025-10-14 10:30 UTC
+```
+
+#### 3. Login Security
+
+**Dev User Protection:**
+- Dev user login failures are masked (always returns "Invalid username or password")
+- Dev user created inactive by default (must be activated by admin)
+- Dev user only created when `CREATE_DEV_USER=true`
+
+### Admin User Protection ✨ **PHASE 8**
+
+The admin user has special protections that cannot be bypassed:
+
+**Password Reset:**
+- Admin password **CANNOT** be reset via admin panel
+- Only changeable via "Change Password" with current password
+- Prevents unauthorized password resets
+
+**User Modification:**
+- Admin user cannot be deactivated
+- Admin user cannot be deleted
+- Admin role cannot be changed
+- Protected from all modifications by developer role
+
+**Implementation:**
+```python
+# backend/api/v1/endpoints/users.py
+
+@router.post("/users/{user_id}/reset-password")
+@require_role(["admin", "developer"])
+async def reset_password(user_id: int, current_user: User):
+    user = await get_user(user_id)
+
+    # Admin password cannot be reset
+    if user.username == "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin password can only be changed via Change Password"
+        )
+
+    # Developer cannot reset any user password
+    if current_user.role == "developer":
+        raise HTTPException(
+            status_code=403,
+            detail="Developer role cannot reset passwords"
+        )
+
+    # Proceed with reset
+    return await password_service.reset(user_id)
+```
+
+### Activity Logging ✨ **PHASE 8**
+
+All security-relevant actions are comprehensively logged:
+
+**Authentication Events:**
+- `user.login` - Successful login
+- `user.logout` - User logout
+- `user.login.failed` - Failed login attempt
+- `password.changed` - Password changed via Change Password
+- `password.reset` - Password reset by admin
+
+**User Management:**
+- `user.created` - New user account created
+- `user.updated` - User profile updated
+- `user.deleted` - User account deleted
+- `user.activated` - User account activated
+- `user.deactivated` - User account deactivated
+- `role.changed` - User role changed
+
+**System Maintenance:**
+- `cleanup.activity_logs` - Activity logs cleaned
+- `cleanup.temp_files` - Temp files cleaned
+- `cleanup.orphaned_data` - Orphaned data cleaned
+- `cleanup.execution_logs` - Execution logs cleaned
+- `cleanup.database_vacuum` - Database vacuumed
+- `cleanup.all` - All cleanup operations run
+
+**Security Events:**
+- `permission.denied` - Access denied to resource
+- `admin_user.modification_attempted` - Attempted admin user modification
+- `dev_role.production_enabled` - Developer role enabled in production
+- `dev_role.production_disabled` - Developer role disabled in production
+
+**Log Format:**
+```json
+{
+  "id": 12345,
+  "user_id": 123,
+  "username": "john.doe",
+  "action": "user.login",
+  "details": "Successful login from Chrome",
+  "ip_address": "192.168.1.100",
+  "user_agent": "Mozilla/5.0...",
+  "timestamp": "2025-10-13T10:30:00Z"
+}
+```
 
 ### RBAC Implementation
 
-**Backend (FastAPI):**
+**Backend (FastAPI) with Phase 8 Roles:**
 ```python
 from backend.core.security import require_role
+from backend.core.permissions import check_permission
 
+# Role-based endpoint protection
 @router.post("/pipelines")
-@require_role(["admin", "editor"])
+@require_role(["admin", "developer", "designer"])
 async def create_pipeline(
     pipeline: PipelineCreate,
     current_user: User = Depends(get_current_user)
 ):
     return await pipeline_service.create(pipeline, current_user.id)
 
-@router.delete("/pipelines/{pipeline_id}")
-@require_role(["admin"])
-async def delete_pipeline(
-    pipeline_id: str,
+# Permission-based check
+@router.put("/users/{user_id}")
+@require_role(["admin", "developer"])
+async def update_user(
+    user_id: int,
+    user_update: UserUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    return await pipeline_service.delete(pipeline_id)
+    # Check admin user protection
+    target_user = await get_user(user_id)
+    check_admin_user_modification(current_user, target_user)
+
+    return await user_service.update(user_id, user_update)
+
+# Fine-grained permission check
+@router.get("/analytics/data")
+async def get_analytics(current_user: User = Depends(get_current_user)):
+    if not check_permission(current_user, "analytics", "view"):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return await analytics_service.get_data()
 ```
 
-**Frontend (React):**
+**Frontend (React) with Phase 8 Permissions:**
 ```typescript
-import { useAuth } from '@/hooks/use-auth';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export function PipelineActions() {
-  const { user, hasRole } = useAuth();
+  const { features, navigation, role, loading } = usePermissions();
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div>
-      {hasRole(['admin', 'editor']) && (
+      {/* Show/hide based on permissions */}
+      {features?.pipelines?.create && (
         <Button onClick={createPipeline}>Create Pipeline</Button>
       )}
-      {hasRole(['admin']) && (
+
+      {features?.pipelines?.edit && (
+        <Button onClick={editPipeline}>Edit Pipeline</Button>
+      )}
+
+      {features?.pipelines?.delete && (
         <Button onClick={deletePipeline}>Delete Pipeline</Button>
+      )}
+
+      {features?.pipelines?.execute && (
+        <Button onClick={executePipeline}>Execute Pipeline</Button>
+      )}
+
+      {/* Role-based display */}
+      {(role === 'admin' || role === 'developer') && (
+        <AdvancedSettings />
       )}
     </div>
   );
 }
+
+// Navigation visibility
+export function Sidebar() {
+  const { navigation } = usePermissions();
+
+  return (
+    <nav>
+      {navigation?.dashboard && <NavItem to="/dashboard">Dashboard</NavItem>}
+      {navigation?.pipelines && <NavItem to="/pipelines">Pipelines</NavItem>}
+      {navigation?.monitoring && <NavItem to="/monitoring">Monitoring</NavItem>}
+      {navigation?.analytics && <NavItem to="/analytics">Analytics</NavItem>}
+      {navigation?.users && <NavItem to="/users">Users</NavItem>}
+      {navigation?.maintenance && <NavItem to="/admin/maintenance">Maintenance</NavItem>}
+    </nav>
+  );
+}
 ```
+
+### Role Assignment Best Practices
+
+**Recommended Role Assignments:**
+
+| User Type | Recommended Role | Rationale |
+|-----------|-----------------|-----------|
+| System Administrator | Admin | Full access for system management |
+| DevOps Engineer | Developer | Troubleshooting access (non-production only) |
+| Data Engineer | Designer | Pipeline and workflow design |
+| Operations Team Member | Executor | Run pipelines and monitor execution |
+| Business Analyst | Executive | Analytics and reporting access |
+| Stakeholder/Auditor | Viewer | Read-only access for oversight |
+
+**Security Considerations:**
+- **Minimize Admin accounts** - Only create admin accounts for true system administrators
+- **Use Developer role carefully** - Only for development/staging, blocked in production by default
+- **Regular audits** - Review user roles quarterly and adjust as needed
+- **Principle of least privilege** - Assign the minimum role needed for job function
+- **Role changes logged** - All role changes are logged for audit trail
 
 ---
 
@@ -668,8 +947,14 @@ def anonymize_user_data(user: User) -> dict:
 
 ---
 
-**Last Updated:** October 7, 2025
-**Version:** 1.0.0
+**Last Updated:** October 13, 2025 (Phase 8)
+**Version:** 1.2.0
 **Status:** Production Ready ✅
+
+**Phase 8 Updates:**
+- Enhanced RBAC with 6 granular roles
+- Developer role safeguards and production restrictions
+- Admin user protection system
+- Comprehensive activity logging for security events
 
 For questions or concerns, contact: security@dataaggregator.com

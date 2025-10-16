@@ -11,8 +11,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select, delete, func
+from sqlalchemy.exc import SQLAlchemyError
 from backend.models.activity_log import UserActivityLog
 from backend.models.file_upload import FileUpload
+from backend.models.pipeline import Pipeline
+from backend.models.pipeline_run import PipelineRun
+from backend.models.auth_token import AuthToken
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +67,16 @@ class CleanupService:
                 "days_kept": days_to_keep
             }
 
+        except SQLAlchemyError as e:
+            logger.error(f"Database error cleaning activity logs: {e}")
+            await db.rollback()
+            return {
+                "success": False,
+                "error": str(e),
+                "records_deleted": 0
+            }
         except Exception as e:
-            logger.error(f"Error cleaning activity logs: {e}")
+            logger.error(f"Unexpected error cleaning activity logs: {e}")
             await db.rollback()
             return {
                 "success": False,
@@ -84,18 +96,24 @@ class CleanupService:
             Dict with cleanup statistics
         """
         try:
-            # Find orphaned pipeline runs (where pipeline_id doesn't exist in pipelines table)
-            query = text("""
-                DELETE FROM pipeline_runs
-                WHERE pipeline_id NOT IN (SELECT id FROM pipelines)
-                RETURNING id
-            """)
+            # Find orphaned pipeline runs using ORM subquery
+            # pipeline_id NOT IN (SELECT id FROM pipelines)
+            pipeline_ids_subquery = select(Pipeline.id)
 
-            result = await db.execute(query)
-            deleted_ids = result.fetchall()
-            count = len(deleted_ids)
+            # Count orphaned records first
+            count_stmt = select(func.count(PipelineRun.id)).where(
+                PipelineRun.pipeline_id.not_in(pipeline_ids_subquery)
+            )
+            count_result = await db.execute(count_stmt)
+            count = count_result.scalar() or 0
 
-            await db.commit()
+            # Delete orphaned pipeline runs
+            if count > 0:
+                delete_stmt = delete(PipelineRun).where(
+                    PipelineRun.pipeline_id.not_in(pipeline_ids_subquery)
+                )
+                await db.execute(delete_stmt)
+                await db.commit()
 
             logger.info(f"Cleaned {count} orphaned pipeline runs")
 
@@ -105,8 +123,16 @@ class CleanupService:
                 "type": "orphaned_pipeline_runs"
             }
 
+        except SQLAlchemyError as e:
+            logger.error(f"Database error cleaning orphaned pipeline runs: {e}")
+            await db.rollback()
+            return {
+                "success": False,
+                "error": str(e),
+                "records_deleted": 0
+            }
         except Exception as e:
-            logger.error(f"Error cleaning orphaned pipeline runs: {e}")
+            logger.error(f"Unexpected error cleaning orphaned pipeline runs: {e}")
             await db.rollback()
             return {
                 "success": False,
@@ -115,18 +141,24 @@ class CleanupService:
             }
 
     @staticmethod
-    async def clean_temp_files(max_age_hours: int = 24) -> Dict[str, any]:
+    async def clean_temp_files(max_age_hours: int = 24, temp_dir_path: Optional[Path] = None) -> Dict[str, any]:
         """
         Clean temporary files older than specified hours.
 
         Args:
             max_age_hours: Maximum age of temp files in hours
+            temp_dir_path: Path to temporary directory (default: from settings.temp_files_dir)
 
         Returns:
             Dict with cleanup statistics
         """
         try:
-            temp_dir = Path("temp")
+            # Get temp directory from parameter or config
+            if temp_dir_path is None:
+                from backend.core.config import settings
+                temp_dir = settings.temp_files_dir
+            else:
+                temp_dir = temp_dir_path if isinstance(temp_dir_path, Path) else Path(temp_dir_path)
             if not temp_dir.exists():
                 return {
                     "success": True,
@@ -185,20 +217,22 @@ class CleanupService:
         try:
             cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
 
-            # This assumes you have an execution_logs table
-            # Adjust based on your actual schema
-            query = text("""
-                DELETE FROM pipeline_runs
-                WHERE created_at < :cutoff_date
-                AND status IN ('completed', 'failed')
-                RETURNING id
-            """)
+            # Count old execution logs using ORM
+            count_stmt = select(func.count(PipelineRun.id)).where(
+                PipelineRun.created_at < cutoff_date,
+                PipelineRun.status.in_(['completed', 'failed'])
+            )
+            count_result = await db.execute(count_stmt)
+            count = count_result.scalar() or 0
 
-            result = await db.execute(query, {"cutoff_date": cutoff_date})
-            deleted_ids = result.fetchall()
-            count = len(deleted_ids)
-
-            await db.commit()
+            # Delete old execution logs
+            if count > 0:
+                delete_stmt = delete(PipelineRun).where(
+                    PipelineRun.created_at < cutoff_date,
+                    PipelineRun.status.in_(['completed', 'failed'])
+                )
+                await db.execute(delete_stmt)
+                await db.commit()
 
             logger.info(f"Cleaned {count} old execution logs")
 
@@ -209,8 +243,16 @@ class CleanupService:
                 "days_kept": days_to_keep
             }
 
+        except SQLAlchemyError as e:
+            logger.error(f"Database error cleaning execution logs: {e}")
+            await db.rollback()
+            return {
+                "success": False,
+                "error": str(e),
+                "records_deleted": 0
+            }
         except Exception as e:
-            logger.error(f"Error cleaning execution logs: {e}")
+            logger.error(f"Unexpected error cleaning execution logs: {e}")
             await db.rollback()
             return {
                 "success": False,
@@ -248,8 +290,14 @@ class CleanupService:
                 "message": "Database vacuum completed"
             }
 
+        except SQLAlchemyError as e:
+            logger.error(f"Database error running vacuum: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
         except Exception as e:
-            logger.error(f"Error running database vacuum: {e}")
+            logger.error(f"Unexpected error running database vacuum: {e}")
             return {
                 "success": False,
                 "error": str(e)
@@ -267,24 +315,22 @@ class CleanupService:
             Dict with cleanup statistics
         """
         try:
-            # Clean expired auth tokens
+            # Clean expired auth tokens using ORM
             cutoff_date = datetime.utcnow()
 
-            count_result = await db.execute(
-                select(func.count()).select_from(
-                    text("auth_tokens")
-                ).where(
-                    text("expires_at < :cutoff")
-                ),
-                {"cutoff": cutoff_date}
+            # Count expired tokens
+            count_stmt = select(func.count(AuthToken.id)).where(
+                AuthToken.expires_at < cutoff_date
             )
+            count_result = await db.execute(count_stmt)
             count = count_result.scalar() or 0
 
+            # Delete expired tokens
             if count > 0:
-                await db.execute(
-                    text("DELETE FROM auth_tokens WHERE expires_at < :cutoff"),
-                    {"cutoff": cutoff_date}
+                delete_stmt = delete(AuthToken).where(
+                    AuthToken.expires_at < cutoff_date
                 )
+                await db.execute(delete_stmt)
                 await db.commit()
 
             logger.info(f"Cleaned {count} expired sessions")
@@ -294,8 +340,16 @@ class CleanupService:
                 "records_deleted": count
             }
 
+        except SQLAlchemyError as e:
+            logger.error(f"Database error cleaning expired sessions: {e}")
+            await db.rollback()
+            return {
+                "success": False,
+                "error": str(e),
+                "records_deleted": 0
+            }
         except Exception as e:
-            logger.error(f"Error cleaning expired sessions: {e}")
+            logger.error(f"Unexpected error cleaning expired sessions: {e}")
             await db.rollback()
             return {
                 "success": False,

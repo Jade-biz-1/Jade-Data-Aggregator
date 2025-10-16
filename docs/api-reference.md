@@ -2,15 +2,44 @@
 
 **Data Aggregator Platform - REST API**
 
-**Version**: 1.0
+**Version**: 1.2 (Phase 8)
 **Base URL**: `http://localhost:8001/api/v1`
-**Last Updated**: October 3, 2025
+**Last Updated**: October 13, 2025
 
 ---
 
 ## Overview
 
-The Data Aggregator Platform provides a comprehensive REST API with **179 endpoints** across **23 service routers**. All endpoints require authentication unless explicitly marked as public.
+The Data Aggregator Platform provides a comprehensive REST API with **203 endpoints** across **27 service routers**. All endpoints require authentication unless explicitly marked as public.
+
+### Phase 8 Updates (October 13, 2025) ✨ **NEW**
+
+This version includes Enhanced RBAC and System Maintenance features:
+
+**Role Management (5 endpoints):**
+- 6 granular roles: Admin, Developer, Designer, Executor, Executive, Viewer
+- Role-based navigation and feature access
+- 40+ granular permissions
+
+**System Maintenance (11 endpoints):**
+- Clean activity logs, temp files, execution logs
+- Database vacuum and optimization
+- Orphaned data cleanup
+- Expired session management
+- Automated cleanup scheduling
+- Cleanup history and estimation
+
+**Production Safeguards (2 endpoints):**
+- Developer role production controls
+- Temporary approval system with auto-expiration
+
+### Phase 7G Updates (October 10, 2025)
+
+Enhanced user management features:
+- Change password functionality for all users
+- Admin user management with activate/deactivate capabilities
+- Activity logging and audit trail
+- Inactive user restrictions
 
 ### Authentication
 
@@ -90,6 +119,27 @@ All API responses follow this structure:
 - **Public**: Yes
 - **Request Body**: `{ "token": "..." }`
 
+#### POST `/auth/change-password` ✨ NEW
+- **Description**: Change current user's password
+- **Requires Authentication**: Yes
+- **Request Body**:
+  ```json
+  {
+    "current_password": "old_password",
+    "new_password": "new_password"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "Password changed successfully"
+  }
+  ```
+- **Errors**:
+  - `400`: Current password is incorrect
+  - `422`: New password doesn't meet requirements (min 8 chars, letters + numbers)
+
 ---
 
 ### 2. Users (`/users`)
@@ -118,6 +168,58 @@ All API responses follow this structure:
 
 #### GET `/users/me`
 - **Description**: Get current user profile
+
+#### POST `/users/{user_id}/activate` ✨ NEW
+- **Description**: Activate a user account (Admin only)
+- **Permissions**: Admin
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "User activated successfully",
+    "data": {
+      "user_id": 123,
+      "is_active": true
+    }
+  }
+  ```
+
+#### POST `/users/{user_id}/deactivate` ✨ NEW
+- **Description**: Deactivate a user account (Admin only)
+- **Permissions**: Admin
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "User deactivated successfully",
+    "data": {
+      "user_id": 123,
+      "is_active": false
+    }
+  }
+  ```
+- **Notes**:
+  - Deactivated users cannot access API or protected routes
+  - Deactivated users will see "Account Inactive" page when they try to login
+
+#### POST `/users/{user_id}/reset-password` ✨ NEW
+- **Description**: Reset user password (Admin only, generates temporary password)
+- **Permissions**: Admin
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "Password reset successfully",
+    "data": {
+      "temporary_password": "TempPass123!"
+    }
+  }
+  ```
+- **Notes**:
+  - Generates a secure temporary password
+  - Admin receives the temporary password in response
+  - User must change password on next login
+  - Activity is logged for audit trail
 
 ---
 
@@ -611,7 +713,622 @@ All API responses follow this structure:
 
 ---
 
-### 23. Pipeline Execution (`/pipelines/{pipeline_id}/...`)
+### 23. Admin Activity Logs (`/admin/activity-logs`) ✨ NEW
+
+#### GET `/admin/activity-logs`
+- **Description**: Get activity logs with filtering (Admin only)
+- **Permissions**: Admin
+- **Query Parameters**:
+  - `user_id`: Filter by user ID (optional)
+  - `action`: Filter by action type (optional)
+  - `start_date`: Filter by start date (optional)
+  - `end_date`: Filter by end date (optional)
+  - `skip`: Offset (default: 0)
+  - `limit`: Page size (default: 100)
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": 1,
+        "user_id": 123,
+        "username": "john.doe",
+        "action": "user.login",
+        "details": "Successful login",
+        "ip_address": "192.168.1.1",
+        "user_agent": "Mozilla/5.0...",
+        "timestamp": "2025-10-10T10:30:00Z"
+      }
+    ],
+    "total": 150,
+    "skip": 0,
+    "limit": 100
+  }
+  ```
+- **Activity Types**:
+  - `user.login` - User logged in
+  - `user.logout` - User logged out
+  - `user.login.failed` - Failed login attempt
+  - `user.created` - User account created
+  - `user.updated` - User account updated
+  - `user.deleted` - User account deleted
+  - `user.activated` - User account activated
+  - `user.deactivated` - User account deactivated
+  - `password.changed` - Password changed
+  - `password.reset` - Password reset by admin
+  - `role.changed` - User role changed
+
+#### GET `/admin/activity-logs/{user_id}`
+- **Description**: Get activity logs for a specific user (Admin only)
+- **Permissions**: Admin
+- **Query Parameters**: Same as above (except user_id)
+- **Response**: Same format as GET `/admin/activity-logs`
+
+---
+
+### 24. Role Management (`/roles`) ✨ PHASE 8
+
+#### GET `/roles`
+- **Description**: Get all available roles
+- **Requires Authentication**: Yes
+- **Permissions**: Authenticated users
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "name": "admin",
+        "display_name": "Administrator",
+        "level": 100,
+        "description": "Full system access"
+      },
+      {
+        "name": "developer",
+        "display_name": "Developer",
+        "level": 90,
+        "description": "Development and testing access"
+      },
+      {
+        "name": "designer",
+        "display_name": "Designer",
+        "level": 50,
+        "description": "Pipeline and workflow design"
+      },
+      {
+        "name": "executor",
+        "display_name": "Executor",
+        "level": 40,
+        "description": "Pipeline execution and monitoring"
+      },
+      {
+        "name": "executive",
+        "display_name": "Executive",
+        "level": 30,
+        "description": "Analytics and BI access"
+      },
+      {
+        "name": "viewer",
+        "display_name": "Viewer",
+        "level": 10,
+        "description": "Read-only access"
+      }
+    ]
+  }
+  ```
+
+#### GET `/roles/{role_name}`
+- **Description**: Get specific role details with full permission list
+- **Requires Authentication**: Yes
+- **Permissions**: Authenticated users
+- **Path Parameters**: `role_name` (admin, developer, designer, executor, executive, viewer)
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "name": "designer",
+      "display_name": "Designer",
+      "level": 50,
+      "description": "Pipeline and workflow design",
+      "permissions": {
+        "pipelines": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "execute": true
+        },
+        "connectors": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "transformations": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "execute": true
+        }
+      }
+    }
+  }
+  ```
+
+#### GET `/roles/navigation/items`
+- **Description**: Get navigation items visibility for current user based on their role
+- **Requires Authentication**: Yes
+- **Permissions**: Authenticated users
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "dashboard": true,
+      "pipelines": true,
+      "connectors": true,
+      "transformations": true,
+      "monitoring": false,
+      "analytics": false,
+      "users": false,
+      "maintenance": false
+    }
+  }
+  ```
+- **Notes**: Response varies based on user's role
+
+#### GET `/roles/features/access`
+- **Description**: Get feature access permissions for current user
+- **Requires Authentication**: Yes
+- **Permissions**: Authenticated users
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "role": "designer",
+      "features": {
+        "pipelines": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "execute": true
+        },
+        "connectors": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "users": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false
+        }
+      },
+      "navigation": {
+        "dashboard": true,
+        "pipelines": true,
+        "monitoring": false,
+        "users": false
+      }
+    }
+  }
+  ```
+- **Use Case**: Frontend uses this to show/hide UI elements based on permissions
+
+#### GET `/roles/{role_name}/permissions`
+- **Description**: Get full permissions object for a specific role
+- **Requires Authentication**: Yes
+- **Permissions**: Admin, Developer
+- **Path Parameters**: `role_name`
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "role": "executor",
+      "permissions": {
+        "pipelines": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "execute": true
+        },
+        "monitoring": {
+          "view": true
+        }
+      }
+    }
+  }
+  ```
+
+---
+
+### 25. System Cleanup (`/admin/cleanup`) ✨ PHASE 8
+
+#### GET `/admin/cleanup/stats`
+- **Description**: Get system statistics for maintenance dashboard
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "database": {
+        "total_size_mb": 1024.5,
+        "table_count": 21,
+        "last_vacuum": "2025-10-12T02:00:00Z"
+      },
+      "records": {
+        "users": 150,
+        "pipelines": 45,
+        "connectors": 30,
+        "activity_logs": 50000,
+        "execution_logs": 100000,
+        "orphaned_records": 25
+      },
+      "temp_files": {
+        "count": 500,
+        "total_size_mb": 250.3
+      },
+      "cache": {
+        "keys": 1000,
+        "memory_mb": 128.5
+      }
+    }
+  }
+  ```
+
+#### POST `/admin/cleanup/activity-logs`
+- **Description**: Clean old activity logs based on retention period
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Request Body**:
+  ```json
+  {
+    "retention_days": 90
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "cleanup_activity_logs",
+      "records_deleted": 15000,
+      "space_freed_mb": 50.2,
+      "duration_seconds": 5.3,
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+
+#### POST `/admin/cleanup/temp-files`
+- **Description**: Clean temporary files older than retention period
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "cleanup_temp_files",
+      "files_deleted": 500,
+      "space_freed_mb": 250.3,
+      "duration_seconds": 2.1,
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+
+#### POST `/admin/cleanup/orphaned-data`
+- **Description**: Clean orphaned records (records without parent references)
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "cleanup_orphaned_data",
+      "records_deleted": 25,
+      "affected_tables": ["pipeline_runs", "transformations"],
+      "duration_seconds": 1.5,
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+
+#### POST `/admin/cleanup/execution-logs`
+- **Description**: Clean old pipeline execution logs
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Request Body**:
+  ```json
+  {
+    "retention_days": 30
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "cleanup_execution_logs",
+      "records_deleted": 75000,
+      "space_freed_mb": 120.5,
+      "duration_seconds": 8.7,
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+
+#### POST `/admin/cleanup/database-vacuum`
+- **Description**: Vacuum and optimize database (VACUUM ANALYZE)
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "database_vacuum",
+      "tables_processed": 21,
+      "space_reclaimed_mb": 150.2,
+      "duration_seconds": 45.3,
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+- **Notes**: This operation can take several minutes depending on database size
+
+#### POST `/admin/cleanup/expired-sessions`
+- **Description**: Clean expired Redis sessions
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "cleanup_expired_sessions",
+      "sessions_deleted": 250,
+      "memory_freed_mb": 5.3,
+      "duration_seconds": 0.5,
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+
+#### POST `/admin/cleanup/all`
+- **Description**: Run all cleanup operations sequentially
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Request Body**:
+  ```json
+  {
+    "retention_days": 30
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "operation": "cleanup_all",
+      "total_records_deleted": 90275,
+      "total_files_deleted": 500,
+      "total_space_freed_mb": 576.5,
+      "total_duration_seconds": 63.4,
+      "operations": [
+        {
+          "name": "activity_logs",
+          "records_deleted": 15000,
+          "space_freed_mb": 50.2
+        },
+        {
+          "name": "temp_files",
+          "files_deleted": 500,
+          "space_freed_mb": 250.3
+        },
+        {
+          "name": "orphaned_data",
+          "records_deleted": 25,
+          "space_freed_mb": 0.5
+        },
+        {
+          "name": "execution_logs",
+          "records_deleted": 75000,
+          "space_freed_mb": 120.5
+        },
+        {
+          "name": "database_vacuum",
+          "space_reclaimed_mb": 150.2
+        },
+        {
+          "name": "expired_sessions",
+          "sessions_deleted": 250,
+          "memory_freed_mb": 5.3
+        }
+      ],
+      "timestamp": "2025-10-13T10:30:00Z"
+    }
+  }
+  ```
+
+#### GET `/admin/cleanup/estimate/{cleanup_type}`
+- **Description**: Estimate impact of cleanup operation without executing
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Path Parameters**: `cleanup_type` (activity-logs, temp-files, orphaned-data, execution-logs)
+- **Query Parameters**: `retention_days` (optional, for applicable types)
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "cleanup_type": "activity_logs",
+      "estimated_records": 15000,
+      "estimated_space_mb": 50.2,
+      "estimated_duration_seconds": 5.0,
+      "retention_days": 90
+    }
+  }
+  ```
+
+#### GET `/admin/cleanup/history`
+- **Description**: Get cleanup operation history with pagination
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Query Parameters**:
+  - `page`: Page number (default: 1)
+  - `limit`: Results per page (default: 50)
+  - `start_date`: Filter by start date (optional)
+  - `end_date`: Filter by end date (optional)
+  - `operation`: Filter by operation type (optional)
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": 123,
+        "operation": "cleanup_all",
+        "user_id": 1,
+        "username": "admin",
+        "records_deleted": 90275,
+        "space_freed_mb": 576.5,
+        "duration_seconds": 63.4,
+        "status": "success",
+        "timestamp": "2025-10-13T10:30:00Z"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "limit": 50
+  }
+  ```
+
+#### GET `/admin/cleanup/schedule`
+- **Description**: Get current cleanup schedule configuration
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "enabled": true,
+      "schedule": "0 2 * * *",
+      "retention_periods": {
+        "activity_logs_days": 90,
+        "execution_logs_days": 30,
+        "temp_files_hours": 24
+      },
+      "next_run": "2025-10-14T02:00:00Z",
+      "last_run": "2025-10-13T02:00:00Z",
+      "last_run_status": "success"
+    }
+  }
+  ```
+
+#### PUT `/admin/cleanup/schedule`
+- **Description**: Update cleanup schedule configuration
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Request Body**:
+  ```json
+  {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "retention_periods": {
+      "activity_logs_days": 90,
+      "execution_logs_days": 30,
+      "temp_files_hours": 24
+    }
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "enabled": true,
+      "schedule": "0 2 * * *",
+      "retention_periods": {
+        "activity_logs_days": 90,
+        "execution_logs_days": 30,
+        "temp_files_hours": 24
+      },
+      "next_run": "2025-10-14T02:00:00Z"
+    },
+    "message": "Cleanup schedule updated successfully"
+  }
+  ```
+
+---
+
+### 26. System Settings (`/admin/settings`) ✨ PHASE 8
+
+#### GET `/admin/settings/dev-role-production`
+- **Description**: Get developer role production environment setting
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "allowed": false,
+      "expires_at": null,
+      "environment": "production"
+    }
+  }
+  ```
+- **Notes**: Returns whether developer role is allowed in production and when it expires
+
+#### PUT `/admin/settings/dev-role-production`
+- **Description**: Allow developer role in production temporarily (security-sensitive)
+- **Requires Authentication**: Yes
+- **Permissions**: Admin only
+- **Request Body**:
+  ```json
+  {
+    "allow": true,
+    "duration_hours": 24
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "allowed": true,
+      "expires_at": "2025-10-14T10:30:00Z",
+      "duration_hours": 24,
+      "environment": "production"
+    },
+    "message": "Developer role temporarily allowed in production. Auto-expires in 24 hours."
+  }
+  ```
+- **Security Notes**:
+  - Use with extreme caution in production
+  - Automatically expires after specified duration (default: 24 hours)
+  - Warning banner displayed to developer role users
+  - All developer role activity logged
+  - Recommended for temporary troubleshooting only
+
+---
+
+### 27. Pipeline Execution (`/pipelines/{pipeline_id}/...`)
 
 Additional pipeline execution endpoints under the pipeline routes.
 

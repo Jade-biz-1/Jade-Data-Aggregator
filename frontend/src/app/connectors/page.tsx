@@ -16,8 +16,11 @@ import {
   ExternalLink,
   Trash2,
   Edit,
-  XCircle
+  XCircle,
+  Shield
 } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
 
 // Mock data - in real app this would come from API
 const mockConnectors = [
@@ -83,6 +86,7 @@ export default function ConnectorsPage() {
   const [filteredConnectors, setFilteredConnectors] = useState(mockConnectors);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     // Simulate API call
@@ -144,6 +148,31 @@ export default function ConnectorsPage() {
     }
   };
 
+  // Check permission to view this page
+  if (permissionsLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.connectors?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied
+          message="You don't have permission to view connectors"
+          requiredRole="designer"
+        />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -155,10 +184,12 @@ export default function ConnectorsPage() {
               Manage connections to your data sources and destinations
             </p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Connector
-          </Button>
+          {features?.connectors?.create && (
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Connector
+            </Button>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -288,27 +319,31 @@ export default function ConnectorsPage() {
                       </div>
                       
                       <div className="flex space-x-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleTestConnection(connector.id)}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleEditConnector(connector.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleDeleteConnector(connector.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {features?.connectors?.edit && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditConnector(connector.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {features?.connectors?.delete && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteConnector(connector.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

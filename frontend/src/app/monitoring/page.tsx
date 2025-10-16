@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { apiClient } from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
+import { Shield } from 'lucide-react';
 
 export default function MonitoringPage() {
   const [pipelineStats, setPipelineStats] = useState<any>(null);
@@ -26,6 +29,7 @@ export default function MonitoringPage() {
   const [pipelinePerformance, setPipelinePerformance] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState('24h');
   const [isLoading, setIsLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,6 +107,28 @@ export default function MonitoringPage() {
       return `${(seconds / 3600).toFixed(1)} hrs`;
     }
   };
+
+  // Check permission to view this page
+  if (permissionsLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.monitoring?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied message="You don't have permission to view monitoring data." />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

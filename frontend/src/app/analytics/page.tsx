@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout-enhanced';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, BarChart, AreaChart } from '@/components/charts';
 import {
@@ -16,6 +16,8 @@ import {
   Clock
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
 
 export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -23,6 +25,7 @@ export default function AnalyticsPage() {
   const [topPipelines, setTopPipelines] = useState<any[]>([]);
   const [timeRange, setTimeRange] = useState('7d');
   const [isLoading, setIsLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +64,28 @@ export default function AnalyticsPage() {
     fetchData();
   }, []);
 
+  // Check permission to view this page
+  if (permissionsLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.analytics?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied message="You don't have permission to view analytics." />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -86,14 +111,18 @@ export default function AnalyticsPage() {
                 <option value="90d">Last 90 Days</option>
               </select>
             </div>
-            <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </button>
-            <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </button>
+            {features?.analytics?.view && (
+              <>
+                <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </button>
+                <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </button>
+              </>
+            )}
           </div>
         </div>
 

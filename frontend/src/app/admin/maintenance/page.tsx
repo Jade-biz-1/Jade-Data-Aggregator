@@ -9,7 +9,9 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout-enhanced';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useToast } from '@/hooks/useToast';
 import { AccessDenied } from '@/components/common/AccessDenied';
 import {
   Database,
@@ -61,10 +63,22 @@ export default function MaintenancePage() {
   const [cleanupResults, setCleanupResults] = useState<CleanupResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   const { features, loading: permissionsLoading } = usePermissions();
+  const { showToast } = useToast();
 
   useEffect(() => {
-    if (features?.maintenance?.view) {
+    if (features?.system?.maintenance) {
       fetchStats();
     }
   }, [features]);
@@ -90,19 +104,33 @@ export default function MaintenancePage() {
   };
 
   const runCleanup = async (type: string) => {
-    if (!features?.maintenance?.execute) {
-      alert('You don\'t have permission to execute cleanup operations');
+    if (!features?.system?.cleanup) {
+      showToast({
+        type: 'error',
+        title: 'Permission Denied',
+        message: "You don't have permission to execute cleanup operations",
+      });
       return;
     }
 
+    const confirmTitle = type === 'all' ? 'Run All Cleanup Operations?' : `Clean ${type.replace('-', ' ')}?`;
     const confirmMessage = type === 'all'
-      ? 'Are you sure you want to run ALL cleanup operations? This will clean activity logs, temp files, and orphaned data.'
-      : `Are you sure you want to clean ${type.replace('-', ' ')}?`;
+      ? 'This will clean activity logs, temp files, orphaned data, and more. This action cannot be undone.'
+      : `Are you sure you want to clean ${type.replace('-', ' ')}? This action cannot be undone.`;
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    // Show confirmation dialog
+    setConfirmDialog({
+      isOpen: true,
+      title: confirmTitle,
+      message: confirmMessage,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        await executeCleanup(type);
+      },
+    });
+  };
 
+  const executeCleanup = async (type: string) => {
     try {
       setIsCleaningUp(true);
       const response = await fetch(`/api/v1/admin/cleanup/${type}`, {
@@ -120,10 +148,20 @@ export default function MaintenancePage() {
       // Refresh stats after cleanup
       await fetchStats();
 
-      alert(`Cleanup completed successfully!\n\nRecords deleted: ${result.summary.total_records_deleted}\nSpace freed: ${result.summary.total_space_freed_mb} MB`);
+      // Show success toast
+      showToast({
+        type: 'success',
+        title: 'Cleanup Completed',
+        message: `Deleted ${result.summary.total_records_deleted} records, freed ${result.summary.total_space_freed_mb.toFixed(2)} MB`,
+        duration: 6000,
+      });
     } catch (error) {
       console.error('Error running cleanup:', error);
-      alert('Cleanup operation failed. Please check the logs.');
+      showToast({
+        type: 'error',
+        title: 'Cleanup Failed',
+        message: 'Cleanup operation failed. Please check the logs or try again.',
+      });
     } finally {
       setIsCleaningUp(false);
     }
@@ -143,7 +181,7 @@ export default function MaintenancePage() {
     );
   }
 
-  if (!features?.maintenance?.view) {
+  if (!features?.system?.maintenance) {
     return (
       <DashboardLayout>
         <AccessDenied message="You don't have permission to access system maintenance." />
@@ -153,6 +191,18 @@ export default function MaintenancePage() {
 
   return (
     <DashboardLayout>
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant="danger"
+        confirmText="Yes, Clean Up"
+        cancelText="Cancel"
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+      />
+
       <div className="space-y-6">
         {/* Page Header */}
         <div>
@@ -274,7 +324,7 @@ export default function MaintenancePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button
                 onClick={() => runCleanup('activity-logs')}
-                disabled={isCleaningUp || !features?.maintenance?.execute}
+                disabled={isCleaningUp || !features?.system?.cleanup}
                 className="h-auto py-4 flex flex-col items-start"
                 variant="outline"
               >
@@ -289,7 +339,7 @@ export default function MaintenancePage() {
 
               <Button
                 onClick={() => runCleanup('temp-files')}
-                disabled={isCleaningUp || !features?.maintenance?.execute}
+                disabled={isCleaningUp || !features?.system?.cleanup}
                 className="h-auto py-4 flex flex-col items-start"
                 variant="outline"
               >
@@ -304,7 +354,7 @@ export default function MaintenancePage() {
 
               <Button
                 onClick={() => runCleanup('orphaned-data')}
-                disabled={isCleaningUp || !features?.maintenance?.execute}
+                disabled={isCleaningUp || !features?.system?.cleanup}
                 className="h-auto py-4 flex flex-col items-start"
                 variant="outline"
               >
@@ -319,7 +369,7 @@ export default function MaintenancePage() {
 
               <Button
                 onClick={() => runCleanup('all')}
-                disabled={isCleaningUp || !features?.maintenance?.execute}
+                disabled={isCleaningUp || !features?.system?.cleanup}
                 className="h-auto py-4 flex flex-col items-start bg-primary-600 hover:bg-primary-700 text-white"
               >
                 <div className="flex items-center space-x-2 mb-2">
@@ -391,7 +441,7 @@ export default function MaintenancePage() {
         )}
 
         {/* Permission Warning */}
-        {!features?.maintenance?.execute && (
+        {!features?.system?.cleanup && (
           <Card className="bg-yellow-50 border-yellow-200">
             <CardContent className="pt-6">
               <div className="flex items-start space-x-3">

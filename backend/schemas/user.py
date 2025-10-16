@@ -5,10 +5,13 @@ from enum import Enum
 
 
 class UserRole(str, Enum):
-    """User roles for RBAC system."""
-    ADMIN = "admin"
-    EDITOR = "editor"
-    VIEWER = "viewer"
+    """User roles for RBAC system with granular permissions."""
+    ADMIN = "admin"              # Full system access, manages users, system settings
+    DEVELOPER = "developer"      # Near-admin access for development, cannot modify admin user
+    DESIGNER = "designer"        # Creates/edits pipelines, connectors, transformations
+    EXECUTOR = "executor"        # Executes pipelines, views dashboard and monitoring
+    VIEWER = "viewer"           # Read-only access to dashboard and reports
+    EXECUTIVE = "executive"      # Access to analytics, reports, and user data (read-only)
 
 
 class UserBase(BaseModel):

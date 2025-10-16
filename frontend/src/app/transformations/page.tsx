@@ -5,27 +5,31 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Plus, 
-  Search, 
-  Play, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Play,
+  Trash2,
   Edit,
   Code,
   Settings,
   Database,
   Filter,
   Columns,
-  Shuffle
+  Shuffle,
+  Shield
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Transformation } from '@/types/transformation';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
 
 export default function TransformationsPage() {
   const [transformations, setTransformations] = useState<Transformation[]>([]);
   const [filteredTransformations, setFilteredTransformations] = useState<Transformation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     const fetchTransformations = async () => {
@@ -101,6 +105,31 @@ export default function TransformationsPage() {
     return transformation.is_active ? 'active' : 'inactive';
   };
 
+  // Check permission to view this page
+  if (permissionsLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.transformations?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied
+          message="You don't have permission to view transformations"
+          requiredRole="designer"
+        />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -112,10 +141,12 @@ export default function TransformationsPage() {
               Configure and manage data transformation rules
             </p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Transformation
-          </Button>
+          {features?.transformations?.create && (
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Transformation
+            </Button>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -251,29 +282,35 @@ export default function TransformationsPage() {
                       </div>
                       
                       <div className="flex space-x-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleRunTransformation(transformation.id)}
-                          disabled={!transformation.is_active}
-                          title={!transformation.is_active ? 'Transformation is not active' : 'Run now'}
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleEditTransformation(transformation.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleDeleteTransformation(transformation.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {features?.transformations?.execute && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRunTransformation(transformation.id)}
+                            disabled={!transformation.is_active}
+                            title={!transformation.is_active ? 'Transformation is not active' : 'Run now'}
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {features?.transformations?.edit && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditTransformation(transformation.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {features?.transformations?.delete && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteTransformation(transformation.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
