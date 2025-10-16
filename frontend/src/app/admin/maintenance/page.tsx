@@ -23,8 +23,11 @@ import {
   Play,
   Settings,
   HardDrive,
-  Activity
+  Activity,
+  Download
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import * as XLSX from 'xlsx';
 
 interface CleanupStats {
   database: {
@@ -167,6 +170,118 @@ export default function MaintenancePage() {
     }
   };
 
+  // Export to CSV
+  const exportToCSV = () => {
+    if (!stats) return;
+
+    const csvData = [
+      ['System Maintenance Statistics'],
+      ['Generated:', new Date().toLocaleString()],
+      [],
+      ['Database Information'],
+      ['Size (MB)', stats.database.size_mb.toFixed(2)],
+      ['Table Count', stats.database.table_count.toString()],
+      [],
+      ['Record Counts'],
+      ['Activity Logs', stats.record_counts.activity_logs.toString()],
+      ['Execution Logs', stats.record_counts.execution_logs.toString()],
+      ['Auth Tokens', stats.record_counts.auth_tokens.toString()],
+      ['Audit Logs', stats.record_counts.audit_logs.toString()],
+      [],
+      ['Temporary Files'],
+      ['File Count', stats.temp_files.file_count.toString()],
+      ['Total Size (MB)', stats.temp_files.total_size_mb.toFixed(2)],
+      [],
+      ['Old Records (Cleanup Candidates)'],
+      ['Old Activity Logs', stats.old_records.activity_logs.toString()],
+      ['Old Execution Logs', stats.old_records.execution_logs.toString()],
+      ['Expired Tokens', stats.old_records.expired_tokens.toString()],
+    ];
+
+    const csv = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `maintenance-stats-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast({
+      type: 'success',
+      title: 'Export Successful',
+      message: 'Statistics exported to CSV successfully',
+    });
+  };
+
+  // Export to Excel
+  const exportToExcel = () => {
+    if (!stats) return;
+
+    const workbook = XLSX.utils.book_new();
+
+    // Overview sheet
+    const overviewData = [
+      ['System Maintenance Statistics'],
+      ['Generated', new Date().toLocaleString()],
+      [],
+      ['Database Information'],
+      ['Size (MB)', stats.database.size_mb.toFixed(2)],
+      ['Table Count', stats.database.table_count],
+      [],
+      ['Total Records', Object.values(stats.record_counts).reduce((a, b) => a + b, 0)],
+    ];
+    const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
+    XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Overview');
+
+    // Record counts sheet
+    const recordsData = [
+      ['Record Type', 'Count', 'Old Records'],
+      ['Activity Logs', stats.record_counts.activity_logs, stats.old_records.activity_logs],
+      ['Execution Logs', stats.record_counts.execution_logs, stats.old_records.execution_logs],
+      ['Auth Tokens', stats.record_counts.auth_tokens, stats.old_records.expired_tokens],
+      ['Audit Logs', stats.record_counts.audit_logs, 0],
+    ];
+    const recordsSheet = XLSX.utils.aoa_to_sheet(recordsData);
+    XLSX.utils.book_append_sheet(workbook, recordsSheet, 'Records');
+
+    // Temp files sheet
+    const filesData = [
+      ['Metric', 'Value'],
+      ['File Count', stats.temp_files.file_count],
+      ['Total Size (MB)', stats.temp_files.total_size_mb.toFixed(2)],
+    ];
+    const filesSheet = XLSX.utils.aoa_to_sheet(filesData);
+    XLSX.utils.book_append_sheet(workbook, filesSheet, 'Temp Files');
+
+    // Write file
+    XLSX.writeFile(workbook, `maintenance-stats-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    showToast({
+      type: 'success',
+      title: 'Export Successful',
+      message: 'Statistics exported to Excel successfully',
+    });
+  };
+
+  // Prepare data for charts
+  const COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'];
+
+  const recordDistributionData = stats ? [
+    { name: 'Activity Logs', value: stats.record_counts.activity_logs },
+    { name: 'Execution Logs', value: stats.record_counts.execution_logs },
+    { name: 'Auth Tokens', value: stats.record_counts.auth_tokens },
+    { name: 'Audit Logs', value: stats.record_counts.audit_logs },
+  ] : [];
+
+  const tempFilesData = stats ? [
+    { name: 'File Count', value: stats.temp_files.file_count },
+    { name: 'Size (MB)', value: parseFloat(stats.temp_files.total_size_mb.toFixed(2)) },
+  ] : [];
+
   // Check permission to view this page
   if (permissionsLoading || isLoading) {
     return (
@@ -205,11 +320,23 @@ export default function MaintenancePage() {
 
       <div className="space-y-6">
         {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">System Maintenance</h1>
-          <p className="mt-2 text-gray-600">
-            Monitor and manage system cleanup operations
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">System Maintenance</h1>
+            <p className="mt-2 text-gray-600">
+              Monitor and manage system cleanup operations
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={exportToCSV} disabled={!stats} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button onClick={exportToExcel} disabled={!stats} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
         </div>
 
         {/* System Stats */}
@@ -314,6 +441,74 @@ export default function MaintenancePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Data Visualization Charts - Phase 9D */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Record Distribution Pie Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Record Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recordDistributionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={recordDistributionData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {recordDistributionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number) => value.toLocaleString()} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  No data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Temp Files Bar Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Temporary Files Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tempFilesData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={tempFilesData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="name" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '0.5rem',
+                      }}
+                    />
+                    <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  No data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Cleanup Operations */}
         <Card>
