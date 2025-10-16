@@ -118,6 +118,96 @@ cp .env.example .env
 # Edit .env with your specific configuration
 ```
 
+#### Environment Variables Guide
+
+The `.env` file contains all configuration needed to run the Data Aggregator Platform. Below are the essential variables you need to configure for local development:
+
+**Required Variables for Local Development:**
+
+```bash
+# Application Settings
+ENVIRONMENT=development
+DEBUG=true
+API_HOST=0.0.0.0
+API_PORT=8001
+FRONTEND_URL=http://localhost:3000
+
+# Database Configuration
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/dataaggregator
+POSTGRES_SERVER=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=dataaggregator
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=
+
+# Security (IMPORTANT: Change these in production!)
+JWT_SECRET_KEY=your-super-secret-key-change-this-in-production
+SECRET_KEY=your-super-secret-key-change-this-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+BACKEND_CORS_ORIGINS=["http://localhost", "http://localhost:3000", "http://localhost:8001"]
+
+# Session Configuration
+SESSION_TIMEOUT_MINUTES=30
+SESSION_COOKIE_SECURE=false
+
+# Logging
+LOG_LEVEL=INFO
+LOG_DIR=/tmp/data_aggregator/logs
+
+# File Upload
+UPLOAD_DIR=/var/dataaggregator/uploads
+TEMP_DIR=/var/dataaggregator/temp
+MAX_FILE_SIZE=5368709120
+
+# Development User (Auto-create dev user for testing)
+CREATE_DEV_USER=true
+```
+
+**Important Security Notes:**
+
+- **Never commit `.env` to version control** - it's already in `.gitignore`
+- Use `.env.example` as a reference template with placeholder values
+- Change `JWT_SECRET_KEY` to a strong, unique value for production
+- Set `DEBUG=false` in production environments
+- Set `CREATE_DEV_USER=false` in staging/production
+- Rotate secrets regularly (every 90 days recommended)
+
+**Complete Configuration:**
+
+For a complete list of all available environment variables with detailed descriptions, see `.env.example` in the project root. It includes configuration for:
+
+- Application settings (environment, debug mode, API configuration)
+- Database (PostgreSQL with connection pooling)
+- Redis (cache and pub/sub)
+- Kafka (event streaming)
+- Authentication & JWT (token expiry, session management)
+- Email (SMTP for notifications)
+- File processing (upload limits, storage paths)
+- Monitoring & logging (Prometheus, log levels, archival)
+- WebSocket (real-time updates)
+- Pipeline execution (concurrency, timeouts, retries)
+- Cloud storage (AWS S3, GCP, Azure)
+- External services (Sentry, DataDog)
+- Feature flags (enable/disable features)
+
+**Environment-Specific Configuration:**
+
+For production and staging deployments, see:
+- `infrastructure/environments/.env.production` - Production template
+- `infrastructure/environments/.env.staging` - Staging template
+
+These templates include additional production-ready configurations for SSL, backups, Kubernetes, and more.
+
 ### 2. Running with Docker Compose
 
 The easiest way to get started is using Docker Compose:
