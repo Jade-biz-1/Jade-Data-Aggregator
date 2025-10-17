@@ -41,7 +41,7 @@ Stores user accounts and authentication information.
 | first_name | VARCHAR | NULL | User's first name |
 | last_name | VARCHAR | NULL | User's last name |
 | hashed_password | VARCHAR | NOT NULL | Bcrypt hashed password |
-| role | VARCHAR(50) | DEFAULT 'viewer' | User role (admin, editor, viewer) |
+| role | VARCHAR(50) | DEFAULT 'viewer' | User role (admin, developer, designer, executor, viewer, executive) |
 | is_active | BOOLEAN | DEFAULT TRUE | Account status |
 | is_superuser | BOOLEAN | DEFAULT FALSE | Superuser flag for admin privileges |
 | is_email_verified | BOOLEAN | DEFAULT FALSE | Email verification status |
