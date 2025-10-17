@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Clock, Bookmark, X, Zap, Database, FileText, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/layout/dashboard-layout';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 interface SearchResult {
   id: string | number;
@@ -37,6 +41,8 @@ export default function AdvancedSearchPage() {
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success, warning } = useToast();
 
   const entityTypes = [
     { value: 'pipeline', label: 'Pipelines', icon: Zap, color: 'text-blue-600' },
@@ -55,8 +61,9 @@ export default function AdvancedSearchPage() {
     try {
       const response = await api.get('/search/history');
       setSearchHistory(response.data.history || []);
-    } catch (error) {
-      console.error('Failed to load search history:', error);
+    } catch (err: any) {
+      console.error('Failed to load search history:', err);
+      error(err.message || 'Failed to load search history', 'Error');
     }
   };
 
@@ -64,13 +71,17 @@ export default function AdvancedSearchPage() {
     try {
       const response = await api.get('/search/saved');
       setSavedSearches(response.data.saved_searches || []);
-    } catch (error) {
-      console.error('Failed to load saved searches:', error);
+    } catch (err: any) {
+      console.error('Failed to load saved searches:', err);
+      error(err.message || 'Failed to load saved searches', 'Error');
     }
   };
 
   const performSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      warning('Please enter a search query', 'Warning');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -84,8 +95,13 @@ export default function AdvancedSearchPage() {
 
       // Reload history after search
       loadSearchHistory();
-    } catch (error) {
-      console.error('Search error:', error);
+
+      if (response.data.results.length === 0) {
+        warning('No results found for your search', 'No Results');
+      }
+    } catch (err: any) {
+      console.error('Search error:', err);
+      error(err.message || 'Failed to perform search', 'Error');
       setResults([]);
     } finally {
       setLoading(false);
@@ -102,19 +118,24 @@ export default function AdvancedSearchPage() {
         query,
         filters: { entity_types: selectedTypes }
       });
+      success('Search saved successfully', 'Success');
       loadSavedSearches();
-    } catch (error) {
-      console.error('Failed to save search:', error);
-      alert('Failed to save search');
+    } catch (err: any) {
+      console.error('Failed to save search:', err);
+      error(err.message || 'Failed to save search', 'Error');
     }
   };
 
   const deleteSavedSearch = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this saved search?')) return;
+
     try {
       await api.delete(`/search/saved/${id}`);
+      success('Saved search deleted', 'Success');
       loadSavedSearches();
-    } catch (error) {
-      console.error('Failed to delete saved search:', error);
+    } catch (err: any) {
+      console.error('Failed to delete saved search:', err);
+      error(err.message || 'Failed to delete saved search', 'Error');
     }
   };
 
@@ -140,8 +161,31 @@ export default function AdvancedSearchPage() {
     return entity?.color || 'text-gray-600';
   };
 
+  // Check permission to view this page
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.search?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied message="You don't have permission to use search." />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Header */}
         <div>

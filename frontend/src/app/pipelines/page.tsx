@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout-enhanced';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,97 +14,89 @@ import {
   Edit,
   CheckCircle,
   XCircle,
-  Shield
+  Shield,
+  Trash2
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
+import { apiClient } from '@/lib/api';
+import { Pipeline } from '@/types';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
-// Mock data - in real app this would come from API
-const mockPipelines = [
-  {
-    id: 1,
-    name: 'Sales Data ETL',
-    description: 'Daily extraction of sales data from CRM',
-    status: 'active',
-    lastRun: new Date('2025-09-29T10:30:00Z'),
-    nextRun: new Date('2025-09-29T18:00:00Z'),
-    recordsProcessed: 15420,
-    source: 'CRM System',
-    destination: 'Data Warehouse',
-    schedule: 'Daily at 6:00 AM UTC',
-  },
-  {
-    id: 2,
-    name: 'Customer Analytics',
-    description: 'Real-time customer behavior analysis',
-    status: 'running',
-    lastRun: new Date('2025-09-29T08:15:00Z'),
-    nextRun: new Date('2025-09-29T09:15:00Z'),
-    recordsProcessed: 8650,
-    source: 'Web Analytics',
-    destination: 'Analytics DB',
-    schedule: 'Every hour',
-  },
-  {
-    id: 3,
-    name: 'Inventory Sync',
-    description: 'Sync inventory levels across all platforms',
-    status: 'failed',
-    lastRun: new Date('2025-09-29T06:00:00Z'),
-    nextRun: new Date('2025-09-29T07:00:00Z'),
-    recordsProcessed: 0,
-    source: 'ERP System',
-    destination: 'Inventory DB',
-    schedule: 'Hourly',
-  },
-  {
-    id: 4,
-    name: 'Marketing Reports',
-    description: 'Generate daily marketing performance reports',
-    status: 'paused',
-    lastRun: new Date('2025-09-28T18:00:00Z'),
-    nextRun: null,
-    recordsProcessed: 23000,
-    source: 'Marketing APIs',
-    destination: 'Reporting DB',
-    schedule: 'Daily at 6:00 PM UTC',
-  },
-];
-
-interface Pipeline {
-  id: number;
-  name: string;
-  description: string;
-  status: string;
-  lastRun: Date;
-  nextRun: Date | null;
-  recordsProcessed: number;
-  source: string;
-  destination: string;
-  schedule: string;
+interface PipelineDisplay extends Pipeline {
+  status?: string;
+  lastRun?: Date;
+  nextRun?: Date | null;
+  recordsProcessed?: number;
+  source?: string;
+  destination?: string;
 }
 
 export default function PipelinesPage() {
-  const [pipelines, setPipelines] = useState(mockPipelines);
+  const router = useRouter();
+  const [pipelines, setPipelines] = useState<PipelineDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success, warning } = useToast();
 
+  // Fetch pipelines from API
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    const fetchPipelines = async () => {
+      try {
+        setIsLoading(true);
+        const data = await apiClient.getPipelines();
+        setPipelines(data.map(p => ({
+          ...p,
+          status: p.is_active ? 'active' : 'paused',
+          source: p.source_config?.type || 'Unknown',
+          destination: p.destination_config?.type || 'Unknown',
+        })));
+      } catch (err: any) {
+        error(err.message || 'Failed to load pipelines', 'Error');
+        console.error('Error fetching pipelines:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPipelines();
   }, []);
 
-  const handleDeletePipelines = (selected: Pipeline[]) => {
-    const idsToDelete = new Set(selected.map(p => p.id));
-    setPipelines(prev => prev.filter(p => !idsToDelete.has(p.id)));
+  const handleDeletePipelines = async (selected: PipelineDisplay[]) => {
+    try {
+      // Delete each pipeline
+      await Promise.all(selected.map(p => apiClient.deletePipeline(p.id)));
+
+      // Remove from state
+      const idsToDelete = new Set(selected.map(p => p.id));
+      setPipelines(prev => prev.filter(p => !idsToDelete.has(p.id)));
+
+      success(`Successfully deleted ${selected.length} pipeline(s)`, 'Success');
+    } catch (err: any) {
+      error(err.message || 'Failed to delete pipelines', 'Error');
+      console.error('Error deleting pipelines:', err);
+    }
   };
 
-  const handleRowClick = (pipeline: Pipeline) => {
-    console.log('Pipeline clicked:', pipeline);
-    // Navigate to pipeline details
+  const handleRowClick = (pipeline: PipelineDisplay) => {
+    // Navigate to pipeline builder in edit mode
+    if (pipeline.pipeline_type === 'visual') {
+      router.push(`/pipeline-builder?id=${pipeline.id}`);
+    } else {
+      // For traditional pipelines, could show details modal or navigate to a different editor
+      console.log('Traditional pipeline clicked:', pipeline);
+    }
+  };
+
+  const handleExecutePipeline = async (pipelineId: number) => {
+    try {
+      await apiClient.executePipeline(pipelineId);
+      success('Pipeline execution started', 'Success');
+    } catch (err: any) {
+      error(err.message || 'Failed to execute pipeline', 'Error');
+      console.error('Error executing pipeline:', err);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -140,41 +133,43 @@ export default function PipelinesPage() {
     );
   };
 
-  const columns: Column<Pipeline>[] = [
+  const columns: Column<PipelineDisplay>[] = [
     {
       key: 'name',
       header: 'Pipeline Name',
       render: (value) => <span className="font-medium text-gray-900">{value}</span>
     },
     {
+      key: 'description',
+      header: 'Description',
+      render: (value) => <span className="text-gray-600">{value || 'N/A'}</span>
+    },
+    {
       key: 'status',
       header: 'Status',
-      render: (value) => getStatusBadge(value),
+      render: (value) => getStatusBadge(value || 'paused'),
       width: '120px'
     },
     {
       key: 'source',
-      header: 'Source'
+      header: 'Source',
+      render: (value) => <span className="text-gray-700">{value || 'N/A'}</span>
     },
     {
       key: 'destination',
-      header: 'Destination'
+      header: 'Destination',
+      render: (value) => <span className="text-gray-700">{value || 'N/A'}</span>
     },
     {
-      key: 'recordsProcessed',
-      header: 'Records',
-      render: (value) => value.toLocaleString(),
-      width: '100px'
-    },
-    {
-      key: 'lastRun',
-      header: 'Last Run',
-      render: (value) => formatDateTime(value),
+      key: 'created_at',
+      header: 'Created',
+      render: (value) => formatDateTime(new Date(value)),
       width: '180px'
     },
     {
       key: 'schedule',
-      header: 'Schedule'
+      header: 'Schedule',
+      render: (value) => <span className="text-gray-600">{value || 'Manual'}</span>
     }
   ];
 
@@ -208,6 +203,7 @@ export default function PipelinesPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -218,7 +214,7 @@ export default function PipelinesPage() {
             </p>
           </div>
           {features?.pipelines?.create && (
-            <Button>
+            <Button onClick={() => router.push('/pipeline-builder')}>
               <Plus className="h-4 w-4 mr-2" />
               New Pipeline
             </Button>
@@ -237,7 +233,7 @@ export default function PipelinesPage() {
               <p className="text-xs text-gray-500">All pipelines</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Active</CardTitle>
@@ -245,35 +241,35 @@ export default function PipelinesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {pipelines.filter(p => p.status === 'active' || p.status === 'running').length}
+                {pipelines.filter(p => p.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Active pipelines</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Running</CardTitle>
-              <Play className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+              <Pause className="h-5 w-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {pipelines.filter(p => p.status === 'running').length}
+                {pipelines.filter(p => !p.is_active).length}
               </div>
-              <p className="text-xs text-gray-500">Currently running</p>
+              <p className="text-xs text-gray-500">Paused pipelines</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Failed</CardTitle>
-              <XCircle className="h-5 w-5 text-red-500" />
+              <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
+              <XCircle className="h-5 w-5 text-blue-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {pipelines.filter(p => p.status === 'failed').length}
+                {pipelines.filter(p => p.schedule).length}
               </div>
-              <p className="text-xs text-gray-500">Need attention</p>
+              <p className="text-xs text-gray-500">With schedules</p>
             </CardContent>
           </Card>
         </div>

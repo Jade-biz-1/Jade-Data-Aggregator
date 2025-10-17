@@ -1,13 +1,14 @@
 'use client';
 
 import { Handle, Position } from 'reactflow';
-import { Database, Globe, FileText } from 'lucide-react';
+import { Database, Globe, FileText, CheckCircle } from 'lucide-react';
 
 interface SourceNodeProps {
   data: {
     label: string;
     sourceType?: 'database' | 'api' | 'file';
     config?: any;
+    isConfigured?: boolean;
   };
   selected?: boolean;
 }
@@ -28,7 +29,7 @@ export function SourceNode({ data, selected }: SourceNodeProps) {
 
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 bg-blue-50 min-w-[200px] ${
+      className={`px-4 py-3 rounded-lg border-2 bg-blue-50 min-w-[200px] relative ${
         selected ? 'border-blue-600 shadow-lg' : 'border-blue-300'
       }`}
     >
@@ -42,6 +43,9 @@ export function SourceNode({ data, selected }: SourceNodeProps) {
             {data.sourceType || 'database'}
           </div>
         </div>
+        {data.isConfigured && (
+          <CheckCircle className="h-4 w-4 text-green-600" />
+        )}
       </div>
 
       <Handle

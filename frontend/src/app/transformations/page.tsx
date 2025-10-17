@@ -23,6 +23,8 @@ import { apiClient } from '@/lib/api';
 import { Transformation } from '@/types/transformation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 export default function TransformationsPage() {
   const [transformations, setTransformations] = useState<Transformation[]>([]);
@@ -30,6 +32,7 @@ export default function TransformationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
     const fetchTransformations = async () => {
@@ -38,9 +41,9 @@ export default function TransformationsPage() {
         const data = await apiClient.getTransformations();
         setTransformations(data);
         setFilteredTransformations(data);
-      } catch (error) {
-        console.error('Error fetching transformations:', error);
-        // For now, we'll continue with an empty array
+      } catch (err: any) {
+        console.error('Error fetching transformations:', err);
+        error(err.message || 'Failed to load transformations', 'Error');
         setTransformations([]);
         setFilteredTransformations([]);
       } finally {
@@ -64,24 +67,34 @@ export default function TransformationsPage() {
     }
   }, [searchTerm, transformations]);
 
-  const handleRunTransformation = (id: number) => {
-    // Mock function to run a transformation
-    console.log(`Running transformation ${id}`);
+  const handleRunTransformation = async (id: number) => {
+    try {
+      await apiClient.testTransformation(id, {});
+      success('Transformation test started', 'Success');
+    } catch (err: any) {
+      error(err.message || 'Failed to run transformation', 'Error');
+    }
   };
 
   const handleEditTransformation = (id: number) => {
-    // Mock function to edit a transformation
+    // Navigate to transformation edit page when implemented
     console.log(`Editing transformation ${id}`);
+    warning('Edit functionality coming soon', 'Info');
   };
 
   const handleDeleteTransformation = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this transformation?')) {
+      return;
+    }
+
     try {
       await apiClient.deleteTransformation(id);
       setTransformations(transformations.filter(t => t.id !== id));
       setFilteredTransformations(filteredTransformations.filter(t => t.id !== id));
-    } catch (error) {
-      console.error('Error deleting transformation:', error);
-      alert('Failed to delete transformation');
+      success('Transformation deleted successfully', 'Success');
+    } catch (err: any) {
+      console.error('Error deleting transformation:', err);
+      error(err.message || 'Failed to delete transformation', 'Error');
     }
   };
 
@@ -132,6 +145,7 @@ export default function TransformationsPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

@@ -1,13 +1,14 @@
 'use client';
 
 import { Handle, Position } from 'reactflow';
-import { Filter, Layers, BarChart3, GitMerge, ArrowUpDown } from 'lucide-react';
+import { Filter, Layers, BarChart3, GitMerge, ArrowUpDown, CheckCircle } from 'lucide-react';
 
 interface TransformationNodeProps {
   data: {
     label: string;
     transformationType?: 'filter' | 'map' | 'aggregate' | 'join' | 'sort';
     config?: any;
+    isConfigured?: boolean;
   };
   selected?: boolean;
 }
@@ -32,7 +33,7 @@ export function TransformationNode({ data, selected }: TransformationNodeProps) 
 
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 bg-purple-50 min-w-[200px] ${
+      className={`px-4 py-3 rounded-lg border-2 bg-purple-50 min-w-[200px] relative ${
         selected ? 'border-purple-600 shadow-lg' : 'border-purple-300'
       }`}
     >
@@ -52,6 +53,9 @@ export function TransformationNode({ data, selected }: TransformationNodeProps) 
             {data.transformationType || 'map'}
           </div>
         </div>
+        {data.isConfigured && (
+          <CheckCircle className="h-4 w-4 text-green-600" />
+        )}
       </div>
 
       <Handle

@@ -22,6 +22,8 @@ import { apiClient } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
 import { Shield } from 'lucide-react';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 export default function MonitoringPage() {
   const [pipelineStats, setPipelineStats] = useState<any>(null);
@@ -30,6 +32,7 @@ export default function MonitoringPage() {
   const [timeRange, setTimeRange] = useState('24h');
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,8 +49,9 @@ export default function MonitoringPage() {
         setPipelineStats(stats);
         setRecentAlerts(alerts);
         setPipelinePerformance(performance);
-      } catch (error) {
-        console.error('Error fetching monitoring data:', error);
+      } catch (err: any) {
+        console.error('Error fetching monitoring data:', err);
+        error(err.message || 'Failed to load monitoring data', 'Error');
         // Set default values on error
         setPipelineStats({
           totalPipelines: 0,
@@ -132,6 +136,7 @@ export default function MonitoringPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div>

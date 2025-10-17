@@ -19,6 +19,10 @@ import 'reactflow/dist/style.css';
 import { SourceNode } from './nodes/source-node';
 import { TransformationNode } from './nodes/transformation-node';
 import { DestinationNode } from './nodes/destination-node';
+import { NodeConfigPanel } from './config/NodeConfigPanel';
+import { pipelineBuilderService } from '@/services/pipelineBuilderService';
+import { AlertCircle, CheckCircle, X, Workflow } from 'lucide-react';
+import { getLayoutedElements } from '@/lib/autoLayout';
 
 const nodeTypes = {
   source: SourceNode,
@@ -42,6 +46,8 @@ export function PipelineCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -52,8 +58,9 @@ export function PipelineCanvas({
   );
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (readOnly) return;
     setSelectedNode(node);
-  }, []);
+  }, [readOnly]);
 
   const handleSave = useCallback(() => {
     if (onSave) {
@@ -61,24 +68,59 @@ export function PipelineCanvas({
     }
   }, [nodes, edges, onSave]);
 
-  const handleValidate = useCallback(() => {
-    // Validation logic
-    const hasSource = nodes.some(n => n.type === 'source');
-    const hasDestination = nodes.some(n => n.type === 'destination');
+  const handleValidate = useCallback(async () => {
+    setIsValidating(true);
+    setValidationResult(null);
 
-    if (!hasSource) {
-      alert('Pipeline must have at least one source node');
-      return false;
+    try {
+      const result = await pipelineBuilderService.validatePipeline(nodes, edges);
+
+      setValidationResult({
+        valid: result.valid,
+        errors: result.errors || []
+      });
+
+      // Auto-hide success message after 3 seconds
+      if (result.valid) {
+        setTimeout(() => setValidationResult(null), 3000);
+      }
+    } catch (error: any) {
+      setValidationResult({
+        valid: false,
+        errors: [error.message || 'Validation failed']
+      });
+    } finally {
+      setIsValidating(false);
     }
+  }, [nodes, edges]);
 
-    if (!hasDestination) {
-      alert('Pipeline must have at least one destination node');
-      return false;
-    }
+  const handleConfigSave = useCallback((nodeId: string, config: any) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              config,
+              isConfigured: true
+            }
+          };
+        }
+        return node;
+      })
+    );
+  }, [setNodes]);
 
-    alert('Pipeline validation passed!');
-    return true;
-  }, [nodes]);
+  const handleCloseConfig = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
+
+  const handleAutoLayout = useCallback(() => {
+    const layouted = getLayoutedElements(nodes, edges, 'LR');
+    setNodes(layouted.nodes);
+    setEdges(layouted.edges);
+  }, [nodes, edges, setNodes, setEdges]);
 
   return (
     <div className="h-full w-full">
@@ -114,10 +156,20 @@ export function PipelineCanvas({
         {!readOnly && (
           <Panel position="top-right" className="space-x-2">
             <button
-              onClick={handleValidate}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium shadow-sm"
+              onClick={handleAutoLayout}
+              disabled={nodes.length === 0}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title="Auto-arrange nodes"
             >
-              Validate
+              <Workflow className="h-4 w-4" />
+              Auto-Layout
+            </button>
+            <button
+              onClick={handleValidate}
+              disabled={isValidating}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isValidating ? 'Validating...' : 'Validate'}
             </button>
             <button
               onClick={handleSave}
@@ -127,7 +179,65 @@ export function PipelineCanvas({
             </button>
           </Panel>
         )}
+
+        {/* Validation Result */}
+        {validationResult && (
+          <Panel position="top-left" className="max-w-md">
+            <div className={`p-4 rounded-lg border shadow-lg ${
+              validationResult.valid
+                ? 'bg-green-50 border-green-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                {validationResult.valid ? (
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                )}
+                <div className="flex-1">
+                  <h4 className={`font-medium text-sm ${
+                    validationResult.valid ? 'text-green-900' : 'text-red-900'
+                  }`}>
+                    {validationResult.valid ? 'Validation Passed' : 'Validation Failed'}
+                  </h4>
+                  {!validationResult.valid && validationResult.errors.length > 0 && (
+                    <ul className="mt-2 text-sm text-red-700 space-y-1">
+                      {validationResult.errors.map((error, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{error}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {validationResult.valid && (
+                    <p className="mt-1 text-sm text-green-700">
+                      Your pipeline is ready to save and execute
+                    </p>
+                  )}
+                </div>
+                {!validationResult.valid && (
+                  <button
+                    onClick={() => setValidationResult(null)}
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </Panel>
+        )}
       </ReactFlow>
+
+      {/* Node Configuration Panel */}
+      {selectedNode && !readOnly && (
+        <NodeConfigPanel
+          selectedNode={selectedNode}
+          onClose={handleCloseConfig}
+          onSave={handleConfigSave}
+        />
+      )}
     </div>
   );
 }

@@ -15,6 +15,8 @@ import {
   Users
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 function StatCard({ 
   title, 
@@ -55,6 +57,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -70,19 +73,17 @@ export default function DashboardPage() {
         setStats(statsData);
         setRecentActivity(activityData);
         setPerformanceData(perfData);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Set fallback mock data
+      } catch (err: any) {
+        console.error('Error fetching dashboard data:', err);
+        error(err.message || 'Failed to load dashboard data', 'Error');
+
+        // Set empty/default data instead of mock data
         setStats({
-          pipelines: { total: 12, active: 8, running: 3, failed: 1 },
-          connectors: { total: 6, active: 5 },
-          data_processed: { today: 2340000, this_week: 15680000, this_month: 45200000 }
+          pipelines: { total: 0, active: 0, running: 0, failed: 0 },
+          connectors: { total: 0, active: 0 },
+          data_processed: { today: 0, this_week: 0, this_month: 0 }
         });
-        setRecentActivity([
-          { id: 1, name: 'Sales Data ETL', status: 'running', lastRun: '2 hours ago', recordsProcessed: 15420 },
-          { id: 2, name: 'Customer Analytics', status: 'completed', lastRun: '4 hours ago', recordsProcessed: 8650 },
-          { id: 3, name: 'Inventory Sync', status: 'failed', lastRun: '6 hours ago', recordsProcessed: 0 }
-        ]);
+        setRecentActivity([]);
         setPerformanceData([]);
       } finally {
         setIsLoading(false);
@@ -104,6 +105,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div>

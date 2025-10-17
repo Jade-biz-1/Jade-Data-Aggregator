@@ -5,10 +5,10 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  User, 
-  Mail, 
-  Lock, 
+import {
+  User,
+  Mail,
+  Lock,
   Globe,
   Bell,
   Shield,
@@ -18,7 +18,11 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth';
-import { apiClient } from '@/lib/api';
+import { apiClient, api } from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 interface ProfileFormData {
   firstName: string;
@@ -64,6 +68,8 @@ export default function SettingsPage() {
     sessionTimeout: 30, // minutes
   });
   const [isLoading, setIsLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success: successToast, warning } = useToast();
 
   useEffect(() => {
     // Simulate fetching user data
@@ -111,12 +117,12 @@ export default function SettingsPage() {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
-      alert('User not authenticated');
+      error('User not authenticated', 'Error');
       return;
     }
-    
+
     try {
       // Update profile via API
       const updatedUser = await apiClient.updateProfile(user.id, {
@@ -125,60 +131,74 @@ export default function SettingsPage() {
         email: profileData.email,
         username: profileData.username,
       });
-      
+
       // Update the auth store with the new user data
       updateUser(updatedUser);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile');
+      successToast('Profile updated successfully', 'Success');
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      error(err.message || 'Failed to update profile', 'Error');
     }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmNewPassword) {
-      alert('New passwords do not match');
+      error('New passwords do not match', 'Validation Error');
       return;
     }
-    
+
     if (passwordData.newPassword.length < 8) {
-      alert('New password must be at least 8 characters');
+      error('New password must be at least 8 characters', 'Validation Error');
       return;
     }
-    
+
     try {
-      // In a real app, this would call the password change endpoint
-      await apiClient.changePassword({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      });
-      
-      alert('Password updated successfully!');
+      // Call the password change endpoint
+      await apiClient.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword
+      );
+
+      successToast('Password updated successfully', 'Success');
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmNewPassword: '',
       });
-    } catch (error) {
-      console.error('Error updating password:', error);
-      alert('Failed to update password');
+    } catch (err: any) {
+      console.error('Error updating password:', err);
+      error(err.message || 'Failed to update password', 'Error');
     }
   };
 
-  const handleNotificationSubmit = (e: React.FormEvent) => {
+  const handleNotificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Notification settings updated:', notificationSettings);
-    // In a real app, you would make an API call here
-    alert('Notification settings updated successfully!');
+
+    try {
+      await api.put('/users/settings', {
+        notification_settings: notificationSettings
+      });
+      successToast('Notification settings updated successfully', 'Success');
+    } catch (err: any) {
+      console.error('Error updating notification settings:', err);
+      error(err.message || 'Failed to update notification settings', 'Error');
+    }
   };
 
-  const handleSecuritySubmit = (e: React.FormEvent) => {
+  const handleSecuritySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Security settings updated:', securitySettings);
-    // In a real app, you would make an API call here
-    alert('Security settings updated successfully!');
+
+    try {
+      await api.put('/users/settings', {
+        security_settings: securitySettings
+      });
+      successToast('Security settings updated successfully', 'Success');
+    } catch (err: any) {
+      console.error('Error updating security settings:', err);
+      error(err.message || 'Failed to update security settings', 'Error');
+    }
   };
 
   const renderProfileTab = () => (
@@ -486,8 +506,31 @@ export default function SettingsPage() {
     </form>
   );
 
+  // Check permission to view this page
+  if (permissionsLoading || isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.settings?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied message="You don't have permission to access settings." />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div>

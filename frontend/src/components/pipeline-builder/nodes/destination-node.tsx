@@ -1,13 +1,14 @@
 'use client';
 
 import { Handle, Position } from 'reactflow';
-import { Database, FileOutput, Globe, Warehouse } from 'lucide-react';
+import { Database, FileOutput, Globe, Warehouse, CheckCircle } from 'lucide-react';
 
 interface DestinationNodeProps {
   data: {
     label: string;
     destinationType?: 'database' | 'file' | 'api' | 'warehouse';
     config?: any;
+    isConfigured?: boolean;
   };
   selected?: boolean;
 }
@@ -30,7 +31,7 @@ export function DestinationNode({ data, selected }: DestinationNodeProps) {
 
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 bg-green-50 min-w-[200px] ${
+      className={`px-4 py-3 rounded-lg border-2 bg-green-50 min-w-[200px] relative ${
         selected ? 'border-green-600 shadow-lg' : 'border-green-300'
       }`}
     >
@@ -50,6 +51,9 @@ export function DestinationNode({ data, selected }: DestinationNodeProps) {
             {data.destinationType || 'database'}
           </div>
         </div>
+        {data.isConfigured && (
+          <CheckCircle className="h-4 w-4 text-green-600" />
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,11 @@ import DashboardLayout from '@/components/layout/dashboard-layout';
 import { DynamicForm } from '@/components/forms/DynamicForm';
 import { Database, Globe, Cloud, FileText, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 interface ConnectorType {
   type: string;
@@ -18,6 +23,8 @@ const ConnectorConfigPage = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [connectorTypes, setConnectorTypes] = useState<Record<string, ConnectorType[]>>({});
   const [loading, setLoading] = useState(true);
+  const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
     fetchConnectorTypes();
@@ -25,24 +32,12 @@ const ConnectorConfigPage = () => {
 
   const fetchConnectorTypes = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
-      const response = await fetch(
-        `${baseUrl}/api/v1/configuration/connector-types`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setConnectorTypes(data.categories || {});
-      }
-    } catch (error) {
-      console.error('Error fetching connector types:', error);
+      const response = await api.get('/configuration/connector-types');
+      setConnectorTypes(response.data.categories || {});
+    } catch (err: any) {
+      console.error('Error fetching connector types:', err);
+      error(err.message || 'Failed to load connector types', 'Error');
+      setConnectorTypes({});
     } finally {
       setLoading(false);
     }
@@ -50,57 +45,31 @@ const ConnectorConfigPage = () => {
 
   const handleSubmit = async (values: Record<string, any>) => {
     try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
       // Validate configuration
-      const validateResponse = await fetch(
-        `${baseUrl}/api/v1/configuration/validate`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            connector_type: selectedType,
-            configuration: values
-          })
-        }
-      );
+      const validateResponse = await api.post('/configuration/validate', {
+        connector_type: selectedType,
+        configuration: values
+      });
 
-      if (validateResponse.ok) {
-        const validation = await validateResponse.json();
+      const validation = validateResponse.data;
 
-        if (validation.is_valid) {
-          // Save connector
-          const response = await fetch(`${baseUrl}/api/v1/connectors/`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              name: values.name || `${selectedType} Connector`,
-              connector_type: selectedType,
-              config: values,
-              is_active: true
-            })
-          });
+      if (validation.is_valid) {
+        // Save connector
+        const response = await api.post('/connectors/', {
+          name: values.name || `${selectedType} Connector`,
+          connector_type: selectedType,
+          config: values,
+          is_active: true
+        });
 
-          if (response.ok) {
-            alert('Connector created successfully!');
-            router.push('/connectors');
-          } else {
-            alert('Failed to create connector');
-          }
-        } else {
-          alert(`Validation failed: ${validation.errors.join(', ')}`);
-        }
+        success('Connector created successfully', 'Success');
+        router.push('/connectors');
+      } else {
+        error(`Validation failed: ${validation.errors.join(', ')}`, 'Validation Error');
       }
-    } catch (error) {
-      console.error('Error saving connector:', error);
-      alert('An error occurred while saving');
+    } catch (err: any) {
+      console.error('Error saving connector:', err);
+      error(err.message || 'An error occurred while saving connector', 'Error');
     }
   };
 
@@ -119,9 +88,32 @@ const ConnectorConfigPage = () => {
     }
   };
 
+  // Check permission to view this page
+  if (permissionsLoading || loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.connectors?.create) {
+    return (
+      <DashboardLayout>
+        <AccessDenied message="You don't have permission to create connectors." />
+      </DashboardLayout>
+    );
+  }
+
   if (selectedType) {
     return (
       <DashboardLayout>
+        <ToastContainer toasts={toasts} />
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <button
@@ -153,6 +145,7 @@ const ConnectorConfigPage = () => {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">New Connector</h1>
@@ -161,13 +154,13 @@ const ConnectorConfigPage = () => {
           </p>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Loading connector types...</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(connectorTypes).map(([category, types]) => (
+        <div className="space-y-8">
+          {Object.entries(connectorTypes).length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No connector types available</p>
+            </div>
+          ) : (
+            Object.entries(connectorTypes).map(([category, types]) => (
               <div key={category}>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 capitalize">
                   {category}
@@ -200,9 +193,9 @@ const ConnectorConfigPage = () => {
                   })}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );

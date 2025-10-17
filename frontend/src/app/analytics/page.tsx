@@ -18,6 +18,8 @@ import {
 import { apiClient } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -26,6 +28,7 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('7d');
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,8 +45,9 @@ export default function AnalyticsPage() {
         setAnalyticsData(analytics);
         setTimeSeriesData(timeSeries);
         setTopPipelines(pipelines);
-      } catch (error) {
-        console.error('Error fetching analytics data:', error);
+      } catch (err: any) {
+        console.error('Error fetching analytics data:', err);
+        error(err.message || 'Failed to load analytics data', 'Error');
         // Set default values on error
         setAnalyticsData({
           totalProcessed: 0,
@@ -88,6 +92,7 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

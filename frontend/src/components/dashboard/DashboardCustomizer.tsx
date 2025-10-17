@@ -19,6 +19,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 interface Widget {
   id: string;
@@ -110,6 +112,7 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
   const [currentLayoutName, setCurrentLayoutName] = useState(initialLayout?.name || 'My Dashboard');
   const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
     loadLayouts();
@@ -119,8 +122,10 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
     try {
       const response = await api.get('/dashboards/layouts');
       setLayouts(response.data.layouts || []);
-    } catch (error) {
-      console.error('Failed to load layouts:', error);
+    } catch (err: any) {
+      console.error('Failed to load layouts:', err);
+      error(err.message || 'Failed to load layouts', 'Error');
+      setLayouts([]);
     }
   };
 
@@ -135,6 +140,7 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
     };
     setWidgets([...widgets, newWidget]);
     setShowWidgetLibrary(false);
+    success(`${template.title} widget added`, 'Success');
   };
 
   const removeWidget = (widgetId: string) => {
@@ -158,16 +164,17 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
 
       if (initialLayout?.id) {
         await api.put(`/dashboards/layouts/${initialLayout.id}`, layout);
+        success('Layout updated successfully', 'Success');
       } else {
         await api.post('/dashboards/layouts', layout);
+        success('Layout saved successfully', 'Success');
       }
 
       await loadLayouts();
       onSave?.(layout);
-      alert('Layout saved successfully!');
-    } catch (error) {
-      console.error('Failed to save layout:', error);
-      alert('Failed to save layout');
+    } catch (err: any) {
+      console.error('Failed to save layout:', err);
+      error(err.message || 'Failed to save layout', 'Error');
     } finally {
       setSaving(false);
     }
@@ -179,8 +186,10 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
       const layout = response.data;
       setWidgets(layout.layout);
       setCurrentLayoutName(layout.name);
-    } catch (error) {
-      console.error('Failed to load layout:', error);
+      success('Layout loaded successfully', 'Success');
+    } catch (err: any) {
+      console.error('Failed to load layout:', err);
+      error(err.message || 'Failed to load layout', 'Error');
     }
   };
 
@@ -189,10 +198,11 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
 
     try {
       await api.delete(`/dashboards/layouts/${layoutId}`);
+      success('Layout deleted successfully', 'Success');
       await loadLayouts();
-    } catch (error) {
-      console.error('Failed to delete layout:', error);
-      alert('Failed to delete layout');
+    } catch (err: any) {
+      console.error('Failed to delete layout:', err);
+      error(err.message || 'Failed to delete layout', 'Error');
     }
   };
 
@@ -244,6 +254,7 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
 
   return (
     <div className="space-y-6">
+      <ToastContainer toasts={toasts} />
       {/* Toolbar */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">

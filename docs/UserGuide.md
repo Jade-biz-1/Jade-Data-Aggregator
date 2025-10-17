@@ -1,11 +1,11 @@
 # Data Aggregator Platform - User Guide
 
-**Version**: 1.1
-**Date**: October 2, 2025
+**Version**: 2.0
+**Date**: October 17, 2025
 **Document Type**: User Guide
-**Last Updated**: Enhanced with latest architecture and implementation plan
+**Last Updated**: Complete UI/API Integration (Sprints 1-5)
 
-> **📝 Update Note**: This user guide has been updated to reflect the current frontend implementation with Next.js 15.5.4, React 19.1.0, and planned advanced features including visual pipeline builder, real-time monitoring, and interactive analytics. See Section 4.5 for current feature availability.
+> **📝 Update Note**: This user guide has been updated to reflect the complete implementation of all frontend features with Next.js 15.5.4, React 19.1.0, including visual pipeline builder, real-time monitoring, interactive analytics, and full backend API integration. All features described in this guide are now **PRODUCTION READY**.
 
 ## Table of Contents
 
@@ -405,32 +405,69 @@ The Data Aggregator Platform is continuously evolving. The following advanced fe
 
 ### 4.5 Current Feature Status
 
-To help users understand what's available now versus what's planned, here's the current implementation status:
+All planned features have been successfully implemented and are now production ready!
 
-#### ✅ **Currently Available Features:**
+#### ✅ **Production Ready Features:**
+
+**Core Platform Features:**
 - **User Authentication & Management**: Complete JWT-based authentication with RBAC
-- **Basic Dashboard**: Overview of pipelines, connectors, and system status
-- **Pipeline Management**: CRUD operations for data pipelines
-- **Connector Management**: Support for database, API, and file connectors
-- **Transformation Management**: Basic data transformation capabilities
-- **Analytics Dashboard**: Basic analytics with placeholder visualizations
 - **Modern UI**: Responsive design with Tailwind CSS and enhanced styling
 - **API Integration**: Comprehensive REST API with full CRUD operations
+- **Full Backend Integration**: All pages connected to real backend APIs (no mock data)
+- **Toast Notification System**: Immediate visual feedback for all user actions
+- **Permission-Based Access Control**: Role-based UI restrictions throughout the platform
 
-#### 🚧 **In Development (Advanced Features):**
-- **Visual Pipeline Builder**: Drag-and-drop pipeline creation (Phase 2)
-- **Real-time Dashboard**: Live updates via WebSocket (Phase 2)
-- **Interactive Charts**: Real-time data visualization with Recharts (Phase 1)
-- **Advanced Data Tables**: Enhanced table functionality (Phase 1)
-- **Schema Mapping Interface**: Visual field mapping (Phase 4)
-- **Dynamic Forms**: Context-aware configuration (Phase 4)
-- **Advanced Analytics**: Time-series and predictive analytics (Phase 3)
+**Data Management:**
+- **Pipeline Management**: Complete CRUD operations with execution and monitoring
+- **Connector Management**: Support for database, API, file, and SaaS connectors
+- **Transformation Management**: Advanced data transformation capabilities
+- **File Management**: Upload, preview, download, and manage data files
 
-#### 📋 **Implementation Timeline:**
-- **Phase 1** (Next 2-3 months): Charts & Tables
-- **Phase 2** (Months 5-8): Pipeline Builder & Real-time Features
-- **Phase 3** (Months 9-10): Advanced Analytics
-- **Phase 4** (Months 11-12): Enhanced UX & Forms
+**Visual Pipeline Builder:**
+- **Drag-and-Drop Interface**: Visual pipeline creation using React Flow
+- **Node-based Design**: Pre-built nodes for sources, transformations, and destinations
+- **Real-time Validation**: Live pipeline validation and error detection
+- **Dry-Run Testing**: Test pipelines with sample data before execution
+- **Template System**: Pre-built pipeline templates for common use cases
+- **Execution Visualization**: Real-time pipeline execution tracking and monitoring
+- **Auto-Layout & Minimap**: Automatic node arrangement and navigation for large pipelines
+
+**Real-time Dashboard & Monitoring:**
+- **Live Updates**: Real-time data refresh for all metrics and status indicators
+- **System Health Monitoring**: Live system resource and performance tracking
+- **Pipeline Status**: Real-time pipeline execution status and progress
+- **Alert Management**: Real-time notifications and alert display
+- **Activity Feeds**: Live activity streams for system events
+
+**Advanced Analytics & Reporting:**
+- **Interactive Charts**: Data volume trends, pipeline performance charts with Recharts
+- **Time-series Analytics**: Historical performance and trend analysis
+- **Performance Metrics**: Detailed pipeline and system performance analytics
+- **Top Performers**: Ranked pipelines by success rate and volume
+- **Time Range Filters**: View analytics for 24h, 7d, 30d, 90d periods
+- **Export Capabilities**: Export analytics data (UI ready)
+
+**Enhanced User Experience:**
+- **Dashboard Customization**: Drag-and-drop widget management with 6 widget types
+- **Global Search**: Universal search across all entity types with filters
+- **Saved Searches**: Save and reuse frequently used queries
+- **Search History**: Track and reuse recent searches
+- **Advanced Settings**: Profile, password, notifications, and security settings
+- **Loading States**: Clear indicators for all async operations
+- **Empty State Guidance**: Helpful messages when no data is available
+
+#### 🎯 **Completion Status:**
+- **Phase 1**: Charts & Tables ✅ Complete
+- **Phase 2**: Pipeline Builder & Real-time Features ✅ Complete
+- **Phase 3**: Advanced Analytics ✅ Complete
+- **Phase 4**: Enhanced UX & Forms ✅ Complete
+- **Sprints 1-5**: Full UI/API Integration ✅ Complete
+
+#### 📅 **Release Information:**
+- **Version**: 2.0
+- **Release Date**: October 17, 2025
+- **Status**: Production Ready
+- **All Features**: Fully Functional with Backend Integration
 
 ## 5. Core Application Features
 
@@ -873,6 +910,113 @@ This example demonstrates a high-frequency, real-time pipeline for wind farm ope
 - **Schema Evolution**: Automatic handling of source schema changes
 - **Real-time Streaming**: Process data as it arrives rather than in batches
 - **Event Triggers**: Execute pipelines based on external events or thresholds
+
+#### 5.1.6 Visual Pipeline Builder ✨ **NEW**
+
+The Visual Pipeline Builder provides an intuitive drag-and-drop interface for creating data pipelines without writing code. This feature is now fully integrated and production-ready.
+
+**Location**: `/pipeline-builder`
+
+**Key Features**:
+- **Drag-and-Drop Canvas**: Create pipelines visually using React Flow
+- **Node Palette**: Pre-built nodes for sources, transformations, and destinations
+- **Real-time Validation**: Instant feedback on pipeline configuration errors
+- **Dry-Run Testing**: Test pipelines with sample data before going live
+- **Template Browser**: Access pre-built pipeline templates
+- **Execution Panel**: Monitor real-time pipeline execution
+- **Auto-Layout**: Automatically arrange nodes for better visualization
+- **Minimap**: Navigate large, complex pipelines easily
+
+**How to Use the Visual Pipeline Builder**:
+
+**1. Create a Visual Pipeline**:
+   - Navigate to `/pipeline-builder`
+   - Drag nodes from the palette onto the canvas:
+     - **Source Nodes**: Database, API, File
+     - **Transformation Nodes**: Filter, Map, Sort, Aggregate
+     - **Destination Nodes**: Database, File, Warehouse, API
+   - Connect nodes by dragging from one node's output to another's input
+   - Click any node to configure its properties in the right panel
+   - Use "Validate Pipeline" to check for configuration errors
+   - Click "Save Pipeline" and provide a name
+   - See success toast notification
+
+**2. Configure Nodes**:
+   - Click on any node in the canvas
+   - Configuration panel appears on the right side
+   - Fill in required fields (highlighted in red if missing)
+   - Use "Test Node" to validate individual node configuration
+   - Click "Save" to apply changes
+
+**3. Test Pipeline (Dry-Run)**:
+   - Build your pipeline as described above
+   - Click "Test Pipeline" button in the toolbar
+   - View sample data flow through each node
+   - Check execution time estimates
+   - Fix any issues identified before deployment
+
+**4. Execute Pipeline**:
+   - Complete pipeline must be saved first
+   - Click "Run Pipeline" button
+   - Monitor execution progress in real-time via the execution panel
+   - View logs and data flow visualization
+   - Use "Cancel" button to stop execution if needed
+
+**5. Load Pipeline Templates**:
+   - Click "Browse Templates" button
+   - View available templates organized by category:
+     - Data Migration
+     - Real-time Sync
+     - Data Transformation
+     - Aggregation & Analytics
+   - Preview template structure and nodes
+   - Click "Use Template" to load onto canvas
+   - Customize template as needed and save
+
+**Available Node Types**:
+
+**Source Nodes**:
+- **Database Source**: Connect to SQL/NoSQL databases
+- **API Source**: Fetch data from REST APIs
+- **File Source**: Read from local or cloud storage files
+- **Stream Source**: Connect to real-time data streams
+
+**Transformation Nodes**:
+- **Filter**: Remove records based on conditions
+- **Map**: Transform field values
+- **Sort**: Order records by specified fields
+- **Aggregate**: Group and summarize data
+- **Join**: Combine data from multiple sources
+- **Split**: Divide records into multiple streams
+
+**Destination Nodes**:
+- **Database Destination**: Write to SQL/NoSQL databases
+- **File Destination**: Save to local or cloud storage
+- **Warehouse Destination**: Load into data warehouses
+- **API Destination**: Send data to external APIs
+
+**Pipeline Validation**:
+
+The builder performs real-time validation including:
+- **Connection Validation**: Ensures all nodes are properly connected
+- **Configuration Validation**: Checks required fields are filled
+- **Type Compatibility**: Verifies data types match between connected nodes
+- **Cycle Detection**: Prevents circular dependencies
+- **Performance Warnings**: Alerts for potential bottlenecks
+
+**Keyboard Shortcuts**:
+- `Delete`: Remove selected node or connection
+- `Ctrl+C / Cmd+C`: Copy selected nodes
+- `Ctrl+V / Cmd+V`: Paste copied nodes
+- `Ctrl+Z / Cmd+Z`: Undo last action
+- `Ctrl+Shift+Z / Cmd+Shift+Z`: Redo
+- `Ctrl+S / Cmd+S`: Save pipeline
+- `Space`: Pan canvas (hold and drag)
+
+**Permissions Required**:
+- `pipelines.create` - Create visual pipelines
+- `pipelines.edit` - Modify existing pipelines
+- `pipelines.execute` - Run pipelines from the builder
 
 ### 5.2 Transformations
 
@@ -1375,63 +1519,701 @@ The settings section allows you to manage system-wide configurations and user pr
 - **Monitoring Settings**: Configure logging level and monitoring metrics
 - **Integration Settings**: Manage third-party integrations and webhooks
 
-## 6. User Interface Guide
+## 6. User Interface Guide ✨ **UPDATED**
 
-### 6.1 Dashboard
+All platform pages are now fully integrated with the backend API and include real-time updates, toast notifications, and comprehensive user feedback. This section describes the complete user interface with all production-ready features.
 
-The main dashboard provides an overview of the platform's status:
+### 6.1 Dashboard (`/dashboard`)
 
-- **System Statistics**: Total pipelines, connectors, transformations, and users
-- **Recent Activity**: Latest pipeline executions and system events
-- **Performance Metrics**: Processing times, throughput, and resource utilization
-- **System Status**: Health indicators for all platform components
+The main dashboard provides a real-time overview of the platform's status with live data from the backend.
 
-### 6.2 Pipeline Management
+**Features**:
+- **System Statistics Cards**: Real-time totals for pipelines, connectors, transformations, and records processed
+- **Recent Activity Feed**: Live updates of pipeline executions and system events
+- **System Health Indicators**: Real-time health status for all platform components
+- **Quick Actions**: One-click access to common tasks (Create Pipeline, Add Connector, etc.)
+- **Performance Overview**: Processing times, throughput, and success rates
 
-#### 6.2.1 Creating Pipelines
+**How to Use**:
+1. Access the dashboard after login at `/dashboard`
+2. View key metrics at a glance in the statistics cards
+3. Monitor recent activity in the activity feed
+4. Check system health indicators for any issues
+5. Use quick action buttons to create new resources
+6. Click on any metric card to drill down into detailed views
 
-1. Navigate to the "Pipelines" section
-2. Click "Create Pipeline"
-3. Configure source and destination connectors
-4. Define transformation rules
-5. Set scheduling options
-6. Save and deploy the pipeline
+**Permissions Required**: `dashboard.view`
 
-#### 6.2.2 Pipeline Monitoring
+### 6.2 Pipeline Management (`/pipelines`)
 
-- View real-time execution status
-- Access execution logs and error details
-- Monitor performance metrics
-- Review data quality metrics
+Comprehensive pipeline management with full CRUD operations, execution controls, and real-time status updates.
 
-### 6.3 Connector Management
+#### 6.2.1 Pipeline List View
+
+**Features**:
+- View all pipelines with status, schedule, and last run information
+- Real-time status indicators (Running, Success, Failed, etc.)
+- Quick actions: Run, Edit, Delete for each pipeline
+- Search and filter capabilities
+- Toast notifications for all operations
+
+**How to Use**:
+1. Navigate to `/pipelines` to view all pipelines
+2. Use the search box to find specific pipelines
+3. Click column headers to sort by different criteria
+4. Use filter dropdown to show pipelines by status
+5. View pipeline details by clicking on the pipeline name
+
+#### 6.2.2 Creating Pipelines
+
+**How to Create a Pipeline**:
+1. Navigate to `/pipelines`
+2. Click "New Pipeline" button (top right)
+3. Fill in the pipeline creation form:
+   - **Name**: Unique pipeline identifier
+   - **Description**: Optional pipeline description
+   - **Source Connector**: Select from available connectors
+   - **Destination Connector**: Select from available connectors
+   - **Transformations**: Add optional transformations
+   - **Schedule**: Configure cron expression or interval
+   - **Error Handling**: Set retry policy and notifications
+4. Click "Create Pipeline"
+5. See success toast notification
+6. Pipeline appears in the list
+
+#### 6.2.3 Running Pipelines
+
+**Manual Execution**:
+1. Find your pipeline in the list
+2. Click the "Run" button (play icon)
+3. Confirm execution in the dialog
+4. Monitor real-time status updates
+5. View execution logs when complete
+
+**Scheduled Execution**:
+- Pipelines run automatically based on configured schedule
+- View next scheduled run in pipeline details
+- Pause/resume scheduling as needed
+
+#### 6.2.4 Pipeline Monitoring
+
+- **Real-time Status**: Live updates on pipeline execution state
+- **Execution Logs**: Detailed logs for troubleshooting
+- **Performance Metrics**: Throughput, processing times, error rates
+- **Data Quality Metrics**: Validation results and data quality scores
+
+**Permissions Required**:
+- `pipelines.view` - View pipelines
+- `pipelines.create` - Create new pipelines
+- `pipelines.edit` - Modify existing pipelines
+- `pipelines.delete` - Remove pipelines
+- `pipelines.execute` - Run pipelines
+
+### 6.3 Connector Management (`/connectors`, `/connectors/configure`)
+
+Full connector lifecycle management with test capabilities and real-time status monitoring.
+
+#### 6.3.1 Connector List View (`/connectors`)
+
+**Features**:
+- View all configured connectors
+- Connection status indicators (Connected, Disconnected, Testing)
+- Quick actions: Test, Edit, Delete
+- Connector type badges
+- Last test timestamp
+
+**How to Use**:
+1. Navigate to `/connectors`
+2. View all configured connectors
+3. Check connection status for each connector
+4. Use quick actions to test, edit, or delete connectors
+5. Search for specific connectors using the search box
 
 #### 6.3.1 Adding Connectors
 
-1. Go to the "Connectors" section
-2. Select the connector type (REST API, Database, File, etc.)
-3. Configure connection parameters
-4. Test the connection
-5. Save the connector configuration
+**How to Create a Connector**:
+1. Navigate to `/connectors`
+2. Click "New Connector" button
+3. You'll be redirected to `/connectors/configure`
+4. Select connector type:
+   - **Database**: PostgreSQL, MySQL, MongoDB, Oracle, SQL Server
+   - **API**: REST APIs with various auth methods
+   - **File**: Local, FTP, SFTP, S3, Azure Blob, Google Cloud Storage
+   - **SaaS**: Salesforce, HubSpot, Google Sheets
+   - **Data Warehouse**: Snowflake, BigQuery, Redshift
+5. Fill in connection parameters specific to the connector type
+6. Click "Test Connection" to validate configuration
+7. If test succeeds, click "Save Connector"
+8. See success toast notification
+9. Redirected back to connector list
 
-### 6.4 Transformation Engine
+#### 6.3.3 Testing Connectors
 
-#### 6.4.1 Creating Transformations
+**Test Existing Connector**:
+1. Find connector in the list
+2. Click "Test" button
+3. Wait for test results
+4. Green checkmark = success, Red X = failure
+5. View detailed error message if test fails
+6. Fix configuration and test again
 
-1. Navigate to the "Transformations" section
-2. Click "Create Transformation"
-3. Define input schema
-4. Create transformation rules
-5. Preview transformed data
-6. Save the transformation
+**Permissions Required**:
+- `connectors.view` - View connectors
+- `connectors.create` - Create new connectors
+- `connectors.edit` - Modify existing connectors
+- `connectors.delete` - Remove connectors
+- `connectors.test` - Test connections
 
-### 6.5 User Management
+### 6.4 Transformation Management (`/transformations`)
 
-#### 6.5.1 Role-Based Access Control
+Create, test, and manage data transformations with full backend integration.
 
-- **Admin**: Full access to all features and settings
+#### 6.4.1 Transformation List View
+
+**Features**:
+- View all configured transformations
+- Transformation type badges
+- Status indicators (Active/Inactive)
+- Records processed counter
+- Quick actions: Run, Edit, Delete
+
+**How to Use**:
+1. Navigate to `/transformations`
+2. View all transformations
+3. Check transformation type and status
+4. Use search to find specific transformations
+5. Click transformation name for details
+
+#### 6.4.2 Creating Transformations
+
+**How to Create a Transformation**:
+1. Navigate to `/transformations`
+2. Click "New Transformation" button
+3. Fill in transformation details:
+   - **Name**: Unique transformation identifier
+   - **Description**: Optional description
+   - **Type**: Select transformation type (Filter, Map, Aggregate, etc.)
+   - **Source Fields**: Define input schema
+   - **Target Fields**: Define output schema
+   - **Transformation Rules**: Configure transformation logic
+4. Click "Test Transformation" to run with sample data
+5. View transformation results
+6. If satisfactory, click "Create Transformation"
+7. See success toast notification
+
+#### 6.4.3 Testing Transformations
+
+**Test Transformation**:
+1. Find transformation in the list
+2. Click "Run" button (play icon)
+3. Provide sample input data (JSON format)
+4. Click "Run Test"
+5. View transformed output
+6. Check for errors or warnings
+7. Adjust configuration if needed
+
+**Permissions Required**:
+- `transformations.view` - View transformations
+- `transformations.create` - Create new transformations
+- `transformations.edit` - Modify existing transformations
+- `transformations.delete` - Remove transformations
+- `transformations.execute` - Test transformations
+
+### 6.5 Analytics Dashboard (`/analytics`)
+
+Interactive analytics with real-time charts and comprehensive metrics.
+
+**Features**:
+- **Real-Time Metrics Cards**: Records processed, avg processing time, success rate, active pipelines
+- **Data Volume Trends Chart**: Line chart showing records processed over time
+- **Pipeline Performance Chart**: Bar chart comparing pipeline success rates
+- **Top Performing Pipelines Table**: Ranked by success rate and volume
+- **Time Range Selector**: View data for 24h, 7d, 30d, 90d periods
+- **Export Capabilities**: Export analytics data (CSV, Excel, PDF)
+
+**How to Use**:
+1. Navigate to `/analytics`
+2. View key metrics in the cards at the top
+3. Analyze data volume trends in the line chart
+4. Compare pipeline performance in the bar chart
+5. Review top performers in the table
+6. Change time range using dropdown (top right)
+7. Click "Export" to download analytics data
+
+**Permissions Required**: `analytics.view`
+
+### 6.6 Monitoring (`/monitoring`, `/monitoring/live`, `/monitoring/performance`)
+
+Real-time system monitoring with live updates and comprehensive health checks.
+
+#### 6.6.1 Main Monitoring Dashboard (`/monitoring`)
+
+**Features**:
+- **Key Statistics**: Active pipelines, running pipelines, records processed, success rate
+- **Pipeline Performance Section**: Recent pipeline execution metrics
+- **Recent Alerts**: System alerts and warnings
+- **System Health Indicators**: Database, API, cache, message queue status
+- **Time Range Filter**: 1h, 24h, 7d, 30d views
+
+**How to Use**:
+1. Navigate to `/monitoring`
+2. View key statistics cards
+3. Review pipeline performance metrics
+4. Check recent alerts for issues
+5. Monitor system health indicators
+6. Change time range for historical view
+
+#### 6.6.2 Live Monitoring (`/monitoring/live`)
+
+**Features**:
+- Real-time pipeline execution visualization
+- Live data flow monitoring
+- Resource usage graphs (CPU, memory, network)
+- Live alert feed
+- Auto-refresh every few seconds
+
+**How to Use**:
+1. Navigate to `/monitoring/live`
+2. Watch real-time pipeline executions
+3. Monitor resource utilization
+4. Respond to alerts as they appear
+
+#### 6.6.3 Performance Monitoring (`/monitoring/performance`)
+
+**Features**:
+- Detailed performance metrics
+- Resource utilization graphs
+- Performance trends over time
+- Bottleneck identification
+- Export performance reports
+
+**How to Use**:
+1. Navigate to `/monitoring/performance`
+2. View detailed performance metrics
+3. Analyze resource utilization
+4. Identify performance bottlenecks
+5. Export reports for analysis
+
+**Permissions Required**: `monitoring.view`
+
+### 6.7 File Management (`/files`)
+
+Upload, preview, download, and manage data files with support for multiple formats.
+
+**Features**:
+- **File Upload**: Drag-and-drop or browse to upload
+- **File Preview**: View CSV, JSON, text, and image files
+- **File Download**: Download any uploaded file
+- **File Status**: Track upload/processing status
+- **Search & Filter**: Find files by name or status
+- **File Metadata**: View size, type, upload date
+
+**How to Use**:
+
+**Upload Files**:
+1. Navigate to `/files`
+2. Click "Upload Files" button
+3. Drag files onto upload area OR click to browse
+4. Supported formats: CSV, JSON, XLSX, TXT, XML
+5. Max file size: 100 MB
+6. Multiple files supported
+7. Monitor upload progress
+8. See success toast when complete
+
+**Preview Files**:
+1. Find file in the list
+2. Click "Preview" button (eye icon)
+3. View file contents in modal:
+   - CSV/JSON: Table view (first 100 rows)
+   - Text: Raw text content
+   - Images: Full image display
+4. Click X to close preview
+
+**Download Files**:
+1. Find file in the list
+2. Click "Download" button
+3. File downloads to your computer
+4. See success toast
+
+**Delete Files**:
+1. Find file in the list
+2. Click "Delete" button (trash icon)
+3. Confirm deletion
+4. File removed with toast confirmation
+
+**Filter Files**:
+1. Use search box to find files by name
+2. Use status dropdown to filter:
+   - All Files
+   - Completed
+   - Processing
+   - Failed
+
+**Permissions Required**:
+- `files.view` - View file list
+- `files.upload` - Upload new files
+- `files.download` - Download files
+- `files.delete` - Remove files
+
+### 6.8 Dashboard Customization (`/dashboard/customize`)
+
+Create and customize personal dashboards with drag-and-drop widget management.
+
+**Features**:
+- **Widget Library**: 6 pre-built widget types
+- **Drag-and-Drop**: Arrange widgets visually
+- **Widget Sizing**: Small, medium, large sizes
+- **Layout Templates**: Save and load custom layouts
+- **Widget Configuration**: Customize each widget
+- **Auto-Save**: Layouts persist automatically
+
+**How to Use**:
+
+**Customize Dashboard**:
+1. Navigate to `/dashboard/customize`
+2. Enter dashboard name
+3. Click "Add Widget" button
+4. Select widget type:
+   - **Bar Chart**: Display data as bars
+   - **Line Chart**: Show trends over time
+   - **Pie Chart**: Visualize proportions
+   - **Metrics**: Key performance indicators
+   - **Data Table**: Display tabular data
+   - **Pipeline Status**: Monitor pipeline health
+5. Drag widgets to rearrange
+6. Click widget settings icon to configure
+7. Click widget copy icon to duplicate
+8. Click widget trash icon to remove
+9. Click "Save Layout" when done
+10. See success toast confirmation
+
+**Use Templates**:
+1. Click "Templates" button
+2. View available layouts
+3. Click "Load" on desired template
+4. Customize as needed
+5. Save with a new name
+
+**Change Widget Size**:
+1. Click settings icon on any widget
+2. Size cycles through: Small → Medium → Large → Small
+3. Changes apply immediately
+
+**Permissions Required**: `dashboard.customize`
+
+### 6.9 Global Search (`/search`)
+
+Universal search across all entity types with advanced filtering and saved searches.
+
+**Features**:
+- **Universal Search**: Search across all entity types
+- **Entity Filtering**: Filter by pipelines, connectors, transformations, users
+- **Match Scores**: See relevance scores for results
+- **Search History**: View recent searches
+- **Saved Searches**: Save frequently used queries
+- **Real-Time Results**: Instant search as you type
+
+**How to Use**:
+
+**Perform a Search**:
+1. Navigate to `/search`
+2. Enter search query in search box
+3. Optionally select entity types to filter:
+   - Pipelines
+   - Connectors
+   - Transformations
+   - Users
+4. Press Enter or click "Search"
+5. View results with match scores
+6. Click any result to view details
+
+**Save a Search**:
+1. Perform a search
+2. Click bookmark icon (right of search box)
+3. Enter name for saved search
+4. Click "Save"
+5. See success toast
+
+**Use Saved Search**:
+1. View "Saved Searches" panel (left sidebar)
+2. Click on any saved search name
+3. Search executes automatically
+4. To delete: click X icon next to saved search
+
+**View Search History**:
+1. View "Recent Searches" panel (left sidebar)
+2. Click any previous query to re-run
+3. See result count from previous search
+
+**Clear Filters**:
+1. Click "Clear" button next to Filters
+2. All entity type filters removed
+
+**Permissions Required**: `search.view`
+
+### 6.10 Settings (`/settings`)
+
+Comprehensive user settings with profile, password, notifications, and security configuration.
+
+**Features**:
+- **Profile Management**: Update name, email, username
+- **Password Change**: Secure password update with validation
+- **Notification Preferences**: Email, push, pipeline alerts, connector alerts
+- **Security Settings**: Two-factor auth, login alerts, session timeout
+- **Timezone Configuration**: Set your timezone
+
+**How to Use**:
+
+**Update Profile** (Profile Tab):
+1. Navigate to `/settings`
+2. Click "Profile" tab (default)
+3. Update fields:
+   - First Name
+   - Last Name
+   - Username
+   - Email
+   - Timezone
+4. Click "Save Profile"
+5. See success toast
+
+**Change Password** (Password Tab):
+1. Click "Password" tab
+2. Enter current password
+3. Enter new password (min 8 characters)
+4. Confirm new password
+5. Use eye icons to show/hide passwords
+6. Click "Update Password"
+7. See success toast
+8. Form clears automatically
+
+**Configure Notifications** (Notifications Tab):
+1. Click "Notifications" tab
+2. Toggle switches for:
+   - Email Notifications
+   - Push Notifications
+   - Pipeline Alerts
+   - Connector Alerts
+3. Click "Save Notification Settings"
+4. See success toast
+
+**Configure Security** (Security Tab):
+1. Click "Security" tab
+2. Toggle switches for:
+   - Two-Factor Authentication
+   - Login Alerts
+3. Set Session Timeout dropdown:
+   - 15 minutes
+   - 30 minutes
+   - 1 hour
+   - 2 hours
+   - Never
+4. Click "Save Security Settings"
+5. See success toast
+
+**Permissions Required**: `settings.view`
+
+### 6.11 User Management
+
+#### 6.11.1 Role-Based Access Control
+
+The platform implements three-tier role-based access control:
+
+- **Admin**: Full access to all features and settings, including user management
 - **Editor**: Can create and modify pipelines, connectors, and transformations
-- **Viewer**: Can only view pipeline status and metrics
+- **Viewer**: Read-only access to pipelines, dashboards, and analytics
+
+**Permission-Based UI**:
+- UI elements automatically hide/show based on user permissions
+- Buttons for create/edit/delete operations only visible if user has required permissions
+- Access denied screen shown when accessing unauthorized features
+
+### 6.12 Toast Notifications & User Feedback System ✨ **NEW**
+
+The platform now features a comprehensive toast notification system that provides immediate visual feedback for all user actions throughout the application.
+
+#### 6.12.1 Toast Notification Types
+
+**Success Notifications** (Green with checkmark icon):
+- "Pipeline created successfully"
+- "Connector tested successfully"
+- "Settings saved successfully"
+- "File uploaded successfully"
+- "Transformation created successfully"
+- "Search saved successfully"
+
+**Error Notifications** (Red with X icon):
+- "Failed to load pipelines"
+- "Connection test failed"
+- "Invalid configuration"
+- "File upload failed"
+- "Pipeline execution failed"
+- "Authentication error"
+
+**Warning Notifications** (Yellow with alert icon):
+- "Please enter a search query"
+- "No results found"
+- "File upload in progress"
+- "Pipeline already running"
+- "Missing required fields"
+
+**Info Notifications** (Blue with info icon):
+- "Loading data..."
+- "Processing request..."
+- "Refreshing data..."
+
+#### 6.12.2 Toast Behavior
+
+**Display Characteristics**:
+- Appear at top-right of screen
+- Auto-dismiss after 5 seconds
+- Click X to dismiss manually
+- Multiple toasts stack vertically
+- Color-coded by type (success, error, warning, info)
+- Slide-in animation from right
+- Fade-out animation when dismissed
+
+**Toast Priority**:
+- Critical errors shown first
+- Multiple toasts from same action grouped
+- Duplicate toasts prevented within 2 seconds
+
+#### 6.12.3 Loading States
+
+All pages implement consistent loading states for better user feedback:
+
+**Full-Page Loading**:
+- Centered spinner with "Loading..." message
+- Displayed when initially loading page data
+- Prevents interaction during load
+- Replaced by content when data arrives
+
+**Button Loading States**:
+- Button shows "Saving..." or "Loading..." during async operations
+- Button disabled during operation
+- Prevents duplicate submissions
+- Returns to normal state after completion
+
+**Card/Section Loading**:
+- Skeleton loaders for card content
+- Shimmer animation effect
+- Preserves layout during load
+- Smooth transition to actual content
+
+**Progress Indicators**:
+- File upload: Progress bar with percentage
+- Pipeline execution: Step-by-step progress
+- Batch operations: Count of completed/total items
+
+#### 6.12.4 Empty States
+
+When no data is available, the platform provides helpful guidance:
+
+**Empty Pipeline List**:
+- Message: "No pipelines created yet"
+- Guidance: "Get started by creating your first pipeline"
+- Action: "Create Pipeline" button
+- Icon: Pipeline illustration
+
+**Empty Search Results**:
+- Message: "No results found"
+- Guidance: "Try adjusting your search query or filters"
+- Suggestions: Check spelling, use different keywords, clear filters
+- Action: "Clear Filters" button
+
+**Empty Analytics**:
+- Message: "No analytics data available yet"
+- Guidance: "Run some pipelines to generate analytics"
+- Action: Link to pipeline list or pipeline builder
+- Icon: Chart illustration
+
+**Empty File List**:
+- Message: "No files uploaded yet"
+- Guidance: "Upload your first data file to get started"
+- Action: "Upload Files" button
+- Icon: File upload illustration
+
+#### 6.12.5 Error Handling
+
+**Inline Form Validation**:
+- Required fields highlighted in red when empty
+- Validation messages appear below fields
+- Real-time validation as user types
+- Clear indication of what needs to be fixed
+
+**API Error Messages**:
+- User-friendly error messages (not technical jargon)
+- Specific guidance on how to fix issues
+- Option to retry failed operations
+- Contact support link for persistent errors
+
+**Network Error Handling**:
+- "Unable to connect to server" message
+- Automatic retry with exponential backoff
+- Manual retry button
+- Offline mode indicator
+
+#### 6.12.6 Confirmation Dialogs
+
+Critical actions require user confirmation:
+
+**Delete Confirmation**:
+- Modal dialog with warning message
+- Shows what will be deleted
+- Warning if item is in use (e.g., connector used in pipelines)
+- "Cancel" and "Delete" buttons
+- Delete button styled in red for emphasis
+
+**Execution Confirmation**:
+- Confirm before running pipelines
+- Shows estimated cost/time if applicable
+- Option to run in test mode
+- "Cancel" and "Run" buttons
+
+**Discard Changes Confirmation**:
+- When leaving page with unsaved changes
+- Shows which fields have changed
+- Options: "Discard Changes", "Keep Editing", "Save & Exit"
+
+#### 6.12.7 Keyboard Shortcuts
+
+The platform supports keyboard shortcuts for common actions:
+
+**Global Shortcuts**:
+- `/` (forward slash): Focus global search
+- `Ctrl/Cmd + S`: Save current form
+- `Esc`: Close modals/dialogs
+- `?`: Show help/keyboard shortcuts
+
+**Page-Specific Shortcuts**:
+- Pipeline Builder: See section 5.1.6 for complete list
+- Search: `Enter` to search, `Ctrl/Cmd + K` to focus search
+
+#### 6.12.8 Accessibility Features
+
+**Screen Reader Support**:
+- All toast notifications announced to screen readers
+- ARIA labels on all interactive elements
+- Proper heading hierarchy
+- Alt text on all images and icons
+
+**Keyboard Navigation**:
+- Tab through all interactive elements
+- Focus indicators on all focusable elements
+- Skip to main content link
+- Logical tab order
+
+**Visual Accessibility**:
+- High contrast mode support
+- Colorblind-friendly color schemes
+- Resizable text (up to 200%)
+- Focus indicators with sufficient contrast
+
+**Best Practices for Users**:
+- Wait for loading indicators to complete before navigating away
+- Read toast messages for important feedback
+- Don't click buttons multiple times (causes duplicate actions)
+- Use keyboard shortcuts to improve efficiency
+- Pay attention to form validation messages
 
 ## 7. API Documentation
 

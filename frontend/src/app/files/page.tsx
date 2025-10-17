@@ -17,6 +17,10 @@ import {
 import { api } from '@/lib/api';
 import DashboardLayout from '@/components/layout/dashboard-layout';
 import FileUpload from '@/components/upload/FileUpload';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 interface FileRecord {
   id: string;
@@ -47,6 +51,8 @@ export default function FilesPage() {
   const [preview, setPreview] = useState<FilePreview | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
     loadFiles();
@@ -59,8 +65,10 @@ export default function FilesPage() {
         params: { limit: 100, status: filterType !== 'all' ? filterType : undefined }
       });
       setFiles(response.data.uploads || []);
-    } catch (error) {
-      console.error('Failed to load files:', error);
+    } catch (err: any) {
+      console.error('Failed to load files:', err);
+      error(err.message || 'Failed to load files', 'Error');
+      setFiles([]);
     } finally {
       setLoading(false);
     }
@@ -68,6 +76,7 @@ export default function FilesPage() {
 
   const handleUploadComplete = () => {
     setShowUpload(false);
+    success('File uploaded successfully', 'Success');
     loadFiles();
   };
 
@@ -76,10 +85,11 @@ export default function FilesPage() {
 
     try {
       await api.delete(`/files/uploads/${fileId}`);
+      success('File deleted successfully', 'Success');
       loadFiles();
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      alert('Failed to delete file');
+    } catch (err: any) {
+      console.error('Failed to delete file:', err);
+      error(err.message || 'Failed to delete file', 'Error');
     }
   };
 
@@ -88,8 +98,9 @@ export default function FilesPage() {
     try {
       const response = await api.get(`/files/uploads/${file.id}/preview`);
       setPreview(response.data);
-    } catch (error) {
-      console.error('Failed to load preview:', error);
+    } catch (err: any) {
+      console.error('Failed to load preview:', err);
+      error(err.message || 'Failed to load preview', 'Error');
       setPreview(null);
     }
   };
@@ -106,9 +117,10 @@ export default function FilesPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
-      console.error('Failed to download file:', error);
-      alert('Failed to download file');
+      success('File downloaded successfully', 'Success');
+    } catch (err: any) {
+      console.error('Failed to download file:', err);
+      error(err.message || 'Failed to download file', 'Error');
     }
   };
 
@@ -132,8 +144,31 @@ export default function FilesPage() {
     file.filename.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Check permission to view this page
+  if (permissionsLoading || loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.files?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied message="You don't have permission to view file management." />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -143,13 +178,15 @@ export default function FilesPage() {
               Upload, manage, and preview your data files
             </p>
           </div>
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            <Upload className="w-5 h-5" />
-            Upload Files
-          </button>
+          {features?.files?.upload && (
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            >
+              <Upload className="w-5 h-5" />
+              Upload Files
+            </button>
+          )}
         </div>
 
         {/* Upload Section */}
@@ -279,20 +316,24 @@ export default function FilesPage() {
                             <Eye className="w-4 h-4" />
                           </button>
                         )}
-                        <button
-                          onClick={() => downloadFile(file)}
-                          className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
-                          title="Download"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteFile(file.id)}
-                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {features?.files?.download && (
+                          <button
+                            onClick={() => downloadFile(file)}
+                            className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                        {features?.files?.delete && (
+                          <button
+                            onClick={() => deleteFile(file.id)}
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

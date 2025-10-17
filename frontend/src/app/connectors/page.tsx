@@ -5,10 +5,10 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Database, 
-  Plus, 
-  Search, 
+import {
+  Database,
+  Plus,
+  Search,
   Settings,
   CheckCircle,
   AlertCircle,
@@ -21,81 +21,49 @@ import {
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
+import { apiClient } from '@/lib/api';
+import { Connector } from '@/types';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
-// Mock data - in real app this would come from API
-const mockConnectors = [
-  {
-    id: 1,
-    name: 'Salesforce CRM',
-    type: 'SaaS',
-    description: 'Connection to Salesforce CRM system',
-    status: 'connected',
-    lastSync: new Date('2025-09-29T10:30:00Z'),
-    nextSync: new Date('2025-09-29T12:00:00Z'),
-    totalSyncs: 1542,
-    recordsPerSync: 2500,
-  },
-  {
-    id: 2,
-    name: 'MySQL Database',
-    type: 'Database',
-    description: 'Production MySQL database',
-    status: 'connected',
-    lastSync: new Date('2025-09-29T08:15:00Z'),
-    nextSync: new Date('2025-09-29T08:45:00Z'),
-    totalSyncs: 8650,
-    recordsPerSync: 5000,
-  },
-  {
-    id: 3,
-    name: 'AWS S3 Bucket',
-    type: 'File Storage',
-    description: 'Primary backup storage for processed data',
-    status: 'disconnected',
-    lastSync: new Date('2025-09-28T18:00:00Z'),
-    nextSync: null,
-    totalSyncs: 230,
-    recordsPerSync: 10000,
-  },
-  {
-    id: 4,
-    name: 'Google Analytics',
-    type: 'SaaS',
-    description: 'Google Analytics 4 property',
-    status: 'connected',
-    lastSync: new Date('2025-09-29T09:00:00Z'),
-    nextSync: new Date('2025-09-29T10:00:00Z'),
-    totalSyncs: 4200,
-    recordsPerSync: 1500,
-  },
-  {
-    id: 5,
-    name: 'PostgreSQL',
-    type: 'Database',
-    description: 'Analytics data warehouse',
-    status: 'connected',
-    lastSync: new Date('2025-09-29T09:30:00Z'),
-    nextSync: new Date('2025-09-29T10:30:00Z'),
-    totalSyncs: 3780,
-    recordsPerSync: 8000,
-  },
-];
+interface ConnectorDisplay extends Connector {
+  status?: string;
+  lastSync?: Date;
+  nextSync?: Date | null;
+  totalSyncs?: number;
+  recordsPerSync?: number;
+}
 
 export default function ConnectorsPage() {
-  const [connectors, setConnectors] = useState(mockConnectors);
-  const [filteredConnectors, setFilteredConnectors] = useState(mockConnectors);
+  const [connectors, setConnectors] = useState<ConnectorDisplay[]>([]);
+  const [filteredConnectors, setFilteredConnectors] = useState<ConnectorDisplay[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
+  const { toasts, error, success, warning } = useToast();
 
+  // Fetch connectors from API
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setFilteredConnectors(connectors);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [connectors]);
+    const fetchConnectors = async () => {
+      try {
+        setIsLoading(true);
+        const data = await apiClient.getConnectors();
+        const connectorList = data.map(c => ({
+          ...c,
+          status: c.is_active ? 'connected' : 'disconnected',
+        }));
+        setConnectors(connectorList);
+        setFilteredConnectors(connectorList);
+      } catch (err: any) {
+        error(err.message || 'Failed to load connectors', 'Error');
+        console.error('Error fetching connectors:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConnectors();
+  }, []);
 
   useEffect(() => {
     if (searchTerm) {
@@ -111,19 +79,37 @@ export default function ConnectorsPage() {
   }, [searchTerm, connectors]);
 
   const handleEditConnector = (id: number) => {
-    // Mock function to edit a connector
+    // Navigate to edit connector page
     console.log(`Editing connector ${id}`);
+    // TODO: Implement navigation to /connectors/${id}/edit
   };
 
-  const handleDeleteConnector = (id: number) => {
-    // Mock function to delete a connector
-    console.log(`Deleting connector ${id}`);
-    setConnectors(connectors.filter(c => c.id !== id));
+  const handleDeleteConnector = async (id: number) => {
+    try {
+      await apiClient.deleteConnector(id);
+      setConnectors(connectors.filter(c => c.id !== id));
+      setFilteredConnectors(filteredConnectors.filter(c => c.id !== id));
+      success('Connector deleted successfully', 'Success');
+    } catch (err: any) {
+      error(err.message || 'Failed to delete connector', 'Error');
+      console.error('Error deleting connector:', err);
+    }
   };
 
-  const handleTestConnection = (id: number) => {
-    // Mock function to test connection
-    console.log(`Testing connection for connector ${id}`);
+  const handleTestConnection = async (id: number) => {
+    try {
+      // Call the test connection API
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/connectors/${id}/test`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1]}`,
+        },
+      });
+      success('Connection test successful', 'Success');
+    } catch (err: any) {
+      error(err.message || 'Connection test failed', 'Error');
+      console.error('Error testing connection:', err);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -175,6 +161,7 @@ export default function ConnectorsPage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -220,28 +207,28 @@ export default function ConnectorsPage() {
               <p className="text-xs text-gray-500">All connectors</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Connected</CardTitle>
+              <CardTitle className="text-sm font-medium">Active</CardTitle>
               <CheckCircle className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {connectors.filter(c => c.status === 'connected').length}
+                {connectors.filter(c => c.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Active connections</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Disconnected</CardTitle>
+              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
               <XCircle className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {connectors.filter(c => c.status === 'disconnected').length}
+                {connectors.filter(c => !c.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Need attention</p>
             </CardContent>
@@ -299,25 +286,19 @@ export default function ConnectorsPage() {
                             {connector.type}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1 truncate">{connector.description}</p>
+                        <p className="text-sm text-gray-500 mt-1 truncate">{connector.name}</p>
                         <div className="mt-2 flex flex-wrap gap-2 text-xs">
                           <span className="px-2 py-1 bg-gray-100 rounded text-gray-700">
-                            {connector.totalSyncs.toLocaleString()} syncs
+                            Type: {connector.type}
                           </span>
                           <span className="px-2 py-1 bg-gray-100 rounded text-gray-700">
-                            {connector.recordsPerSync.toLocaleString()} rec/sync
+                            Created: {new Date(connector.created_at).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="mt-4 sm:mt-0 flex items-center space-x-2">
-                      <div className="text-right mr-4 hidden md:block">
-                        <p className="text-sm font-medium text-gray-900">
-                          Last sync: {new Date(connector.lastSync).toLocaleString()}
-                        </p>
-                      </div>
-                      
                       <div className="flex space-x-1">
                         <Button
                           variant="outline"
