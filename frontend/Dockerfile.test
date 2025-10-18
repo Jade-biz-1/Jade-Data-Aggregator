@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy application code
+COPY . .
+
+# Set environment variables
+ENV NODE_ENV=test
+ENV NEXT_PUBLIC_API_URL=http://backend-test-server:8000
+
+# Run tests
+CMD ["npm", "run", "test"]

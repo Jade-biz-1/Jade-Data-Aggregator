@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  test-db:
+    image: postgres:15-alpine
+    container_name: dataaggregator-test-db
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_dataaggregator
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  test-redis:
+    image: redis:7-alpine
+    container_name: dataaggregator-test-redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - test-network
+
+  backend-test-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    container_name: dataaggregator-backend-test
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://test_user:test_password@test-db:5432/test_dataaggregator
+      - REDIS_URL=redis://test-redis:6379/0
+      - TEST_MODE=true
+      - SECRET_KEY=test-secret-key-do-not-use-in-production
+      - ENVIRONMENT=test
+    ports:
+      - "8001:8000"
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  frontend-test-server:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+    container_name: dataaggregator-frontend-test
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend-test-server:8000
+      - NODE_ENV=test
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend-test-server
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test_db_data:
