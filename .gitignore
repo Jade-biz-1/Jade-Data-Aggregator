@@ -299,6 +299,15 @@ uploads/
 dist/
 build/
 
+# Testing artifacts (keep structure, ignore reports)
+testing/reports/*
+!testing/reports/.gitkeep
+testing/reports/coverage/
+testing/reports/test-results/
+testing/reports/screenshots/
+testing/reports/videos/
+testing/reports/logs/
+
 # Docker
 .dockerignore.local
 
