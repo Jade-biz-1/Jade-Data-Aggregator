@@ -1,47 +1,37 @@
 #!/bin/bash
-#
-# Unified Test Execution Driver
-# Data Aggregator Platform - Automated Test Suite
-#
-# Usage:
-#   ./run-tests.sh                    # Run all tests
-#   ./run-tests.sh --stage 1          # Run specific stage only
-#   ./run-tests.sh --no-fail-fast     # Continue on errors
-#   ./run-tests.sh --capture-all      # Max artifact capture
-#
+# Unified Test Runner Script
+# Data Aggregator Platform Testing Framework
+# Runs all test stages with fail-fast and comprehensive reporting
 
-set -euo pipefail
+set -eo pipefail
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-# Configuration
+# Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-TESTING_DIR="$PROJECT_ROOT/testing"
-REPORTS_DIR="$TESTING_DIR/reports"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Load configuration
-source "$TESTING_DIR/config/test-config.sh"
+source "${PROJECT_ROOT}/testing/config/test-config.sh"
 
-# Detect environment
-if [ "${CI:-false}" = "true" ]; then
-    ENV_TYPE="ci"
-    echo -e "${BLUE}[INFO]${NC} Running in CI/CD environment"
-else
-    ENV_TYPE="local"
-    echo -e "${BLUE}[INFO]${NC} Running in local environment"
-fi
+# Global variables
+FAIL_FAST=${FAIL_FAST_ENABLED:-true}
+STAGE_TO_RUN="all"
+CAPTURE_ALL=false
+EXIT_CODE=0
 
-# Parse command-line arguments
-STAGE_TO_RUN=""
-FAIL_FAST=true
-CAPTURE_LEVEL="${CAPTURE_LEVEL:-essential}"
+# Test results
+declare -A STAGE_RESULTS
+declare -A STAGE_DURATIONS
 
+# Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --stage)
@@ -53,262 +43,233 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --capture-all)
-            CAPTURE_LEVEL="comprehensive"
+            CAPTURE_ALL=true
+            export ARTIFACT_CAPTURE_LEVEL=comprehensive
             shift
             ;;
-        --capture-minimal)
-            CAPTURE_LEVEL="minimal"
-            shift
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --stage STAGE         Run specific stage (backend_unit|backend_integration|frontend_unit|frontend_integration|e2e|performance|security|all)"
+            echo "  --no-fail-fast        Continue running tests even if a stage fails"
+            echo "  --capture-all         Capture all artifacts (comprehensive mode)"
+            echo "  -h, --help            Show this help message"
+            exit 0
             ;;
         *)
-            echo -e "${RED}[ERROR]${NC} Unknown argument: $1"
+            echo -e "${RED}Unknown option: $1${NC}"
             exit 1
             ;;
     esac
 done
 
-# Function: Setup test environment
-setup_environment() {
-    echo -e "${BLUE}[SETUP]${NC} Initializing test environment..."
-
-    # Create reports directory
-    mkdir -p "$REPORTS_DIR"/{coverage,test-results,screenshots,videos,logs}
-
-    # Start Docker Compose test environment
-    echo -e "${BLUE}[SETUP]${NC} Starting Docker Compose services..."
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" up -d --build
-
-    # Wait for services to be ready
-    echo -e "${BLUE}[SETUP]${NC} Waiting for services to be ready..."
-    sleep 10
-
-    # Verify PostgreSQL is ready
-    until docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" exec -T test-db pg_isready -U test_user; do
-        echo -e "${YELLOW}[WAIT]${NC} Waiting for PostgreSQL..."
-        sleep 2
-    done
-
-    # Run database migrations
-    echo -e "${BLUE}[SETUP]${NC} Running database migrations..."
-    cd "$PROJECT_ROOT/backend"
-    poetry run alembic upgrade head
-
-    # Seed test data
-    echo -e "${BLUE}[SETUP]${NC} Seeding test database..."
-    poetry run python scripts/seed_test_data.py
-
-    echo -e "${GREEN}[SETUP]${NC} Test environment ready!"
+# Print header
+print_header() {
+    echo -e "${CYAN}"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║                                                              ║"
+    echo "║         Data Aggregator Platform - Test Suite               ║"
+    echo "║                                                              ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
 }
 
-# Function: Teardown test environment
-teardown_environment() {
-    echo -e "${BLUE}[TEARDOWN]${NC} Cleaning up test environment..."
-
-    # Stop Docker Compose services
-    docker-compose -f "$PROJECT_ROOT/docker-compose.test.yml" down -v
-
-    echo -e "${GREEN}[TEARDOWN]${NC} Test environment cleaned up!"
-}
-
-# Function: Run a test stage
-run_stage() {
-    local stage_num=$1
-    local stage_name=$2
-    local test_command=$3
-
+# Print stage header
+print_stage_header() {
+    local stage=$1
     echo ""
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${BLUE}Stage $stage_num: $stage_name${NC}"
-    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${MAGENTA}▶ Stage: $stage${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
 
-    # Run the test command
-    if eval "$test_command"; then
-        echo -e "${GREEN}[PASS]${NC} Stage $stage_num: $stage_name"
+# Print stage result
+print_stage_result() {
+    local stage=$1
+    local result=$2
+    local duration=$3
+    
+    if [ "$result" == "PASSED" ]; then
+        echo -e "${GREEN}✓ $stage: PASSED ($duration)${NC}"
+    elif [ "$result" == "FAILED" ]; then
+        echo -e "${RED}✗ $stage: FAILED ($duration)${NC}"
+    elif [ "$result" == "SKIPPED" ]; then
+        echo -e "${YELLOW}⊘ $stage: SKIPPED${NC}"
+    fi
+}
+
+# Run backend unit tests
+run_backend_unit_tests() {
+    print_stage_header "Backend Unit Tests"
+    local start_time=$(date +%s)
+    
+    cd "${PROJECT_ROOT}/backend"
+    
+    if poetry run pytest backend/tests/unit/ -v --tb=short --cov=backend --cov-report=html:../testing/reports/coverage/backend-unit 2>&1 | tee ../testing/reports/logs/backend-unit.log; then
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[backend_unit]="PASSED"
+        STAGE_DURATIONS[backend_unit]=$duration
         return 0
     else
-        echo -e "${RED}[FAIL]${NC} Stage $stage_num: $stage_name"
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[backend_unit]="FAILED"
+        STAGE_DURATIONS[backend_unit]=$duration
         return 1
     fi
 }
 
-# Function: Generate test reports
-generate_reports() {
-    echo -e "${BLUE}[REPORT]${NC} Generating test reports..."
-
-    # Combine coverage reports
-    echo -e "${BLUE}[REPORT]${NC} Combining coverage data..."
-
-    # Backend coverage
-    cd "$PROJECT_ROOT/backend"
-    poetry run coverage combine || true
-    poetry run coverage html -d "$REPORTS_DIR/coverage/backend" || true
-    poetry run coverage json -o "$REPORTS_DIR/coverage/backend/coverage.json" || true
-
-    # Frontend coverage
-    cd "$PROJECT_ROOT/frontend"
-    if [ -d coverage ]; then
-        cp -r coverage/* "$REPORTS_DIR/coverage/frontend/" || true
+# Run backend integration tests
+run_backend_integration_tests() {
+    print_stage_header "Backend Integration Tests"
+    local start_time=$(date +%s)
+    
+    cd "${PROJECT_ROOT}/backend"
+    
+    if poetry run pytest backend/tests/integration/ -v --tb=short 2>&1 | tee ../testing/reports/logs/backend-integration.log; then
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[backend_integration]="PASSED"
+        STAGE_DURATIONS[backend_integration]=$duration
+        return 0
+    else
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[backend_integration]="FAILED"
+        STAGE_DURATIONS[backend_integration]=$duration
+        return 1
     fi
+}
 
-    # Generate summary report
-    if [ -f "$TESTING_DIR/scripts/generate_summary.py" ]; then
-        python3 "$TESTING_DIR/scripts/generate_summary.py" > "$REPORTS_DIR/test-summary.txt" || true
+# Run frontend unit tests
+run_frontend_unit_tests() {
+    print_stage_header "Frontend Unit Tests"
+    local start_time=$(date +%s)
+    
+    cd "${PROJECT_ROOT}/frontend"
+    
+    if npm run test -- --coverage --watchAll=false 2>&1 | tee ../testing/reports/logs/frontend-unit.log; then
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[frontend_unit]="PASSED"
+        STAGE_DURATIONS[frontend_unit]=$duration
+        return 0
+    else
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[frontend_unit]="FAILED"
+        STAGE_DURATIONS[frontend_unit]=$duration
+        return 1
     fi
+}
 
-    echo -e "${GREEN}[REPORT]${NC} Reports generated at: $REPORTS_DIR"
+# Run E2E tests
+run_e2e_tests() {
+    print_stage_header "End-to-End Tests"
+    local start_time=$(date +%s)
+    
+    cd "${PROJECT_ROOT}/frontend"
+    
+    if npm run test:e2e 2>&1 | tee ../testing/reports/logs/e2e.log; then
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[e2e]="PASSED"
+        STAGE_DURATIONS[e2e]=$duration
+        return 0
+    else
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))s
+        STAGE_RESULTS[e2e]="FAILED"
+        STAGE_DURATIONS[e2e]=$duration
+        return 1
+    fi
 }
 
 # Main execution
 main() {
-    echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║   Data Aggregator Test Suite          ║${NC}"
-    echo -e "${BLUE}║   Unified Test Runner                 ║${NC}"
-    echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+    print_header
+    
+    echo -e "${CYAN}Configuration:${NC}"
+    echo -e "  Stage: ${YELLOW}$STAGE_TO_RUN${NC}"
+    echo -e "  Fail Fast: ${YELLOW}$FAIL_FAST${NC}"
+    echo -e "  Artifact Level: ${YELLOW}$ARTIFACT_CAPTURE_LEVEL${NC}"
     echo ""
-
-    # Setup environment
-    setup_environment
-
-    # Track overall success
-    overall_success=true
-
-    # Stage 1: Backend Unit Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "1" ]; then
-        if ! run_stage 1 "Backend Unit Tests" \
-            "cd $PROJECT_ROOT/backend && poetry run pytest backend/tests/unit -v --cov=backend --cov-report=html"; then
-            overall_success=false
-            if [ "$FAIL_FAST" = true ]; then
-                echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 1 failures"
-                teardown_environment
-                exit 1
-            fi
-        fi
-    fi
-
-    # Stage 2: Backend Integration Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "2" ]; then
-        if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
-            if ! run_stage 2 "Backend Integration Tests" \
-                "cd $PROJECT_ROOT/backend && poetry run pytest backend/tests/integration -v --cov=backend --cov-append"; then
-                overall_success=false
-                if [ "$FAIL_FAST" = true ]; then
-                    echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 2 failures"
-                    teardown_environment
-                    exit 1
-                fi
-            fi
+    
+    # Create reports directories
+    mkdir -p "${PROJECT_ROOT}/testing/reports/logs"
+    mkdir -p "${PROJECT_ROOT}/testing/reports/coverage"
+    
+    # Run tests based on stage
+    if [ "$STAGE_TO_RUN" == "all" ] || [ "$STAGE_TO_RUN" == "backend_unit" ]; then
+        if run_backend_unit_tests; then
+            print_stage_result "Backend Unit Tests" "PASSED" "${STAGE_DURATIONS[backend_unit]}"
         else
-            echo -e "${YELLOW}[SKIP]${NC} Stage 2: Backend Integration Tests (previous stage failed)"
-        fi
-    fi
-
-    # Stage 3: Frontend Unit Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "3" ]; then
-        if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
-            if ! run_stage 3 "Frontend Unit Tests" \
-                "cd $PROJECT_ROOT/frontend && npm run test:unit"; then
-                overall_success=false
-                if [ "$FAIL_FAST" = true ]; then
-                    echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 3 failures"
-                    teardown_environment
-                    exit 1
-                fi
+            print_stage_result "Backend Unit Tests" "FAILED" "${STAGE_DURATIONS[backend_unit]}"
+            EXIT_CODE=1
+            if [ "$FAIL_FAST" == "true" ]; then
+                echo -e "${RED}Failing fast due to test failure${NC}"
+                exit $EXIT_CODE
             fi
-        else
-            echo -e "${YELLOW}[SKIP]${NC} Stage 3: Frontend Unit Tests (previous stage failed)"
         fi
     fi
-
-    # Stage 4: Frontend Integration Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "4" ]; then
-        if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
-            if ! run_stage 4 "Frontend Integration Tests" \
-                "cd $PROJECT_ROOT/frontend && npm run test:integration"; then
-                overall_success=false
-                if [ "$FAIL_FAST" = true ]; then
-                    echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 4 failures"
-                    teardown_environment
-                    exit 1
-                fi
+    
+    if [ "$STAGE_TO_RUN" == "all" ] || [ "$STAGE_TO_RUN" == "backend_integration" ]; then
+        if run_backend_integration_tests; then
+            print_stage_result "Backend Integration Tests" "PASSED" "${STAGE_DURATIONS[backend_integration]}"
+        else
+            print_stage_result "Backend Integration Tests" "FAILED" "${STAGE_DURATIONS[backend_integration]}"
+            EXIT_CODE=1
+            if [ "$FAIL_FAST" == "true" ]; then
+                echo -e "${RED}Failing fast due to test failure${NC}"
+                exit $EXIT_CODE
             fi
-        else
-            echo -e "${YELLOW}[SKIP]${NC} Stage 4: Frontend Integration Tests (previous stage failed)"
         fi
     fi
-
-    # Stage 5: E2E Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "5" ]; then
-        if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
-            if ! run_stage 5 "End-to-End Tests" \
-                "cd $PROJECT_ROOT/frontend && npm run test"; then
-                overall_success=false
-                if [ "$FAIL_FAST" = true ]; then
-                    echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 5 failures"
-                    teardown_environment
-                    exit 1
-                fi
+    
+    if [ "$STAGE_TO_RUN" == "all" ] || [ "$STAGE_TO_RUN" == "frontend_unit" ]; then
+        if run_frontend_unit_tests; then
+            print_stage_result "Frontend Unit Tests" "PASSED" "${STAGE_DURATIONS[frontend_unit]}"
+        else
+            print_stage_result "Frontend Unit Tests" "FAILED" "${STAGE_DURATIONS[frontend_unit]}"
+            EXIT_CODE=1
+            if [ "$FAIL_FAST" == "true" ]; then
+                echo -e "${RED}Failing fast due to test failure${NC}"
+                exit $EXIT_CODE
             fi
-        else
-            echo -e "${YELLOW}[SKIP]${NC} Stage 5: E2E Tests (previous stage failed)"
         fi
     fi
-
-    # Stage 6: Performance Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "6" ]; then
-        if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
-            if ! run_stage 6 "Performance Tests" \
-                "cd $PROJECT_ROOT/backend && poetry run pytest backend/tests/performance -v"; then
-                overall_success=false
-                if [ "$FAIL_FAST" = true ]; then
-                    echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 6 failures"
-                    teardown_environment
-                    exit 1
-                fi
-            fi
+    
+    if [ "$STAGE_TO_RUN" == "all" ] || [ "$STAGE_TO_RUN" == "e2e" ]; then
+        if run_e2e_tests; then
+            print_stage_result "End-to-End Tests" "PASSED" "${STAGE_DURATIONS[e2e]}"
         else
-            echo -e "${YELLOW}[SKIP]${NC} Stage 6: Performance Tests (previous stage failed)"
+            print_stage_result "End-to-End Tests" "FAILED" "${STAGE_DURATIONS[e2e]}"
+            EXIT_CODE=1
         fi
     fi
-
-    # Stage 7: Security Tests
-    if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "7" ]; then
-        if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
-            if ! run_stage 7 "Security Tests" \
-                "cd $PROJECT_ROOT/backend && poetry run pytest backend/tests/security -v && poetry run bandit -r backend/ && poetry run safety check"; then
-                overall_success=false
-                if [ "$FAIL_FAST" = true ]; then
-                    echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 7 failures"
-                    teardown_environment
-                    exit 1
-                fi
-            fi
-        else
-            echo -e "${YELLOW}[SKIP]${NC} Stage 7: Security Tests (previous stage failed)"
-        fi
-    fi
-
-    # Generate reports
-    generate_reports
-
-    # Teardown environment
-    teardown_environment
-
-    # Final summary
+    
+    # Print final summary
     echo ""
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${BLUE}Test Execution Complete${NC}"
-    echo -e "${BLUE}========================================${NC}"
-
-    if [ "$overall_success" = true ]; then
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║                     TEST SUMMARY                             ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    
+    for stage in "${!STAGE_RESULTS[@]}"; do
+        print_stage_result "$stage" "${STAGE_RESULTS[$stage]}" "${STAGE_DURATIONS[$stage]}"
+    done
+    
+    echo ""
+    if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}✓ All tests passed!${NC}"
-        echo -e "${GREEN}Reports available at: $REPORTS_DIR${NC}"
-        exit 0
     else
         echo -e "${RED}✗ Some tests failed${NC}"
-        echo -e "${YELLOW}Check reports at: $REPORTS_DIR${NC}"
-        exit 1
     fi
+    echo ""
+    
+    exit $EXIT_CODE
 }
 
-# Run main function
+# Run main
 main

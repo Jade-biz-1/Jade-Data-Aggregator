@@ -1,61 +1,28 @@
 #!/bin/bash
-#
-# Test Configuration
-# Centralized configuration for test execution
-#
+# Test Configuration - Environment Variables
+# Data Aggregator Platform Testing Framework
 
-# Failure artifact capture level (minimal, essential, comprehensive)
-export CAPTURE_LEVEL="${CAPTURE_LEVEL:-essential}"
+export TEST_MODE=true
+export ENVIRONMENT=test
 
-# Test timeouts
-export UNIT_TEST_TIMEOUT=10        # seconds
-export INTEGRATION_TEST_TIMEOUT=30 # seconds
-export E2E_TEST_TIMEOUT=60        # seconds
+# Test Database Configuration
+export TEST_DB_HOST=localhost
+export TEST_DB_PORT=5433
+export TEST_DB_USER=test_user
+export TEST_DB_PASSWORD=test_password
+export TEST_DB_NAME=dataaggregator_test
+export TEST_DATABASE_URL="postgresql+asyncpg://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_NAME}"
 
-# Parallel execution
-export PYTEST_WORKERS=4            # Backend parallel workers
-export JEST_WORKERS="50%"          # Frontend parallel workers (% of CPU)
-export PLAYWRIGHT_WORKERS=2        # E2E parallel workers
+# Test Redis Configuration
+export TEST_REDIS_HOST=localhost
+export TEST_REDIS_PORT=6380
 
-# Coverage thresholds
+# Test Backend/Frontend URLs
+export TEST_BACKEND_URL="http://localhost:8001"
+export TEST_FRONTEND_URL="http://localhost:3001"
+
+# Coverage Thresholds
 export BACKEND_COVERAGE_THRESHOLD=80
 export FRONTEND_COVERAGE_THRESHOLD=80
 
-# Report retention
-export MAX_REPORT_RUNS=10
-export MAX_REPORT_DAYS=30
-export MAX_REPORT_SIZE_MB=5000
-
-# Artifact capture settings
-case $CAPTURE_LEVEL in
-    minimal)
-        export CAPTURE_STACK_TRACES=true
-        export CAPTURE_HTML_REPORTS=true
-        export CAPTURE_SCREENSHOTS=false
-        export CAPTURE_VIDEOS=false
-        export CAPTURE_DB_DUMPS=false
-        export CAPTURE_API_LOGS=false
-        export CAPTURE_APP_LOGS=false
-        export CAPTURE_BROWSER_LOGS=false
-        ;;
-    essential)
-        export CAPTURE_STACK_TRACES=true
-        export CAPTURE_HTML_REPORTS=true
-        export CAPTURE_SCREENSHOTS=true   # E2E only
-        export CAPTURE_VIDEOS=false
-        export CAPTURE_DB_DUMPS=false
-        export CAPTURE_API_LOGS=true
-        export CAPTURE_APP_LOGS=true
-        export CAPTURE_BROWSER_LOGS=false
-        ;;
-    comprehensive)
-        export CAPTURE_STACK_TRACES=true
-        export CAPTURE_HTML_REPORTS=true
-        export CAPTURE_SCREENSHOTS=true
-        export CAPTURE_VIDEOS=true
-        export CAPTURE_DB_DUMPS=true
-        export CAPTURE_API_LOGS=true
-        export CAPTURE_APP_LOGS=true
-        export CAPTURE_BROWSER_LOGS=true
-        ;;
-esac
+echo "Test configuration loaded successfully"

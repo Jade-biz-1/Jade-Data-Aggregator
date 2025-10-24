@@ -1,14 +1,20 @@
 #!/bin/bash
-#
-# Test Environment Teardown
-# Stops and cleans up the test environment
-#
+# Test Environment Teardown Script
+# Data Aggregator Platform Testing Framework
 
-set -euo pipefail
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-echo "Tearing down test environment..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Stop Docker Compose services
-docker-compose -f docker-compose.test.yml down -v
+echo -e "${YELLOW}Tearing down test environment...${NC}"
 
-echo "✓ Test environment cleaned up!"
+cd "${PROJECT_ROOT}"
+
+# Stop and remove test containers
+docker compose -f docker compose.test.yml down -v
+
+echo -e "${GREEN}✓ Test environment cleaned up${NC}"

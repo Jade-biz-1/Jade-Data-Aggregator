@@ -1,68 +1,40 @@
-# Test Configuration
-# YAML configuration for test execution preferences
+# Test Configuration - YAML Format
+# Data Aggregator Platform Testing Framework
 
-failure_artifacts:
-  # Options: minimal, essential, comprehensive
-  level: essential
+execution:
+  stages:
+    - backend_unit
+    - backend_integration
+    - frontend_unit
+    - frontend_integration
+    - e2e
+    - performance
+    - security
 
-  capture:
-    stack_traces: true
-    html_reports: true
-    screenshots: true      # E2E only
-    videos: false         # E2E only, expensive
-    database_dumps: false # Large files, enable for debugging
-    api_logs: true
-    app_logs: true
-    browser_logs: false   # E2E only
-
-  retention:
-    max_runs: 10         # Keep last 10 test runs
-    max_days: 30         # Or 30 days, whichever comes first
-    max_size_mb: 5000    # Auto-cleanup if reports exceed 5GB
-
-test_execution:
-  fail_fast: true        # Stop between stages on failure
-  parallel_execution: true
-
-  workers:
-    backend_unit: 4
-    frontend_unit: "50%"  # 50% of available CPUs
-    e2e: 2
+  parallel:
+    enabled: true
+    backend_workers: 4
+    frontend_workers: "50%"
+    e2e_workers: 2
 
   timeouts:
-    unit_test: 10        # seconds
+    unit_test: 10
     integration_test: 30
     e2e_test: 60
+    performance_test: 120
 
-coverage_thresholds:
-  backend:
-    overall: 80
-    models: 90
-    services: 85
-    endpoints: 90
+artifacts:
+  capture_level: essential
+  coverage:
+    enabled: true
+    backend_threshold: 80
+    frontend_threshold: 80
 
-  frontend:
-    overall: 80
-    components: 75
-    hooks: 85
-    pages: 75
-
-reporting:
-  formats:
-    - console
-    - html
-    - json
-    - xml           # For CI/CD
-
-  console:
-    colors: true
-    verbose: true
-    show_progress: true
-
-  html:
-    open_browser: false  # true in local, false in CI
-
-notifications:
-  enabled: false         # Set to true for Slack/Email
-  slack_webhook: ""
-  email_recipients: []
+environment:
+  database:
+    host: localhost
+    port: 5433
+    name: dataaggregator_test
+  redis:
+    host: localhost
+    port: 6380

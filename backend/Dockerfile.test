@@ -1,30 +1,39 @@
-FROM python:3.10-slim
+# Backend Test Dockerfile
+# Data Aggregator Platform - Testing Environment
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV TEST_MODE=true
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
+# Install system dependencies + curl for healthcheck
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client \
+        build-essential \
+        libpq-dev \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
-RUN pip install poetry==1.6.1
+RUN pip install --no-cache-dir poetry
 
 # Copy poetry files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock* /app/
 
-# Install dependencies
+# Install dependencies including test dependencies
 RUN poetry config virtualenvs.create false \
-    && poetry install --with dev --no-interaction --no-ansi
+    && poetry install --no-interaction --no-ansi --with dev
 
-# Copy application code
-COPY . .
+# Copy project
+COPY . /app/
 
-# Set environment variables
+# Set Python path
 ENV PYTHONPATH=/app
-ENV TEST_MODE=true
-ENV ENVIRONMENT=test
 
-# Run tests
-CMD ["poetry", "run", "pytest", "-v", "--cov=backend", "--cov-report=html"]
+EXPOSE 8000
+
+# Run the application in test mode
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

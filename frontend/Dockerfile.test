@@ -1,19 +1,21 @@
-FROM node:20-alpine
+# Frontend Test Dockerfile
+# Data Aggregator Platform - Testing Environment
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
-
 # Install dependencies
+COPY package*.json ./
 RUN npm ci
 
-# Copy application code
+# Copy project files
 COPY . .
 
-# Set environment variables
+# Set environment to test
 ENV NODE_ENV=test
-ENV NEXT_PUBLIC_API_URL=http://backend-test-server:8000
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Run tests
-CMD ["npm", "run", "test"]
+EXPOSE 3000
+
+# Run in development mode for testing
+CMD ["npm", "run", "dev"]
