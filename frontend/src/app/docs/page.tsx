@@ -1,1 +1,282 @@
-'use client';\n\nimport { useState } from 'react';\nimport { DashboardLayout } from '@/components/layout/dashboard-layout';\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';\nimport { Button } from '@/components/ui/button';\nimport { \n  FileText, \n  BookOpen, \n  Code, \n  Database, \n  GitBranch, \n  ExternalLink,\n  Search,\n  Copy\n} from 'lucide-react';\n\nconst documentationSections = [\n  {\n    id: 'getting-started',\n    title: 'Getting Started',\n    icon: BookOpen,\n    description: 'Learn how to set up and start using the Data Aggregator Platform',\n    content: `## Getting Started with Data Aggregator Platform\n\nThe Data Aggregator Platform is a comprehensive solution for connecting, processing, and delivering data from multiple sources in a standardized format.\n\n### Prerequisites\n- Docker and Docker Compose\n- Node.js 18+ (for frontend development)\n- Python 3.10+ (for backend development)\n- Poetry (for backend dependency management)\n\n### Quick Start\n1. Clone the repository\n2. Copy .env.example to .env and update configurations\n3. Run with Docker Compose:\n   \\`\\`\\`\n   docker-compose up -d\n   \\`\\`\\`\n\nThe services will be available at:\n- Frontend: http://localhost:3000\n- Backend API: http://localhost:8001\n- Adminer (DB UI): http://localhost:8080`\n  },\n  {\n    id: 'api-reference',\n    title: 'API Reference',\n    icon: Code,\n    description: 'Complete API documentation and endpoints reference',\n    content: `## API Reference\n\nAll API endpoints follow the REST architectural style and return JSON responses.\n\nBase URL: http://localhost:8001/api/v1\n\n### Authentication\n\nMost endpoints require a valid JWT token in the Authorization header:\n\n\\`\\`\\`\nAuthorization: Bearer <your-token-here>\n\\`\\`\\`\n\n### Available Endpoints\n\n#### Pipelines\n- GET /pipelines - Get all pipelines\n- POST /pipelines - Create a new pipeline\n- GET /pipelines/{id} - Get a specific pipeline\n- PUT /pipelines/{id} - Update a pipeline\n- DELETE /pipelines/{id} - Delete a pipeline\n\n#### Connectors\n- GET /connectors - Get all connectors\n- POST /connectors - Create a new connector\n- GET /connectors/{id} - Get a specific connector\n- PUT /connectors/{id} - Update a connector\n- DELETE /connectors/{id} - Delete a connector\n\n#### Transformations\n- GET /transformations - Get all transformations\n- POST /transformations - Create a new transformation\n- GET /transformations/{id} - Get a specific transformation\n- PUT /transformations/{id} - Update a transformation\n- DELETE /transformations/{id} - Delete a transformation\n\n#### Users\n- GET /users/me - Get current user information\n- GET /users/{id} - Get a specific user\n- PUT /users/{id} - Update a user\n- DELETE /users/{id} - Delete a user\n\n### Authentication\n- POST /auth/login - Authenticate and get JWT token`\n  },\n  {\n    id: 'pipelines',\n    title: 'Pipelines',\n    icon: GitBranch,\n    description: 'Learn how to create and manage data pipelines',\n    content: `## Pipelines Documentation\n\nPipelines are the core of the Data Aggregator Platform. They define how data flows from source to destination with optional transformations.\n\n### Creating a Pipeline\n\nTo create a pipeline:\n\n1. Navigate to the Pipelines page\n2. Click \"New Pipeline\"\n3. Configure the source connection\n4. Configure the destination\n5. Define any transformations\n6. Set the schedule (optional)\n7. Save the pipeline\n\n### Pipeline Configuration\n\nA pipeline consists of:\n\n- **Source Configuration**: Connection details for the data source (database, API, file, etc.)\n- **Destination Configuration**: Where to send the processed data\n- **Transformation Configuration**: How to transform the data (optional)\n- **Schedule**: When and how often to run (optional)\n- **Status**: Whether the pipeline is active or paused\n\n### Monitoring Pipelines\n\nMonitor your pipelines on the Monitoring page to track performance, success rates, and troubleshoot any issues.`\n  },\n  {\n    id: 'connectors',\n    title: 'Connectors',\n    icon: Database,\n    description: 'Setting up and managing data connectors',\n    content: `## Connectors Documentation\n\nConnectors provide the connection to various data sources including databases, APIs, and file systems.\n\n### Available Connectors\n\n- **Database Connectors**: PostgreSQL, MySQL, SQL Server, Oracle, MongoDB\n- **API Connectors**: REST APIs, GraphQL APIs with various authentication methods\n- **File Connectors**: CSV, JSON, XML, Excel files from local storage or cloud storage\n- **Cloud Storage**: AWS S3, Google Cloud Storage, Azure Blob Storage\n- **SaaS Integrations**: Salesforce, HubSpot, and other popular platforms\n\n### Creating a Connector\n\n1. Navigate to the Connectors page\n2. Click \"New Connector\"\n3. Select the connector type\n4. Configure the connection parameters\n5. Test the connection\n6. Save the connector\n\n### Connector Security\n\nAll connector credentials are encrypted at rest. Connection pooling and optimization is handled automatically.`\n  }\n];\n\nexport default function DocumentationPage() {\n  const [activeSection, setActiveSection] = useState(documentationSections[0]);\n  const [searchTerm, setSearchTerm] = useState('');\n\n  const filteredSections = documentationSections.filter(section =>\n    section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||\n    section.description.toLowerCase().includes(searchTerm.toLowerCase()) ||\n    section.content.toLowerCase().includes(searchTerm.toLowerCase())\n  );\n\n  const handleCopyCode = (code: string) => {\n    navigator.clipboard.writeText(code);\n    // Optionally show a notification\n  };\n\n  return (\n    <DashboardLayout>\n      <div className=\"space-y-6\">\n        {/* Page Header */}\n        <div className=\"flex flex-col md:flex-row md:items-center md:justify-between gap-4\">\n          <div>\n            <h1 className=\"text-3xl font-bold text-gray-900\">Documentation</h1>\n            <p className=\"mt-2 text-gray-600\">\n              Learn how to use the Data Aggregator Platform effectively\n            </p>\n          </div>\n        </div>\n\n        <div className=\"flex flex-col lg:flex-row gap-6\">\n          {/* Sidebar Navigation */}\n          <div className=\"lg:w-1/4\">\n            <Card>\n              <CardHeader>\n                <CardTitle className=\"flex items-center\">\n                  <FileText className=\"h-5 w-5 mr-2 text-gray-500\" />\n                  Contents\n                </CardTitle>\n              </CardHeader>\n              <CardContent>\n                <div className=\"relative mb-4\">\n                  <div className=\"absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none\">\n                    <Search className=\"h-5 w-5 text-gray-400\" />\n                  </div>\n                  <input\n                    type=\"text\"\n                    placeholder=\"Search documentation...\"\n                    value={searchTerm}\n                    onChange={(e) => setSearchTerm(e.target.value)}\n                    className=\"block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-600 focus:border-primary-600 text-sm\"\n                  />\n                </div>\n                \n                <nav className=\"space-y-1\">\n                  {filteredSections.map((section) => {\n                    const Icon = section.icon;\n                    return (\n                      <button\n                        key={section.id}\n                        onClick={() => setActiveSection(section)}\n                        className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${\n                          activeSection.id === section.id\n                            ? 'bg-primary-50 text-primary-700'\n                            : 'text-gray-700 hover:bg-gray-100'\n                        }`}\n                      >\n                        <Icon className=\"mr-3 h-5 w-5\" />\n                        {section.title}\n                      </button>\n                    );\n                  })}\n                </nav>\n              </CardContent>\n            </Card>\n          </div>\n\n          {/* Documentation Content */}\n          <div className=\"lg:w-3/4\">\n            <Card>\n              <CardContent className=\"p-6\">\n                <div className=\"prose max-w-none\">\n                  <h1 className=\"text-2xl font-bold text-gray-900 mb-4\">{activeSection.title}</h1>\n                  <p className=\"text-gray-600 mb-6\">{activeSection.description}</p>\n                  \n                  <div \n                    className=\"markdown-content\"\n                    dangerouslySetInnerHTML={{ \n                      __html: activeSection.content\n                        .replace(/\\n/g, '<br />')\n                        .replace(/## (.+)/g, '<h2 class=\"text-xl font-semibold text-gray-900 mt-6 mb-3\">$1</h2>')\n                        .replace(/### (.+)/g, '<h3 class=\"text-lg font-semibold text-gray-800 mt-5 mb-2\">$1</h3>')\n                        .replace(/`(.*?)`/g, '<code class=\"bg-gray-100 px-1 py-0.5 rounded text-sm font-mono\">$1</code>')\n                        .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')\n                        .replace(/\\*(.*?)\\*/g, '<em>$1</em>')\n                    }}\n                  />\n                  \n                  <div className=\"mt-8 pt-6 border-t border-gray-200\">\n                    <div className=\"flex items-center text-sm text-gray-600\">\n                      <ExternalLink className=\"h-4 w-4 mr-1\" />\n                      <span>Need more help? Check out our </span>\n                      <a href=\"#\" className=\"ml-1 text-primary-600 hover:underline\">\n                        community forums\n                      </a>\n                      <span className=\"mx-2\">•</span>\n                      <a href=\"#\" className=\"text-primary-600 hover:underline\">\n                        API documentation\n                      </a>\n                    </div>\n                  </div>\n                </div>\n              </CardContent>\n            </Card>\n          </div>\n        </div>\n      </div>\n    </DashboardLayout>\n  );\n}\n
+'use client';
+
+import { useState } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  FileText,
+  BookOpen,
+  Code,
+  Database,
+  GitBranch,
+  ExternalLink,
+  Search,
+  Copy
+} from 'lucide-react';
+
+const documentationSections = [
+  {
+    id: 'getting-started',
+    title: 'Getting Started',
+    icon: BookOpen,
+    description: 'Learn how to set up and start using the Data Aggregator Platform',
+    content: `## Getting Started with Data Aggregator Platform
+
+The Data Aggregator Platform is a comprehensive solution for connecting, processing, and delivering data from multiple sources in a standardized format.
+
+### Prerequisites
+- Docker and Docker Compose
+- Node.js 18+ (for frontend development)
+- Python 3.10+ (for backend development)
+- Poetry (for backend dependency management)
+
+### Quick Start
+1. Clone the repository
+2. Copy .env.example to .env and update configurations
+3. Run with Docker Compose:
+   \`\`\`
+   docker-compose up -d
+   \`\`\`
+
+The services will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8001
+- Adminer (DB UI): http://localhost:8080`
+  },
+  {
+    id: 'api-reference',
+    title: 'API Reference',
+    icon: Code,
+    description: 'Complete API documentation and endpoints reference',
+    content: `## API Reference
+
+All API endpoints follow the REST architectural style and return JSON responses.
+
+Base URL: http://localhost:8001/api/v1
+
+### Authentication
+
+Most endpoints require a valid JWT token in the Authorization header:
+
+\`\`\`
+Authorization: Bearer <your-token-here>
+\`\`\`
+
+### Available Endpoints
+
+#### Pipelines
+- GET /pipelines - Get all pipelines
+- POST /pipelines - Create a new pipeline
+- GET /pipelines/{id} - Get a specific pipeline
+- PUT /pipelines/{id} - Update a pipeline
+- DELETE /pipelines/{id} - Delete a pipeline
+
+#### Connectors
+- GET /connectors - Get all connectors
+- POST /connectors - Create a new connector
+- GET /connectors/{id} - Get a specific connector
+- PUT /connectors/{id} - Update a connector
+- DELETE /connectors/{id} - Delete a connector
+
+#### Transformations
+- GET /transformations - Get all transformations
+- POST /transformations - Create a new transformation
+- GET /transformations/{id} - Get a specific transformation
+- PUT /transformations/{id} - Update a transformation
+- DELETE /transformations/{id} - Delete a transformation
+
+#### Users
+- GET /users/me - Get current user information
+- GET /users/{id} - Get a specific user
+- PUT /users/{id} - Update a user
+- DELETE /users/{id} - Delete a user
+
+### Authentication
+- POST /auth/login - Authenticate and get JWT token`
+  },
+  {
+    id: 'pipelines',
+    title: 'Pipelines',
+    icon: GitBranch,
+    description: 'Learn how to create and manage data pipelines',
+    content: `## Pipelines Documentation
+
+Pipelines are the core of the Data Aggregator Platform. They define how data flows from source to destination with optional transformations.
+
+### Creating a Pipeline
+
+To create a pipeline:
+
+1. Navigate to the Pipelines page
+2. Click "New Pipeline"
+3. Configure the source connection
+4. Configure the destination
+5. Define any transformations
+6. Set the schedule (optional)
+7. Save the pipeline
+
+### Pipeline Configuration
+
+A pipeline consists of:
+
+- **Source Configuration**: Connection details for the data source (database, API, file, etc.)
+- **Destination Configuration**: Where to send the processed data
+- **Transformation Configuration**: How to transform the data (optional)
+- **Schedule**: When and how often to run (optional)
+- **Status**: Whether the pipeline is active or paused
+
+### Monitoring Pipelines
+
+Monitor your pipelines on the Monitoring page to track performance, success rates, and troubleshoot any issues.`
+  },
+  {
+    id: 'connectors',
+    title: 'Connectors',
+    icon: Database,
+    description: 'Setting up and managing data connectors',
+    content: `## Connectors Documentation
+
+Connectors provide the connection to various data sources including databases, APIs, and file systems.
+
+### Available Connectors
+
+- **Database Connectors**: PostgreSQL, MySQL, SQL Server, Oracle, MongoDB
+- **API Connectors**: REST APIs, GraphQL APIs with various authentication methods
+- **File Connectors**: CSV, JSON, XML, Excel files from local storage or cloud storage
+- **Cloud Storage**: AWS S3, Google Cloud Storage, Azure Blob Storage
+- **SaaS Integrations**: Salesforce, HubSpot, and other popular platforms
+
+### Creating a Connector
+
+1. Navigate to the Connectors page
+2. Click "New Connector"
+3. Select the connector type
+4. Configure the connection parameters
+5. Test the connection
+6. Save the connector
+
+### Connector Security
+
+All connector credentials are encrypted at rest. Connection pooling and optimization is handled automatically.`
+  }
+];
+
+export default function DocumentationPage() {
+  const [activeSection, setActiveSection] = useState(documentationSections[0]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredSections = documentationSections.filter(section =>
+    section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    section.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    section.content.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    // Optionally show a notification
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Documentation</h1>
+            <p className="mt-2 text-gray-600">
+              Learn how to use the Data Aggregator Platform effectively
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Navigation */}
+          <div className="lg:w-1/4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                  Contents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative mb-4">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search documentation..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-600 focus:border-primary-600 text-sm"
+                  />
+                </div>
+                
+                <nav className="space-y-1">
+                  {filteredSections.map((section) => {
+                    const Icon = section.icon;
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => setActiveSection(section)}
+                        className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection.id === section.id
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon className="mr-3 h-5 w-5" />
+                        {section.title}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Documentation Content */}
+          <div className="lg:w-3/4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="prose max-w-none">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-4">{activeSection.title}</h1>
+                  <p className="text-gray-600 mb-6">{activeSection.description}</p>
+                  
+                  <div 
+                    className="markdown-content"
+                    dangerouslySetInnerHTML={{ 
+                      __html: activeSection.content
+                        .replace(/\n/g, '<br />')
+                        .replace(/## (.+)/g, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>')
+                        .replace(/### (.+)/g, '<h3 class="text-lg font-semibold text-gray-800 mt-5 mb-2">$1</h3>')
+                        .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">$1</code>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    }}
+                  />
+                  
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      <span>Need more help? Check out our </span>
+                      <a href="#" className="ml-1 text-primary-600 hover:underline">
+                        community forums
+                      </a>
+                      <span className="mx-2">•</span>
+                      <a href="#" className="text-primary-600 hover:underline">
+                        API documentation
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}

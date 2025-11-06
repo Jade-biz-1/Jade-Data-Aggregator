@@ -1,0 +1,202 @@
+[
+  {
+    "device_id": "DEV-001",
+    "name": "Temperature Sensor A1",
+    "type": "temperature",
+    "location": "Building A - Floor 1",
+    "installation_date": "2023-06-15",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-10"
+  },
+  {
+    "device_id": "DEV-002",
+    "name": "Humidity Sensor A1",
+    "type": "humidity",
+    "location": "Building A - Floor 1",
+    "installation_date": "2023-06-15",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-10"
+  },
+  {
+    "device_id": "DEV-003",
+    "name": "Air Quality Monitor A2",
+    "type": "air_quality",
+    "location": "Building A - Floor 2",
+    "installation_date": "2023-07-20",
+    "status": "active",
+    "firmware_version": "2.5.0",
+    "last_maintenance": "2024-01-15"
+  },
+  {
+    "device_id": "DEV-004",
+    "name": "Motion Detector A2",
+    "type": "motion",
+    "location": "Building A - Floor 2",
+    "installation_date": "2023-07-20",
+    "status": "active",
+    "firmware_version": "1.8.3",
+    "last_maintenance": "2024-01-15"
+  },
+  {
+    "device_id": "DEV-005",
+    "name": "Light Sensor A3",
+    "type": "light",
+    "location": "Building A - Floor 3",
+    "installation_date": "2023-08-10",
+    "status": "active",
+    "firmware_version": "2.3.2",
+    "last_maintenance": "2024-01-20"
+  },
+  {
+    "device_id": "DEV-006",
+    "name": "Pressure Sensor B1",
+    "type": "pressure",
+    "location": "Building B - Floor 1",
+    "installation_date": "2023-06-22",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-12"
+  },
+  {
+    "device_id": "DEV-007",
+    "name": "Temperature Sensor B1",
+    "type": "temperature",
+    "location": "Building B - Floor 1",
+    "installation_date": "2023-06-22",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-12"
+  },
+  {
+    "device_id": "DEV-008",
+    "name": "Humidity Sensor B2",
+    "type": "humidity",
+    "location": "Building B - Floor 2",
+    "installation_date": "2023-07-28",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-18"
+  },
+  {
+    "device_id": "DEV-009",
+    "name": "Motion Detector B2",
+    "type": "motion",
+    "location": "Building B - Floor 2",
+    "installation_date": "2023-07-28",
+    "status": "maintenance",
+    "firmware_version": "1.8.3",
+    "last_maintenance": "2024-02-01"
+  },
+  {
+    "device_id": "DEV-010",
+    "name": "Air Quality Monitor B3",
+    "type": "air_quality",
+    "location": "Building B - Floor 3",
+    "installation_date": "2023-08-15",
+    "status": "active",
+    "firmware_version": "2.5.0",
+    "last_maintenance": "2024-01-22"
+  },
+  {
+    "device_id": "DEV-011",
+    "name": "Temperature Sensor C1",
+    "type": "temperature",
+    "location": "Building C - Floor 1",
+    "installation_date": "2023-09-05",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-25"
+  },
+  {
+    "device_id": "DEV-012",
+    "name": "Light Sensor C1",
+    "type": "light",
+    "location": "Building C - Floor 1",
+    "installation_date": "2023-09-05",
+    "status": "active",
+    "firmware_version": "2.3.2",
+    "last_maintenance": "2024-01-25"
+  },
+  {
+    "device_id": "DEV-013",
+    "name": "Pressure Sensor C2",
+    "type": "pressure",
+    "location": "Building C - Floor 2",
+    "installation_date": "2023-09-12",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-28"
+  },
+  {
+    "device_id": "DEV-014",
+    "name": "Humidity Sensor C2",
+    "type": "humidity",
+    "location": "Building C - Floor 2",
+    "installation_date": "2023-09-12",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-01-28"
+  },
+  {
+    "device_id": "DEV-015",
+    "name": "Motion Detector C3",
+    "type": "motion",
+    "location": "Building C - Floor 3",
+    "installation_date": "2023-09-20",
+    "status": "active",
+    "firmware_version": "1.8.3",
+    "last_maintenance": "2024-02-02"
+  },
+  {
+    "device_id": "DEV-016",
+    "name": "Air Quality Monitor D1",
+    "type": "air_quality",
+    "location": "Building D - Floor 1",
+    "installation_date": "2023-10-01",
+    "status": "active",
+    "firmware_version": "2.5.0",
+    "last_maintenance": "2024-02-05"
+  },
+  {
+    "device_id": "DEV-017",
+    "name": "Temperature Sensor D1",
+    "type": "temperature",
+    "location": "Building D - Floor 1",
+    "installation_date": "2023-10-01",
+    "status": "inactive",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-02-05"
+  },
+  {
+    "device_id": "DEV-018",
+    "name": "Light Sensor D2",
+    "type": "light",
+    "location": "Building D - Floor 2",
+    "installation_date": "2023-10-08",
+    "status": "active",
+    "firmware_version": "2.3.2",
+    "last_maintenance": "2024-02-08"
+  },
+  {
+    "device_id": "DEV-019",
+    "name": "Humidity Sensor D2",
+    "type": "humidity",
+    "location": "Building D - Floor 2",
+    "installation_date": "2023-10-08",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-02-08"
+  },
+  {
+    "device_id": "DEV-020",
+    "name": "Pressure Sensor D3",
+    "type": "pressure",
+    "location": "Building D - Floor 3",
+    "installation_date": "2023-10-15",
+    "status": "active",
+    "firmware_version": "2.4.1",
+    "last_maintenance": "2024-02-10"
+  }
+]

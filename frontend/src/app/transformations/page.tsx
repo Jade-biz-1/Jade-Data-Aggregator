@@ -17,8 +17,10 @@ import {
   Filter,
   Columns,
   Shuffle,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { Transformation } from '@/types/transformation';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,6 +29,7 @@ import useToast from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 
 export default function TransformationsPage() {
+  const router = useRouter();
   const [transformations, setTransformations] = useState<Transformation[]>([]);
   const [filteredTransformations, setFilteredTransformations] = useState<Transformation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,12 +158,21 @@ export default function TransformationsPage() {
               Configure and manage data transformation rules
             </p>
           </div>
-          {features?.transformations?.create && (
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Transformation
+          <div className="flex gap-2">
+            <Button
+              onClick={() => router.push('/transformations/functions')}
+              variant="outline"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Function Library
             </Button>
-          )}
+            {features?.transformations?.create && (
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Transformation
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Search and Filters */}

@@ -97,6 +97,18 @@ export function usePermissions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const buildApiUrl = (path: string) => {
+    const envBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+    const trimmedBase = envBase.endsWith('/') ? envBase.slice(0, -1) : envBase;
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+    if (trimmedBase.endsWith('/api/v1')) {
+      return `${trimmedBase}${normalizedPath}`;
+    }
+
+    return `${trimmedBase}/api/v1${normalizedPath}`;
+  };
+
   useEffect(() => {
     fetchPermissions();
   }, []);
@@ -104,7 +116,11 @@ export function usePermissions() {
   const fetchPermissions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
+      // Get the token from cookies (consistent with apiClient)
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('access_token='))
+        ?.split('=')[1];
 
       if (!token) {
         setError('Not authenticated');
@@ -114,7 +130,7 @@ export function usePermissions() {
 
       // Fetch all session info in a single API call (OPTIMIZED - Phase 9A-2)
       // Replaces 3 separate calls: /me/permissions, /navigation/items, /features/access
-      const sessionResponse = await fetch('/api/v1/users/me/session-info', {
+  const sessionResponse = await fetch(buildApiUrl('/users/me/session-info'), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -147,8 +163,15 @@ export function usePermissions() {
 
   const checkDeveloperRoleWarning = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/v1/admin/settings/dev-role-production', {
+      // Get the token from cookies (consistent with apiClient)
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('access_token='))
+        ?.split('=')[1];
+
+      if (!token) return;
+
+  const response = await fetch(buildApiUrl('/admin/settings/dev-role-production'), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

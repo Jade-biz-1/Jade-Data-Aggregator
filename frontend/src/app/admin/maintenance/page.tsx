@@ -24,7 +24,11 @@ import {
   Settings,
   HardDrive,
   Activity,
-  Download
+  Download,
+  Calendar,
+  History as HistoryIcon,
+  TrendingDown,
+  RefreshCw
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import * as XLSX from 'xlsx';
@@ -59,11 +63,35 @@ interface CleanupResult {
     total_space_freed_mb: number;
     duration_seconds: number;
   };
+  before_stats?: CleanupStats;
+  after_stats?: CleanupStats;
+}
+
+interface CleanupHistory {
+  id: string;
+  timestamp: string;
+  cleanup_type: string;
+  records_deleted: number;
+  space_freed_mb: number;
+  duration_seconds: number;
+  executed_by: string;
+}
+
+interface CleanupSchedule {
+  id: string;
+  schedule_type: 'daily' | 'weekly' | 'monthly';
+  cleanup_operations: string[];
+  enabled: boolean;
+  last_run?: string;
+  next_run?: string;
 }
 
 export default function MaintenancePage() {
   const [stats, setStats] = useState<CleanupStats | null>(null);
   const [cleanupResults, setCleanupResults] = useState<CleanupResult | null>(null);
+  const [cleanupHistory, setCleanupHistory] = useState<CleanupHistory[]>([]);
+  const [schedule, setSchedule] = useState<CleanupSchedule | null>(null);
+  const [activeTab, setActiveTab] = useState<'operations' | 'history' | 'schedule'>('operations');
   const [isLoading, setIsLoading] = useState(true);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -83,6 +111,8 @@ export default function MaintenancePage() {
   useEffect(() => {
     if (features?.system?.maintenance) {
       fetchStats();
+      fetchCleanupHistory();
+      fetchSchedule();
     }
   }, [features]);
 
@@ -103,6 +133,73 @@ export default function MaintenancePage() {
       console.error('Error fetching stats:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCleanupHistory = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/cleanup/history?limit=10', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch history');
+      }
+
+      const data = await response.json();
+      setCleanupHistory(data.history || []);
+    } catch (error) {
+      console.error('Error fetching cleanup history:', error);
+    }
+  };
+
+  const fetchSchedule = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/cleanup/schedule', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch schedule');
+      }
+
+      const data = await response.json();
+      setSchedule(data);
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+    }
+  };
+
+  const updateSchedule = async (scheduleData: Partial<CleanupSchedule>) => {
+    try {
+      const response = await fetch('/api/v1/admin/cleanup/schedule', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(scheduleData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update schedule');
+      }
+
+      const data = await response.json();
+      setSchedule(data);
+
+      showToast({
+        type: 'success',
+        title: 'Schedule Updated',
+        message: 'Cleanup schedule has been updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      showToast({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update cleanup schedule',
+      });
     }
   };
 
@@ -148,8 +245,8 @@ export default function MaintenancePage() {
       const result = await response.json();
       setCleanupResults(result);
 
-      // Refresh stats after cleanup
-      await fetchStats();
+      // Refresh stats and history after cleanup
+      await Promise.all([fetchStats(), fetchCleanupHistory()]);
 
       // Show success toast
       showToast({
@@ -442,7 +539,47 @@ export default function MaintenancePage() {
           </CardContent>
         </Card>
 
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('operations')}
+              className={`px-6 py-3 font-medium text-sm ${
+                activeTab === 'operations'
+                  ? 'border-b-2 border-primary-600 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Play className="inline h-4 w-4 mr-2" />
+              Operations
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-3 font-medium text-sm ${
+                activeTab === 'history'
+                  ? 'border-b-2 border-primary-600 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <HistoryIcon className="inline h-4 w-4 mr-2" />
+              History
+            </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`px-6 py-3 font-medium text-sm ${
+                activeTab === 'schedule'
+                  ? 'border-b-2 border-primary-600 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Calendar className="inline h-4 w-4 mr-2" />
+              Schedule
+            </button>
+          </div>
+        </div>
+
         {/* Data Visualization Charts - Phase 9D */}
+        {activeTab === 'operations' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Record Distribution Pie Chart */}
           <Card>
@@ -648,6 +785,217 @@ export default function MaintenancePage() {
                     Contact an administrator if you need execute permissions.
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cleanup History Tab */}
+        {activeTab === 'history' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HistoryIcon className="h-5 w-5" />
+                Cleanup History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {cleanupHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <HistoryIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No cleanup history</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Cleanup operations will appear here after execution
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cleanupHistory.map((entry) => (
+                    <div key={entry.id} className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium text-gray-900 capitalize">
+                              {entry.cleanup_type.replace('-', ' ')}
+                            </span>
+                            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded">
+                              Completed
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                            <div>
+                              <p className="text-xs text-gray-500">Records Deleted</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {entry.records_deleted.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Space Freed</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {entry.space_freed_mb.toFixed(2)} MB
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Duration</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {entry.duration_seconds.toFixed(2)}s
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Executed By</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {entry.executed_by}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {new Date(entry.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    onClick={fetchCleanupHistory}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh History
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Schedule Tab */}
+        {activeTab === 'schedule' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Automated Cleanup Schedule
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Schedule Configuration */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Schedule Type
+                    </label>
+                    <select
+                      value={schedule?.schedule_type || 'daily'}
+                      onChange={(e) =>
+                        updateSchedule({
+                          ...schedule,
+                          schedule_type: e.target.value as 'daily' | 'weekly' | 'monthly',
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={!features?.system?.cleanup}
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          updateSchedule({
+                            ...schedule,
+                            enabled: !schedule?.enabled,
+                          })
+                        }
+                        disabled={!features?.system?.cleanup}
+                        className={`px-4 py-2 rounded-lg font-medium ${
+                          schedule?.enabled
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-700'
+                        } disabled:opacity-50`}
+                      >
+                        {schedule?.enabled ? 'Enabled' : 'Disabled'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cleanup Operations Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Operations to Run
+                  </label>
+                  <div className="space-y-2">
+                    {['activity-logs', 'temp-files', 'orphaned-data', 'expired-tokens'].map(
+                      (op) => (
+                        <label key={op} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={schedule?.cleanup_operations?.includes(op) || false}
+                            onChange={(e) => {
+                              const ops = schedule?.cleanup_operations || [];
+                              const newOps = e.target.checked
+                                ? [...ops, op]
+                                : ops.filter((o) => o !== op);
+                              updateSchedule({
+                                ...schedule,
+                                cleanup_operations: newOps,
+                              });
+                            }}
+                            disabled={!features?.system?.cleanup}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="text-sm text-gray-700 capitalize">
+                            {op.replace('-', ' ')}
+                          </span>
+                        </label>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* Schedule Info */}
+                {schedule && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-900">Schedule Information</p>
+                        <div className="mt-2 space-y-1 text-sm text-blue-800">
+                          {schedule.last_run && (
+                            <p>Last run: {new Date(schedule.last_run).toLocaleString()}</p>
+                          )}
+                          {schedule.next_run && (
+                            <p>Next run: {new Date(schedule.next_run).toLocaleString()}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!features?.system?.cleanup && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-yellow-900">Permission Required</p>
+                        <p className="text-sm text-yellow-800 mt-1">
+                          You need cleanup execute permissions to modify the schedule.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
