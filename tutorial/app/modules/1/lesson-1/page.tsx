@@ -8,7 +8,7 @@ import { InteractiveDemo } from '@/components/tutorial/InteractiveDemo';
 import { QuizQuestion, QuizOption } from '@/components/tutorial/QuizQuestion';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import { progressTracker } from '@/lib/progress';
 import { Lock, User, Mail, Eye, EyeOff, LogIn } from 'lucide-react';
@@ -57,18 +57,18 @@ export default function Lesson1_1Page() {
         'Locate key features and resources',
       ]}
     >
-      <div className="space-y-8">
+      <div className="space-y-12">
         {/* Introduction */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Getting Started</h2>
           <p className="text-gray-700 mb-4">
             The Data Aggregator Platform uses secure authentication to protect your data and ensure that
-            only authorized users can access the system. In this lesson, you'll learn how to log in and
-            navigate the platform's main interface.
+            only authorized users can access the system. In this lesson, you&apos;ll learn how to log in and
+            navigate the platform&apos;s main interface.
           </p>
           <Alert variant="info">
             <strong>Note:</strong> This tutorial uses a demo environment. In production, you would use your
-            organization's credentials and follow your company's security policies.
+            organization&apos;s credentials and follow your company&apos;s security policies.
           </Alert>
         </section>
 
@@ -76,7 +76,7 @@ export default function Lesson1_1Page() {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Process</h2>
           <p className="text-gray-700 mb-4">
-            The platform uses JWT (JSON Web Token) authentication for secure, stateless sessions. Here's how it works:
+            The platform uses JWT (JSON Web Token) authentication for secure, stateless sessions. Here&apos;s how it works:
           </p>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4">
@@ -223,7 +223,7 @@ localStorage.setItem('access_token', access_token);`}
                 )}
 
                 {loginStatus === 'error' && (
-                  <Alert variant="error">
+                  <Alert variant="danger">
                     ✗ Please enter both email and password.
                   </Alert>
                 )}
@@ -248,10 +248,10 @@ localStorage.setItem('access_token', access_token);`}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Platform Navigation</h2>
           <p className="text-gray-700 mb-4">
-            Once logged in, you'll see the main dashboard. Here are the key navigation elements:
+            Once logged in, you&apos;ll see the main dashboard. Here are the key navigation elements:
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <Card className="p-4">
               <h4 className="font-semibold text-gray-900 mb-2">Top Navigation Bar</h4>
               <ul className="text-sm text-gray-600 space-y-1">

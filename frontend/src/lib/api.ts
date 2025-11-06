@@ -105,14 +105,17 @@ class ApiClient {
   }
 
   // Auth methods
-  async login(email: string, password: string): Promise<{ access_token: string; token_type: string }> {
-    const formData = new FormData();
-    formData.append('username', email);
+  async login(username: string, password: string): Promise<{ access_token: string; token_type: string }> {
+    const formData = new URLSearchParams();
+    formData.append('username', username);
     formData.append('password', password);
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
     });
 
     if (!response.ok) {

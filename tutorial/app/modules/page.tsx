@@ -87,7 +87,7 @@ export default function ModulesPage() {
         </div>
 
         {/* Modules Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {modules.map((module) => (
             <ModuleCard key={module.moduleId} {...module} />
           ))}
@@ -97,7 +97,7 @@ export default function ModulesPage() {
         <div className="mt-16 bg-white rounded-xl shadow-lg p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Need Help?</h2>
           <p className="text-gray-600 mb-6">
-            If you're new to the platform, we recommend starting with Module 1: Platform Basics.
+            If you&apos;re new to the platform, we recommend starting with Module 1: Platform Basics.
             Each module builds on the previous one, so completing them in order will provide the best learning experience.
           </p>
           <div className="flex gap-4">

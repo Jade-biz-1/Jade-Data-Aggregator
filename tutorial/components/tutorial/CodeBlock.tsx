@@ -58,13 +58,13 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   };
 
   return (
-    <div className={`rounded-lg overflow-hidden border border-gray-200 ${className}`}>
+    <div className={`rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 ${className}`}>
       {/* Header */}
       {(title || showCopyButton || showRunButton) && (
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700">
           <div className="flex items-center gap-2">
-            {title && <span className="text-sm font-medium text-gray-300">{title}</span>}
-            <span className="text-xs text-gray-500 uppercase">{language}</span>
+            {title && <span className="text-sm font-medium text-gray-200">{title}</span>}
+            <span className="text-xs text-gray-400 uppercase tracking-wide">{language}</span>
           </div>
           <div className="flex items-center gap-2">
             {showRunButton && onRun && (
@@ -72,7 +72,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleRun}
-                className="h-7 text-xs bg-gray-700 hover:bg-gray-600 border-gray-600 text-white"
+                className="h-7 text-xs bg-gray-700 hover:bg-gray-600 border-gray-600 text-white hover:border-gray-500 transition-colors"
               >
                 <Play className="w-3 h-3 mr-1" />
                 Run
@@ -83,12 +83,16 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={handleCopy}
-                className="h-7 text-xs bg-gray-700 hover:bg-gray-600 border-gray-600 text-white"
+                className={`h-7 text-xs border-gray-600 text-white transition-all duration-200 ${
+                  copied
+                    ? 'bg-success-600 hover:bg-success-700 border-success-600'
+                    : 'bg-gray-700 hover:bg-gray-600 hover:border-gray-500'
+                }`}
               >
                 {copied ? (
                   <>
                     <Check className="w-3 h-3 mr-1" />
-                    Copied
+                    Copied!
                   </>
                 ) : (
                   <>
@@ -103,22 +107,26 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
       )}
 
       {/* Code Content */}
-      <div className="relative">
+      <div className="relative group">
         <pre
-          className={`p-4 text-sm leading-relaxed overflow-x-auto bg-gray-900 text-gray-100 ${getLanguageClass(language)}`}
-          style={{ fontFamily: '"Fira Code", "Courier New", Courier, monospace' }}
+          className={`p-4 text-sm leading-relaxed overflow-x-auto bg-gray-900 text-gray-100 custom-scrollbar ${getLanguageClass(language)}`}
+          style={{ fontFamily: '"JetBrains Mono", "Fira Code", "Courier New", Courier, monospace' }}
         >
           {showLineNumbers ? (
             <code className="block">
               {code.split('\n').map((line, index) => (
                 <span
                   key={index}
-                  className={`block ${highlightLines.includes(index + 1) ? 'bg-blue-900/30 border-l-4 border-blue-400 pl-2' : ''}`}
+                  className={`block hover:bg-gray-800/50 transition-colors duration-150 ${
+                    highlightLines.includes(index + 1)
+                      ? 'bg-blue-900/40 border-l-4 border-blue-400 pl-2'
+                      : ''
+                  }`}
                 >
-                  <span className="inline-block w-8 text-right text-gray-500 select-none mr-4">
+                  <span className="inline-block w-8 text-right text-gray-500 select-none mr-4 text-xs">
                     {index + 1}
                   </span>
-                  {line}
+                  {line || '\u00A0'}
                 </span>
               ))}
             </code>

@@ -32,10 +32,10 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     };
 
     const variantStyles = {
-      default: 'bg-primary-600',
-      success: 'bg-success-600',
-      warning: 'bg-warning-600',
-      danger: 'bg-danger-600',
+      default: 'bg-gradient-to-r from-primary-400 to-primary-500',
+      success: 'bg-gradient-to-r from-green-400 to-green-500',
+      warning: 'bg-gradient-to-r from-yellow-400 to-yellow-500',
+      danger: 'bg-gradient-to-r from-red-400 to-red-500',
     };
 
     const displayLabel = label || `${Math.round(percentage)}%`;
@@ -53,16 +53,19 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           </div>
         )}
         <div
-          className={`w-full bg-gray-200 rounded-full overflow-hidden ${sizeStyles[size]}`}
+          className={`w-full bg-gray-200 rounded-full overflow-hidden shadow-inner ${sizeStyles[size]}`}
           role="progressbar"
           aria-valuenow={value}
           aria-valuemin={0}
           aria-valuemax={max}
         >
           <div
-            className={`${sizeStyles[size]} ${variantStyles[variant]} rounded-full transition-all duration-300 ease-in-out`}
+            className={`${sizeStyles[size]} ${variantStyles[variant]} rounded-full transition-all duration-500 ease-out relative overflow-hidden`}
             style={{ width: `${percentage}%` }}
-          ></div>
+          >
+            {/* Animated shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+          </div>
         </div>
       </div>
     );
@@ -100,10 +103,10 @@ export const CircularProgress = React.forwardRef<HTMLDivElement, CircularProgres
     const offset = circumference - (percentage / 100) * circumference;
 
     const variantColors = {
-      default: 'stroke-primary-600',
-      success: 'stroke-success-600',
-      warning: 'stroke-warning-600',
-      danger: 'stroke-danger-600',
+      default: 'stroke-primary-500',
+      success: 'stroke-green-500',
+      warning: 'stroke-yellow-500',
+      danger: 'stroke-red-500',
     };
 
     return (
@@ -137,7 +140,10 @@ export const CircularProgress = React.forwardRef<HTMLDivElement, CircularProgres
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            className={`${variantColors[variant]} transition-all duration-300 ease-in-out`}
+            className={`${variantColors[variant]} transition-all duration-500 ease-out`}
+            style={{
+              filter: 'drop-shadow(0 0 4px currentColor)',
+            }}
           />
         </svg>
         {showLabel && (

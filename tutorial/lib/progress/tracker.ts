@@ -241,8 +241,8 @@ export class ProgressTracker {
   // ==================== MODULE TRACKING ====================
 
   private updateModuleProgress(moduleId: string): void {
-    const module = this.progress.modules[moduleId];
-    if (!module) return;
+    const moduleProgress = this.progress.modules[moduleId];
+    if (!moduleProgress) return;
 
     // Count completed lessons in this module
     const moduleLessons = Object.values(this.progress.lessons).filter(
@@ -250,21 +250,21 @@ export class ProgressTracker {
     );
 
     const completedCount = moduleLessons.filter((lesson) => lesson.completed).length;
-    module.lessonsCompleted = completedCount;
-    module.totalLessons = moduleLessons.length;
+    moduleProgress.lessonsCompleted = completedCount;
+    moduleProgress.totalLessons = moduleLessons.length;
 
     // Check if module is completed
-    if (module.totalLessons > 0 && completedCount === module.totalLessons) {
-      module.completed = true;
-      module.completedAt = new Date();
+    if (moduleProgress.totalLessons > 0 && completedCount === moduleProgress.totalLessons) {
+      moduleProgress.completed = true;
+      moduleProgress.completedAt = new Date();
 
       // Add to completed modules list
       if (!this.progress.completedModules.includes(moduleId)) {
         this.progress.completedModules.push(moduleId);
       }
     } else {
-      module.completed = false;
-      module.completedAt = undefined;
+      moduleProgress.completed = false;
+      moduleProgress.completedAt = undefined;
 
       // Remove from completed modules list
       this.progress.completedModules = this.progress.completedModules.filter(

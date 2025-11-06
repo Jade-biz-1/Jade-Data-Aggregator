@@ -44,7 +44,7 @@ services:
       dockerfile: backend/Dockerfile.test
     container_name: dataaggregator-backend-test
     ports:
-      - "8001:8000"
+      - "8001:8001"
     environment:
       # Test Mode Flag
       - TEST_MODE=true
@@ -81,7 +81,7 @@ services:
       test-redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/live"]
       interval: 10s
       timeout: 5s
       retries: 3

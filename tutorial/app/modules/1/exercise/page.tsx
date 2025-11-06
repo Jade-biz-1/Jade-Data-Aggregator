@@ -226,7 +226,7 @@ export default function Module1ExercisePage() {
               <div>
                 <strong className="text-lg">Congratulations! 🎉</strong>
                 <p className="mt-1">
-                  You've completed all tasks in Module 1! You've earned your Platform Basics badge.
+                  You&apos;ve completed all tasks in Module 1! You&apos;ve earned your Platform Basics badge.
                 </p>
               </div>
             </div>
@@ -404,7 +404,7 @@ export default function Module1ExercisePage() {
                 Module 1 Complete! 🎉
               </h3>
               <p className="text-gray-700 mb-6">
-                Excellent work! You've mastered the platform basics. You're now ready to dive into
+                Excellent work! You&apos;ve mastered the platform basics. You&apos;re now ready to dive into
                 Module 2: Data Connectors.
               </p>
               <div className="flex justify-center gap-4">
@@ -429,7 +429,7 @@ export default function Module1ExercisePage() {
                 <h3 className="font-semibold text-gray-900 mb-2">Keep Going!</h3>
                 <p className="text-gray-600 text-sm mb-4">
                   Complete all {checklist.length} tasks above to finish Module 1 and unlock Module 2.
-                  You're {completedCount} tasks away from earning your Platform Basics badge!
+                  You&apos;re {completedCount} tasks away from earning your Platform Basics badge!
                 </p>
                 <div className="flex gap-3">
                   <Link href="/modules/1/lesson-1">

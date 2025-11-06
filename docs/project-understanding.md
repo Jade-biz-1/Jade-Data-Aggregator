@@ -110,7 +110,7 @@ _Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + 
 
 ## 5. Infrastructure & Operations
 
-- **Docker Compose**: Primary local stack in `docker-compose.yml` exposing PostgreSQL, Redis, Kafka, Zookeeper, backend (FastAPI with autoreload), frontend. Frontend container now targets backend via internal host (`NEXT_PUBLIC_API_URL=http://backend:8000/api/v1`).
+- **Docker Compose**: Primary local stack in `docker-compose.yml` exposing PostgreSQL, Redis, Kafka, Zookeeper, backend (FastAPI with autoreload), frontend. Frontend container now targets backend via `localhost:8001` for local development (`NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1`).
 - **Monitoring Stack**: `monitoring/` contains Prometheus, Grafana, Loki, Alertmanager definitions. Additional Compose file `docker-compose.monitoring.yml` for observability.
 - **Terraform**: Provisioning for AWS VPC, ECS, RDS, MSK, ElastiCache, ALB. Deploy instructions in `DEPLOYMENT_GUIDE_COMPLETE.md`, `docs/deployment-guide.md`, `infrastructure/README.md`.
 - **CI/CD**: GitHub Actions workflows (not inspected here) for lint/test/build/deploy (Implementation doc T019/T020). Docker multi-stage builds in root `Dockerfile` and frontend-specific Dockerfiles.

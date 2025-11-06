@@ -80,7 +80,7 @@ export const LessonLayout: React.FC<LessonLayoutProps> = ({
           {/* Lesson Content */}
           <div className="lg:col-span-3">
             <Card className="p-6 sm:p-8">
-              <div className="prose max-w-none">
+              <div className="prose-custom max-w-none">
                 {children}
               </div>
             </Card>

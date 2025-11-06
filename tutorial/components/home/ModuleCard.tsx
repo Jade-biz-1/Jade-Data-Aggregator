@@ -42,9 +42,9 @@ export const ModuleCard: React.FC<ModuleCardProps> = ({
   return (
     <Link href={locked ? '#' : `/modules/${moduleId}`} className={locked ? 'pointer-events-none' : ''}>
       <Card
-        className={`p-6 h-full transition-all hover:shadow-xl ${
-          locked ? 'opacity-60' : 'hover:-translate-y-1'
-        } ${isCompleted ? 'border-2 border-success-200 bg-success-50' : ''}`}
+        className={`p-6 h-full ${
+          locked ? 'opacity-60' : 'hover:-translate-y-2 hover:scale-[1.02]'
+        } ${isCompleted ? 'border-2 border-success-200 bg-success-50 animate-fade-in' : ''}`}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
