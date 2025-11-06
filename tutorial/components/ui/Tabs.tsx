@@ -88,7 +88,7 @@ export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>
         role="tab"
         aria-selected={isActive}
         onClick={() => setActiveTab(value)}
-        className={`px-4 py-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+        className={`px-4 py-2 font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
           isActive
             ? 'text-primary-600 border-b-2 border-primary-600'
             : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300'

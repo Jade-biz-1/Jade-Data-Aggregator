@@ -18,23 +18,23 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     },
     ref
   ) => {
-    const baseStyles = 'bg-white rounded-lg';
+    const baseStyles = 'bg-white rounded-xl overflow-hidden transition-all duration-300';
 
     const variantStyles = {
-      default: 'border border-gray-200',
-      bordered: 'border-2 border-gray-300',
-      elevated: 'shadow-lg',
+      default: 'border border-gray-200 shadow-sm',
+      bordered: 'border-2 border-gray-300 shadow-md',
+      elevated: 'shadow-xl border border-gray-100',
     };
 
     const paddingStyles = {
       none: '',
-      sm: 'p-3',
+      sm: 'p-4',
       md: 'p-6',
       lg: 'p-8',
     };
 
     const hoverStyles = hoverable
-      ? 'hover:shadow-xl transition-shadow duration-200 cursor-pointer'
+      ? 'hover:shadow-2xl hover:-translate-y-1 cursor-pointer'
       : '';
 
     const combinedClassName = `${baseStyles} ${variantStyles[variant]} ${paddingStyles[padding]} ${hoverStyles} ${className}`.trim();

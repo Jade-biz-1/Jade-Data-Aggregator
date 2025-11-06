@@ -99,7 +99,7 @@ export default function Module1Page() {
         <Card className="p-6 mb-8 bg-blue-50 border-blue-200">
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-blue-900">What You'll Learn</h3>
+            <h3 className="font-semibold text-blue-900">What You&apos;ll Learn</h3>
           </div>
           <ul className="space-y-2">
             <li className="flex items-start gap-2 text-blue-800">
@@ -124,7 +124,7 @@ export default function Module1Page() {
         {/* Lessons List */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Lessons</h2>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {lessons.map((lesson, index) => (
               <Link key={lesson.id} href={`/modules/1/lesson-${lesson.id}`}>
                 <Card className={`p-6 transition-all hover:shadow-lg hover:-translate-y-0.5 ${

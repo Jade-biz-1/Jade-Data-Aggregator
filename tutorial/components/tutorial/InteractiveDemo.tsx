@@ -42,8 +42,8 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({
     if (onRun) {
       onRun(state);
     }
-    // Simulate execution
-    setTimeout(() => setIsRunning(false), 500);
+    // Simulate execution with a longer delay for better UX
+    setTimeout(() => setIsRunning(false), 1000);
   };
 
   const handleReset = () => {
@@ -118,7 +118,15 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({
           </div>
 
           <TabsContent value="preview" className="p-4 min-h-[200px]">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 relative">
+              {isRunning && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                  <div className="flex items-center gap-3 text-primary-600">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary-600 border-t-transparent"></div>
+                    <span className="font-medium">Running...</span>
+                  </div>
+                </div>
+              )}
               {children}
             </div>
           </TabsContent>

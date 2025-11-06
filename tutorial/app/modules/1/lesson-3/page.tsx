@@ -151,7 +151,7 @@ export default function Lesson1_3Page() {
         'Recognize security best practices for role assignment',
       ]}
     >
-      <div className="space-y-8">
+      <div className="space-y-12">
         {/* Introduction */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Role-Based Access Control</h2>
@@ -174,7 +174,7 @@ export default function Lesson1_3Page() {
             Each role is designed for specific responsibilities within the data integration lifecycle:
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {roles.map((role) => (
               <Card
                 key={role.id}
@@ -188,7 +188,7 @@ export default function Lesson1_3Page() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">{role.name}</h4>
-                    <Badge variant={role.id === 'super_admin' ? 'error' : role.id === 'admin' ? 'warning' : 'default'}>
+                    <Badge variant={role.id === 'super_admin' ? 'danger' : role.id === 'admin' ? 'warning' : 'default'}>
                       {role.id.replace('_', ' ')}
                     </Badge>
                   </div>
@@ -196,7 +196,7 @@ export default function Lesson1_3Page() {
                 <p className="text-sm text-gray-600 mb-3">{role.description}</p>
                 <Button
                   size="sm"
-                  variant={selectedRole === role.id ? 'default' : 'outline'}
+                  variant={selectedRole === role.id ? 'primary' : 'outline'}
                   className="w-full"
                   onClick={() => setSelectedRole(role.id)}
                 >
@@ -211,7 +211,7 @@ export default function Lesson1_3Page() {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Role Details</h2>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <Card className="p-5 border-l-4 border-red-500">
               <div className="flex items-center gap-3 mb-2">
                 <Crown className="w-6 h-6 text-red-600" />
@@ -461,7 +461,7 @@ if (hasPermission(currentUser, 'pipelines.delete')) {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Implementation in Code</h2>
           <p className="text-gray-700 mb-4">
-            Here's how role-based access control is implemented in the platform's backend:
+            Here&apos;s how role-based access control is implemented in the platform&apos;s backend:
           </p>
 
           <CodeBlock
@@ -602,8 +602,8 @@ def has_permission(user_role: UserRole, permission: Permission) -> bool:
 
         {/* Navigation Buttons */}
         <NavigationButtons
-          nextUrl="/modules/1/lesson-4"
-          nextLabel="Next: Basic Operations"
+          nextUrl="/modules/1/exercise"
+          nextLabel="Next: Platform Exploration Exercise"
           previousUrl="/modules/1/lesson-2"
           previousLabel="Back: Dashboard Overview"
           onComplete={handleComplete}

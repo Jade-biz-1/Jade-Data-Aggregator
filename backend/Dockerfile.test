@@ -33,7 +33,7 @@ COPY . /app/
 # Set Python path
 ENV PYTHONPATH=/app
 
-EXPOSE 8000
+EXPOSE 8001
 
 # Run the application in test mode
-CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

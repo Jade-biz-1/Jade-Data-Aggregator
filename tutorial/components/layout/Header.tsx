@@ -101,9 +101,13 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
-          <nav className="px-4 py-4 space-y-2">
+      <div
+        className={`md:hidden bg-white border-t border-gray-200 transition-all duration-300 ease-in-out overflow-hidden ${
+          mobileMenuOpen ? 'max-h-96' : 'max-h-0'
+        }`}
+      >
+        <div className="px-4 py-4">
+          <nav className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -124,7 +128,7 @@ export const Header: React.FC = () => {
             })}
           </nav>
         </div>
-      )}
+      </div>
     </header>
   );
 };

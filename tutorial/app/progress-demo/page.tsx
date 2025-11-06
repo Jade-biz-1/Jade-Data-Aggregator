@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import Input from '@/components/ui/Input';
 import Progress from '@/components/ui/Progress';
 import Badge from '@/components/ui/Badge';
 import Alert from '@/components/ui/Alert';
@@ -358,7 +358,7 @@ export default function ProgressDemoPage() {
 
               <div className="space-y-4">
                 <div className="flex gap-2">
-                  <Button onClick={handleExport} variant="default">
+                  <Button onClick={handleExport} variant="primary">
                     <Download className="w-4 h-4 mr-2" />
                     Export Progress
                   </Button>
@@ -370,7 +370,7 @@ export default function ProgressDemoPage() {
                       onChange={handleImport}
                       className="hidden"
                     />
-                    <Button variant="outline" as="span">
+                    <Button variant="outline">
                       <Upload className="w-4 h-4 mr-2" />
                       Import Progress
                     </Button>

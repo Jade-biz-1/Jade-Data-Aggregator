@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
 import Tabs, { TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { apiClient } from '@/lib/api';
@@ -236,7 +236,7 @@ export default function APIDemoPage() {
 
         {/* Error Display */}
         {error && (
-          <Alert variant="error" className="mt-6">
+          <Alert variant="danger" className="mt-6">
             <strong>Error:</strong> {error}
           </Alert>
         )}

@@ -62,7 +62,7 @@ export default function Lesson1_2Page() {
         'Access quick actions and shortcuts',
       ]}
     >
-      <div className="space-y-8">
+      <div className="space-y-12">
         {/* Introduction */}
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Dashboard Components</h2>
@@ -73,7 +73,7 @@ export default function Lesson1_2Page() {
           </p>
           <Alert variant="info">
             <strong>Tip:</strong> You can drag and drop widgets to rearrange them, resize for better
-            visibility, and hide widgets you don't need. Your preferences are automatically saved.
+            visibility, and hide widgets you don&apos;t need. Your preferences are automatically saved.
           </Alert>
         </section>
 
@@ -84,7 +84,7 @@ export default function Lesson1_2Page() {
             Widgets are modular components that display specific information. Here are the main types:
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <Card className="p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -143,7 +143,7 @@ export default function Lesson1_2Page() {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Widget Data Structure</h2>
           <p className="text-gray-700 mb-4">
-            Each widget fetches data from the backend API. Here's how widget data is structured and rendered:
+            Each widget fetches data from the backend API. Here&apos;s how widget data is structured and rendered:
           </p>
 
           <CodeBlock
@@ -407,7 +407,7 @@ const saveDashboardLayout = async (layout) => {
             The dashboard provides quick access to common operations:
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="p-4">
               <h4 className="font-semibold text-gray-900 mb-2">Create New Resources</h4>
               <ul className="text-sm text-gray-600 space-y-1">

@@ -640,7 +640,7 @@ events {
 
 http {
     upstream backend {
-        server backend:8000;
+  server localhost:8001;
     }
 
     upstream frontend {

@@ -20,7 +20,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     },
     ref
   ) => {
-    const baseStyles = 'p-4 rounded-lg border';
+    const baseStyles = 'p-4 rounded-lg border transition-all duration-300';
 
     const variantStyles = {
       info: 'bg-blue-50 border-blue-200 text-blue-800',
