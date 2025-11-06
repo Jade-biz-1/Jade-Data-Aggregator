@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Progress } from '@/components/ui/Progress';
-import { Badge } from '@/components/ui/Badge';
-import { Alert } from '@/components/ui/Alert';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import Progress from '@/components/ui/Progress';
+import Badge from '@/components/ui/Badge';
+import Alert from '@/components/ui/Alert';
+import Tabs, { TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { progressTracker } from '@/lib/progress';
 import type { ProgressStats, UserProgress } from '@/lib/progress';
 import {

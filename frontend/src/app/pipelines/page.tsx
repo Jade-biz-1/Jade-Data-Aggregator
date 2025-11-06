@@ -15,7 +15,8 @@ import {
   CheckCircle,
   XCircle,
   Shield,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -170,6 +171,23 @@ export default function PipelinesPage() {
       key: 'schedule',
       header: 'Schedule',
       render: (value) => <span className="text-gray-600">{value || 'Manual'}</span>
+    },
+    {
+      key: 'id',
+      header: 'Actions',
+      render: (value) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/pipelines/${value}/versions`);
+          }}
+          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title="View version history"
+        >
+          <History className="h-4 w-4" />
+        </button>
+      ),
+      width: '80px'
     }
   ];
 

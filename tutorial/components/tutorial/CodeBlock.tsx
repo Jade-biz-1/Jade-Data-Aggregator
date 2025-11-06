@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Button } from '@/components/ui/Button';
+import Button from '@/components/ui/Button';
 import { Copy, Check, Play } from 'lucide-react';
 
 interface CodeBlockProps {
@@ -44,6 +42,18 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   const handleRun = () => {
     if (onRun) {
       onRun();
+    }
+  };
+
+  // Simple syntax highlighting using CSS
+  const getLanguageClass = (lang: string) => {
+    switch (lang.toLowerCase()) {
+      case 'python': return 'language-python';
+      case 'javascript': return 'language-javascript';
+      case 'typescript': return 'language-typescript';
+      case 'json': return 'language-json';
+      case 'bash': return 'language-bash';
+      default: return 'language-text';
     }
   };
 
@@ -94,35 +104,28 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 
       {/* Code Content */}
       <div className="relative">
-        <SyntaxHighlighter
-          language={language}
-          style={vscDarkPlus}
-          showLineNumbers={showLineNumbers}
-          wrapLines={highlightLines.length > 0}
-          lineProps={(lineNumber) => {
-            const style: React.CSSProperties = { display: 'block' };
-            if (highlightLines.includes(lineNumber)) {
-              style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-              style.borderLeft = '3px solid rgb(59, 130, 246)';
-              style.paddingLeft = '0.5rem';
-            }
-            return { style };
-          }}
-          customStyle={{
-            margin: 0,
-            padding: '1rem',
-            fontSize: '0.875rem',
-            lineHeight: '1.5',
-            background: '#1e1e1e',
-          }}
-          codeTagProps={{
-            style: {
-              fontFamily: '"Fira Code", "Courier New", Courier, monospace',
-            },
-          }}
+        <pre
+          className={`p-4 text-sm leading-relaxed overflow-x-auto bg-gray-900 text-gray-100 ${getLanguageClass(language)}`}
+          style={{ fontFamily: '"Fira Code", "Courier New", Courier, monospace' }}
         >
-          {code}
-        </SyntaxHighlighter>
+          {showLineNumbers ? (
+            <code className="block">
+              {code.split('\n').map((line, index) => (
+                <span
+                  key={index}
+                  className={`block ${highlightLines.includes(index + 1) ? 'bg-blue-900/30 border-l-4 border-blue-400 pl-2' : ''}`}
+                >
+                  <span className="inline-block w-8 text-right text-gray-500 select-none mr-4">
+                    {index + 1}
+                  </span>
+                  {line}
+                </span>
+              ))}
+            </code>
+          ) : (
+            <code>{code}</code>
+          )}
+        </pre>
       </div>
     </div>
   );

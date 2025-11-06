@@ -1,28 +1,33 @@
 """Enhanced authentication service with password reset, email verification, and refresh tokens."""
 
-import secrets
 import hashlib
+import secrets
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from jose import jwt, JWTError
 
-from backend.models.user import User
-from backend.models.auth_token import AuthToken
-from backend.schemas.auth import (
-    PasswordResetRequest,
-    PasswordResetConfirm,
-    EmailVerificationRequest,
-    EmailVerificationConfirm,
-    TokenRefresh,
-    LoginResponse,
-    RefreshResponse
-)
-from backend.core.config import settings
-from backend.core.security import verify_password, get_password_hash, create_access_token
-from backend.services.email_service import email_service
 from backend import crud
+from backend.core.config import settings
+from backend.core.security import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+)
+from backend.models.auth_token import AuthToken
+from backend.models.user import User
+from backend.schemas.auth import (
+    EmailVerificationConfirm,
+    EmailVerificationRequest,
+    LoginResponse,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RefreshResponse,
+    TokenRefresh,
+)
+from backend.services.email_service import email_service
 
 
 class AuthService:
@@ -193,7 +198,7 @@ class AuthService:
 
         # Create tokens
         access_token = create_access_token(
-            data={"sub": user.username},
+            data={"sub": user.username, "role": user.role},
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
@@ -249,7 +254,7 @@ class AuthService:
 
         # Create new access token
         access_token = create_access_token(
-            data={"sub": user.username},
+            data={"sub": user.username, "role": user.role},
             expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 

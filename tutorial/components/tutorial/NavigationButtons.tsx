@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
+import Button from '@/components/ui/Button';
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 
 interface NavigationButtonsProps {

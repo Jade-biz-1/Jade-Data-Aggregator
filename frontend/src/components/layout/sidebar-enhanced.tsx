@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissions, NavigationPermissions, FeatureAccess } from '@/hooks/usePermissions';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import {
   BarChart3,
@@ -17,31 +17,119 @@ import {
   FileText,
   HelpCircle,
   Wrench,
-  Shield
+  Shield,
+  Bell,
+  ScrollText,
+  Folder,
+  Share2
 } from 'lucide-react';
+
+interface NavVisibilityContext {
+  navigation: NavigationPermissions | null;
+  features: FeatureAccess | null;
+}
 
 interface NavItem {
   name: string;
   href: string;
   icon: any;
-  requiresPermission?: keyof import('@/hooks/usePermissions').NavigationPermissions;
+  isVisible: (context: NavVisibilityContext) => boolean;
 }
 
-const allNavigationItems: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, requiresPermission: 'dashboard' },
-  { name: 'Pipelines', href: '/pipelines', icon: GitBranch, requiresPermission: 'pipelines' },
-  { name: 'Connectors', href: '/connectors', icon: Database, requiresPermission: 'connectors' },
-  { name: 'Transformations', href: '/transformations', icon: Code, requiresPermission: 'transformations' },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3, requiresPermission: 'analytics' },
-  { name: 'Monitoring', href: '/monitoring', icon: Activity, requiresPermission: 'monitoring' },
-  { name: 'Users', href: '/users', icon: Users, requiresPermission: 'users' },
-  { name: 'Maintenance', href: '/admin/maintenance', icon: Wrench, requiresPermission: 'maintenance' },
+const primaryNavigationItems: NavItem[] = [
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    isVisible: ({ navigation }) => Boolean(navigation?.dashboard),
+  },
+  {
+    name: 'Pipelines',
+    href: '/pipelines',
+    icon: GitBranch,
+    isVisible: ({ navigation }) => Boolean(navigation?.pipelines),
+  },
+  {
+    name: 'Connectors',
+    href: '/connectors',
+    icon: Database,
+    isVisible: ({ navigation }) => Boolean(navigation?.connectors),
+  },
+  {
+    name: 'Transformations',
+    href: '/transformations',
+    icon: Code,
+    isVisible: ({ navigation }) => Boolean(navigation?.transformations),
+  },
+  {
+    name: 'Schema Mapping',
+    href: '/schema/mapping',
+    icon: Share2,
+    isVisible: ({ features }) => Boolean(features?.transformations?.view),
+  },
+  {
+    name: 'Analytics',
+    href: '/analytics',
+    icon: BarChart3,
+    isVisible: ({ navigation }) => Boolean(navigation?.analytics),
+  },
+  {
+    name: 'Monitoring',
+    href: '/monitoring',
+    icon: Activity,
+    isVisible: ({ navigation }) => Boolean(navigation?.monitoring),
+  },
+  {
+    name: 'Alerts',
+    href: '/alerts',
+    icon: Bell,
+    isVisible: ({ features }) => Boolean(features?.monitoring?.view_alerts),
+  },
+  {
+    name: 'Logs',
+    href: '/logs',
+    icon: ScrollText,
+    isVisible: ({ features }) => Boolean(features?.monitoring?.view_logs),
+  },
+  {
+    name: 'Files',
+    href: '/files',
+    icon: Folder,
+    isVisible: ({ features }) => Boolean(features?.files?.view),
+  },
+  {
+    name: 'Users',
+    href: '/users',
+    icon: Users,
+    isVisible: ({ navigation }) => Boolean(navigation?.users),
+  },
+  {
+    name: 'Maintenance',
+    href: '/admin/maintenance',
+    icon: Wrench,
+    isVisible: ({ navigation }) => Boolean(navigation?.maintenance),
+  },
 ];
 
 const secondaryNavigation: NavItem[] = [
-  { name: 'Documentation', href: '/docs', icon: FileText },
-  { name: 'Settings', href: '/settings', icon: Settings, requiresPermission: 'settings' },
-  { name: 'Help', href: '/help', icon: HelpCircle },
+  {
+    name: 'Documentation',
+    href: '/docs',
+    icon: FileText,
+    isVisible: () => true,
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    isVisible: ({ navigation }) => Boolean(navigation?.settings),
+  },
+  {
+    name: 'Help',
+    href: '/help',
+    icon: HelpCircle,
+    isVisible: () => true,
+  },
 ];
 
 interface SidebarProps {
@@ -50,20 +138,12 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
-  const { navigation, loading, permissions } = usePermissions();
+  const { navigation, loading, permissions, features } = usePermissions();
 
   // Filter navigation based on permissions
-  const visibleNavigation = allNavigationItems.filter(item => {
-    if (!item.requiresPermission) return true;
-    if (!navigation) return false;
-    return navigation[item.requiresPermission];
-  });
-
-  const visibleSecondaryNav = secondaryNavigation.filter(item => {
-    if (!item.requiresPermission) return true;
-    if (!navigation) return false;
-    return navigation[item.requiresPermission];
-  });
+  const context: NavVisibilityContext = { navigation, features };
+  const visibleNavigation = primaryNavigationItems.filter(item => item.isVisible(context));
+  const visibleSecondaryNav = secondaryNavigation.filter(item => item.isVisible(context));
 
   return (
     <aside

@@ -1,0 +1,293 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Progress from '@/components/ui/Progress';
+import {
+  Database,
+  CheckCircle,
+  Clock,
+  Award,
+  ArrowRight,
+  Target,
+  PlayCircle,
+  Plug,
+  FileJson,
+  Globe,
+  Server,
+  HardDrive
+} from 'lucide-react';
+
+export default function Module2Page() {
+  const lessons = [
+    {
+      id: 1,
+      title: 'Connector Types Overview',
+      description: 'Explore the different types of data connectors available in the platform.',
+      duration: '15 min',
+      completed: false,
+    },
+    {
+      id: 2,
+      title: 'Create Database Connector',
+      description: 'Learn how to create and configure database connectors with connection strings.',
+      duration: '20 min',
+      completed: false,
+    },
+    {
+      id: 3,
+      title: 'Test Connection',
+      description: 'Test your connector configurations and troubleshoot common connection issues.',
+      duration: '12 min',
+      completed: false,
+    },
+    {
+      id: 4,
+      title: 'Schema Introspection',
+      description: 'Discover how to automatically detect and analyze data schemas from your sources.',
+      duration: '18 min',
+      completed: false,
+    },
+  ];
+
+  const completedLessons = lessons.filter(l => l.completed).length;
+  const progress = (completedLessons / lessons.length) * 100;
+
+  const connectorTypes = [
+    { icon: <HardDrive className="w-5 h-5" />, name: 'CSV', color: 'bg-blue-500' },
+    { icon: <FileJson className="w-5 h-5" />, name: 'JSON', color: 'bg-green-500' },
+    { icon: <Globe className="w-5 h-5" />, name: 'REST API', color: 'bg-purple-500' },
+    { icon: <Server className="w-5 h-5" />, name: 'Database', color: 'bg-orange-500' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Module Header */}
+        <div className="mb-8">
+          <Link href="/modules" className="text-primary-600 hover:text-primary-700 font-medium mb-4 inline-flex items-center gap-2">
+            ← Back to All Modules
+          </Link>
+
+          <div className="flex items-start justify-between gap-8 mt-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <Badge variant="info">Intermediate</Badge>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock className="w-4 h-4" />
+                  <span>65 minutes</span>
+                </div>
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Module 2: Data Connectors
+              </h1>
+              <p className="text-lg text-gray-600 mb-6">
+                Learn how to connect to various data sources using the platform's flexible connector
+                system. Master database connections, REST APIs, file-based sources, and schema discovery.
+              </p>
+            </div>
+
+            <div className="hidden lg:block">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
+                <Plug className="w-10 h-10 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Prerequisites */}
+        <Card className="p-6 mb-8 bg-yellow-50 border-yellow-200">
+          <div className="flex items-start gap-3">
+            <Award className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-yellow-900 mb-2">Prerequisites</h3>
+              <p className="text-sm text-yellow-800">
+                Before starting this module, make sure you've completed <strong>Module 1: Platform Basics</strong>.
+                You should understand authentication, navigation, and user roles.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Progress Card */}
+        <Card className="p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-900">Your Progress</h3>
+              <p className="text-sm text-gray-600">
+                {completedLessons} of {lessons.length} lessons completed
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary-600">{Math.round(progress)}%</div>
+            </div>
+          </div>
+          <Progress value={progress} className="h-3" />
+        </Card>
+
+        {/* Connector Types Overview */}
+        <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <h3 className="font-semibold text-blue-900 mb-4">Connector Types You'll Learn</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {connectorTypes.map((type) => (
+              <div key={type.name} className="flex items-center gap-3 bg-white p-3 rounded-lg">
+                <div className={`w-10 h-10 ${type.color} rounded-lg flex items-center justify-center text-white`}>
+                  {type.icon}
+                </div>
+                <span className="font-medium text-gray-900">{type.name}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Learning Objectives */}
+        <Card className="p-6 mb-8 bg-green-50 border-green-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-5 h-5 text-green-600" />
+            <h3 className="font-semibold text-green-900">What You'll Learn</h3>
+          </div>
+          <ul className="space-y-2">
+            <li className="flex items-start gap-2 text-green-800">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>The different types of data connectors and when to use each</span>
+            </li>
+            <li className="flex items-start gap-2 text-green-800">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>How to configure database connectors with connection strings and credentials</span>
+            </li>
+            <li className="flex items-start gap-2 text-green-800">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>Testing connections and troubleshooting common connection errors</span>
+            </li>
+            <li className="flex items-start gap-2 text-green-800">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>Automatic schema introspection and data type detection</span>
+            </li>
+            <li className="flex items-start gap-2 text-green-800">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>Best practices for managing connection credentials securely</span>
+            </li>
+          </ul>
+        </Card>
+
+        {/* Lessons List */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Lessons</h2>
+          <div className="space-y-4">
+            {lessons.map((lesson, index) => (
+              <Link key={lesson.id} href={`/modules/2-connectors/lesson-${lesson.id}`}>
+                <Card className={`p-6 transition-all hover:shadow-lg hover:-translate-y-0.5 ${
+                  lesson.completed ? 'border-2 border-success-200 bg-success-50' : ''
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      lesson.completed
+                        ? 'bg-success-100'
+                        : 'bg-primary-100'
+                    }`}>
+                      {lesson.completed ? (
+                        <CheckCircle className="w-6 h-6 text-success-600" />
+                      ) : (
+                        <span className="text-lg font-bold text-primary-600">{index + 1}</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                            {lesson.title}
+                          </h3>
+                          <p className="text-gray-600 text-sm">
+                            {lesson.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 flex-shrink-0">
+                          <Clock className="w-4 h-4" />
+                          <span>{lesson.duration}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <Button
+                          variant={lesson.completed ? 'success' : 'default'}
+                          size="sm"
+                          className="group"
+                        >
+                          {lesson.completed ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Review Lesson
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="w-4 h-4 mr-2" />
+                              Start Lesson
+                            </>
+                          )}
+                          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Exercise Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Hands-On Exercise</h2>
+          <Link href="/modules/2-connectors/exercise">
+            <Card className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Target className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    Create a REST API Connector
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3">
+                    Apply your knowledge by creating a real REST API connector, testing it, and
+                    inspecting its schema. Use a sample API to complete the challenge!
+                  </p>
+                  <Button variant="warning" size="sm" className="group">
+                    <PlayCircle className="w-4 h-4 mr-2" />
+                    Start Exercise
+                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Module Completion */}
+        <Card className="p-6 bg-gradient-to-r from-primary-50 to-indigo-50 border-primary-200">
+          <div className="flex items-start gap-4">
+            <Award className="w-8 h-8 text-primary-600 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 mb-2">Complete This Module</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Finish all 4 lessons and the exercise to earn your Data Connectors badge and unlock Module 3: Transformations.
+              </p>
+              <div className="flex gap-3">
+                <Link href="/modules/2-connectors/lesson-1">
+                  <Button>Start First Lesson</Button>
+                </Link>
+                <Link href="/modules">
+                  <Button variant="outline">Back to Modules</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}

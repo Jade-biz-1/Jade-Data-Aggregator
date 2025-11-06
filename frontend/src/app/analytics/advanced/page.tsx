@@ -7,6 +7,11 @@ import { ComparativeChart } from '@/components/charts/comparative-chart';
 import { PredictiveIndicator } from '@/components/charts/predictive-indicator';
 import { LineChart } from '@/components/charts/line-chart';
 import { Download, Calendar, RefreshCw, FileText } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/common/AccessDenied';
+import { apiClient } from '@/lib/api';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 interface TrendData {
   metric: string;
@@ -46,6 +51,8 @@ const AdvancedAnalyticsPage = () => {
   const [trendData, setTrendData] = useState<TrendData | null>(null);
   const [predictiveData, setPredictiveData] = useState<PredictiveData | null>(null);
   const [comparativeData, setComparativeData] = useState<any[]>([]);
+  const { features, loading: permissionsLoading } = usePermissions();
+  const { success, error: showError } = useToast();
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -54,9 +61,6 @@ const AdvancedAnalyticsPage = () => {
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
       // Calculate date range
       const end = new Date();
       const start = new Date();
@@ -64,60 +68,31 @@ const AdvancedAnalyticsPage = () => {
       start.setDate(end.getDate() - days);
 
       // Fetch time series data
-      const tsResponse = await fetch(
-        `${baseUrl}/api/v1/analytics/advanced/time-series?start_date=${start.toISOString()}&end_date=${end.toISOString()}&interval=day`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+      const tsResponse = await apiClient.get('/analytics/advanced/time-series', {
+        params: {
+          start_date: start.toISOString(),
+          end_date: end.toISOString(),
+          interval: 'day'
         }
-      );
-
-      if (tsResponse.ok) {
-        const tsData = await tsResponse.json();
-        setTimeSeriesData(tsData.data || []);
-      }
+      });
+      setTimeSeriesData(tsResponse.data.data || []);
 
       // Fetch trend analysis
-      const trendResponse = await fetch(
-        `${baseUrl}/api/v1/analytics/advanced/trend-analysis?metric=records_processed`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            start: start.toISOString(),
-            end: end.toISOString()
-          })
-        }
-      );
-
-      if (trendResponse.ok) {
-        const trend = await trendResponse.json();
-        setTrendData(trend);
-      }
+      const trendResponse = await apiClient.post('/analytics/advanced/trend-analysis', {
+        metric: 'records_processed',
+        start: start.toISOString(),
+        end: end.toISOString()
+      });
+      setTrendData(trendResponse.data);
 
       // Fetch predictive indicators
-      const predResponse = await fetch(
-        `${baseUrl}/api/v1/analytics/advanced/predictive-indicators`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const predResponse = await apiClient.get('/analytics/advanced/predictive-indicators');
+      setPredictiveData(predResponse.data);
 
-      if (predResponse.ok) {
-        const pred = await predResponse.json();
-        setPredictiveData(pred);
-      }
-
-    } catch (error) {
+      success('Analytics data loaded successfully');
+    } catch (error: any) {
       console.error('Error fetching analytics:', error);
+      showError('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
@@ -125,52 +100,60 @@ const AdvancedAnalyticsPage = () => {
 
   const handleExport = async (format: 'json' | 'csv') => {
     try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
       const end = new Date();
       const start = new Date();
       const days = timeRange === '24h' ? 1 : timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       start.setDate(end.getDate() - days);
 
-      const response = await fetch(
-        `${baseUrl}/api/v1/analytics/advanced/export`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            export_format: format,
-            export_type: 'analytics',
-            time_range: {
-              start: start.toISOString(),
-              end: end.toISOString()
-            }
-          })
+      const response = await apiClient.post('/analytics/advanced/export', {
+        export_format: format,
+        export_type: 'analytics',
+        time_range: {
+          start: start.toISOString(),
+          end: end.toISOString()
         }
-      );
+      });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = response.data;
 
-        // Download file
-        const blob = new Blob([data.content], { type: data.mime_type });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (error) {
+      // Download file
+      const blob = new Blob([data.content], { type: data.mime_type });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      success(`Analytics exported as ${format.toUpperCase()}`);
+    } catch (error: any) {
       console.error('Export error:', error);
+      showError('Failed to export analytics');
     }
   };
 
+  // Permission check
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary-600" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!features?.analytics?.view) {
+    return (
+      <DashboardLayout>
+        <AccessDenied />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
+      <ToastContainer toasts={[]} />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Progress } from '@/components/ui/Progress';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Progress from '@/components/ui/Progress';
 import { CheckCircle, Lock, Clock, Award } from 'lucide-react';
 
 export interface ModuleCardProps {

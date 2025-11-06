@@ -1,27 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from backend.schemas.user import User, UserCreate, UserUpdate, UserWithPermissions
-from backend.core.database import get_db
-from backend.core.security import get_current_active_user
-from backend.core.rbac import require_admin, require_developer, RBACService
-from backend import crud
-from backend.services.activity_log_service import (
-    log_user_created,
-    log_user_updated,
-    log_user_activated,
-    log_user_deactivated,
-    log_password_reset
-)
-from backend.middleware.admin_protection import (
-    check_can_modify_user,
-    check_can_delete_user,
-    check_can_reset_password,
-    check_can_activate_deactivate,
-    check_can_assign_role
-)
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend import crud
+from backend.core.database import get_db
+from backend.core.rbac import RBACService, require_admin, require_developer
+from backend.core.security import get_current_active_user
+from backend.middleware.admin_protection import (
+    check_can_activate_deactivate,
+    check_can_assign_role,
+    check_can_delete_user,
+    check_can_modify_user,
+    check_can_reset_password,
+)
+from backend.schemas.user import (
+    User,
+    UserCreate,
+    UserRole,
+    UserUpdate,
+    UserWithPermissions,
+)
+from backend.services.activity_log_service import (
+    log_password_reset,
+    log_user_activated,
+    log_user_created,
+    log_user_deactivated,
+    log_user_updated,
+)
 
 router = APIRouter()
 
@@ -118,15 +124,22 @@ async def get_session_info(
     # Get permissions
     permissions = RBACService.get_user_permissions(current_user)
 
+    # Convert string role to UserRole enum
+    try:
+        user_role_enum = UserRole(current_user.role)
+    except ValueError:
+        # Fallback to viewer if role is invalid
+        user_role_enum = UserRole.VIEWER
+
     # Get navigation items
     navigation = PermissionService.get_navigation_items(
-        current_user.role,
+        user_role_enum,
         current_user.is_superuser
     )
 
     # Get feature access
     features = PermissionService.get_feature_access(
-        current_user.role,
+        user_role_enum,
         current_user.is_superuser
     )
 
@@ -227,8 +240,9 @@ async def activate_user(
     Activate a user (admin/developer)
     Cannot activate admin user (always active)
     """
-    from backend.models.user import User as UserModel
     from sqlalchemy import select
+
+    from backend.models.user import User as UserModel
 
     result = await db.execute(
         select(UserModel).where(UserModel.id == user_id)
@@ -265,8 +279,9 @@ async def deactivate_user(
     Deactivate a user (admin/developer)
     Cannot deactivate admin user or yourself
     """
-    from backend.models.user import User as UserModel
     from sqlalchemy import select
+
+    from backend.models.user import User as UserModel
 
     result = await db.execute(
         select(UserModel).where(UserModel.id == user_id)
@@ -304,11 +319,13 @@ async def reset_user_password(
     Cannot reset admin user password (use change password instead)
     Generates a temporary password that the user must change
     """
-    from backend.models.user import User as UserModel
-    from backend.core import security
-    from sqlalchemy import select
     import secrets
     import string
+
+    from sqlalchemy import select
+
+    from backend.core import security
+    from backend.models.user import User as UserModel
 
     result = await db.execute(
         select(UserModel).where(UserModel.id == user_id)

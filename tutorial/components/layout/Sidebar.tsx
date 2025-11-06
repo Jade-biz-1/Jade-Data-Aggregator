@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Progress } from '@/components/ui/Progress';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Progress from '@/components/ui/Progress';
 import { progressTracker } from '@/lib/progress';
 import {
   BookOpen,

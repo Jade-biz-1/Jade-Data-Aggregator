@@ -3,12 +3,12 @@
 from functools import wraps
 from typing import List, Optional
 
-from fastapi import HTTPException, Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.schemas.user import User, UserRole
-from backend.core.security import get_current_active_user
 from backend.core.database import get_db
+from backend.core.security import get_current_active_user
+from backend.schemas.user import User, UserRole
 
 
 class RBACError(Exception):
@@ -158,8 +158,15 @@ class RBACService:
                 "role": "superuser"
             }
 
+        # Convert string role to UserRole enum
+        try:
+            user_role_enum = UserRole(user.role)
+        except ValueError:
+            # Fallback to viewer if role is invalid
+            user_role_enum = UserRole.VIEWER
+
         # Use new permission service for granular permissions
-        return PermissionService.get_user_permissions(user.role, user.is_superuser)
+        return PermissionService.get_user_permissions(user_role_enum, user.is_superuser)
 
 
 # Convenience functions for common permission checks

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ModuleCard } from '@/components/home/ModuleCard';
-import { Button } from '@/components/ui/Button';
+import Button from '@/components/ui/Button';
 import { progressTracker } from '@/lib/progress';
 import { BookOpen, Code, Database, Workflow, Sparkles, Trophy } from 'lucide-react';
 

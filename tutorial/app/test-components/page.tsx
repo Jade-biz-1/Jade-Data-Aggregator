@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Card, { CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Alert from '@/components/ui/Alert';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import Tabs, { TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import Progress, { CircularProgress } from '@/components/ui/Progress';
 import Input, { TextArea } from '@/components/ui/Input';
 import Form, { FormField, FormLabel, FormError, FormHelperText, FormSection, FormActions } from '@/components/ui/Form';

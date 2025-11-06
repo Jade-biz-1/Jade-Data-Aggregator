@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, ReactNode } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Alert } from '@/components/ui/Alert';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Alert from '@/components/ui/Alert';
+import Tabs, { TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Play, RotateCcw, Code2, Eye } from 'lucide-react';
 import { CodeBlock } from './CodeBlock';
 
@@ -79,7 +79,7 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({
             </Button>
             {onRun && (
               <Button
-                variant="default"
+                variant="primary"
                 size="sm"
                 onClick={handleRun}
                 disabled={isRunning}
@@ -103,7 +103,7 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({
 
       {/* Content */}
       {showCode ? (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="preview" value={activeTab} onValueChange={setActiveTab}>
           <div className="border-b border-gray-200 bg-gray-50 px-4">
             <TabsList>
               <TabsTrigger value="preview">

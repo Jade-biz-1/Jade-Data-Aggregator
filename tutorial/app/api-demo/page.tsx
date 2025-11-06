@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Alert } from '@/components/ui/Alert';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import Alert from '@/components/ui/Alert';
+import Tabs, { TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { apiClient } from '@/lib/api';
 import type { LoginCredentials, ConnectorCreate, TransformationCreate, PipelineCreate } from '@/lib/api';
 

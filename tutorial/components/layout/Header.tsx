@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { Progress } from '@/components/ui/Progress';
+import Button from '@/components/ui/Button';
+import Progress from '@/components/ui/Progress';
 import { progressTracker } from '@/lib/progress';
 import { Menu, X, BookOpen, Trophy, Home } from 'lucide-react';
 

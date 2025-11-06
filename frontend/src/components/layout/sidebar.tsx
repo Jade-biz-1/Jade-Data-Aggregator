@@ -16,7 +16,9 @@ import {
   FileText,
   HelpCircle,
   Wrench,
-  Loader2
+  Loader2,
+  Bell,
+  ScrollText
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,6 +37,8 @@ export function Sidebar({ className }: SidebarProps) {
     { name: 'Transformations', href: '/transformations', icon: Code, permissionKey: 'transformations' },
     { name: 'Analytics', href: '/analytics', icon: BarChart3, permissionKey: 'analytics' },
     { name: 'Monitoring', href: '/monitoring', icon: Activity, permissionKey: 'monitoring' },
+    { name: 'Alerts', href: '/alerts', icon: Bell, permissionKey: 'monitoring' },
+    { name: 'Logs', href: '/logs', icon: ScrollText, permissionKey: 'logs' },
     { name: 'Users', href: '/users', icon: Users, permissionKey: 'users' },
     { name: 'Maintenance', href: '/admin/maintenance', icon: Wrench, permissionKey: 'maintenance' },
   ];

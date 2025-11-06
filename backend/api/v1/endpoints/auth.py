@@ -1,32 +1,40 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Form, BackgroundTasks, Request
+
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Form,
+    HTTPException,
+    Request,
+    status,
+)
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend import crud
+from backend.core import security
+from backend.core.config import settings
+from backend.core.database import get_db
+from backend.core.security import get_current_active_user
+from backend.schemas.auth import (
+    EmailVerificationConfirm,
+    EmailVerificationRequest,
+    LoginResponse,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RefreshResponse,
+    TokenRefresh,
+)
 from backend.schemas.token import Token, TokenData
 from backend.schemas.user import User, UserCreate
-from backend.schemas.auth import (
-    PasswordResetRequest,
-    PasswordResetConfirm,
-    EmailVerificationRequest,
-    EmailVerificationConfirm,
-    TokenRefresh,
-    LoginResponse,
-    RefreshResponse
-)
-from backend.core import security
-from backend.core.database import get_db
-from backend.core.config import settings
-from backend.core.security import get_current_active_user
-from backend.services.auth_service import auth_service
 from backend.services.activity_log_service import (
+    log_failed_login,
     log_login,
     log_logout,
-    log_failed_login,
-    log_password_change
+    log_password_change,
 )
-
+from backend.services.auth_service import auth_service
 
 router = APIRouter()
 
@@ -63,7 +71,7 @@ async def login(
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
-        subject=user.username, expires_delta=access_token_expires
+        subject=user.username, expires_delta=access_token_expires, role=user.role
     )
 
     # Log successful login
@@ -97,8 +105,9 @@ async def register(
         )
     
     # Hash the password and create user directly
-    from backend.models.user import User as UserModel
     from sqlalchemy.exc import IntegrityError
+
+    from backend.models.user import User as UserModel
     
     try:
         db_user = UserModel(
@@ -252,8 +261,9 @@ async def change_password(
     Requires current password verification
     """
     # Fetch full user from database (with hashed_password)
-    from backend.models.user import User as UserModel
     from sqlalchemy import select
+
+    from backend.models.user import User as UserModel
 
     result = await db.execute(
         select(UserModel).where(UserModel.id == current_user.id)

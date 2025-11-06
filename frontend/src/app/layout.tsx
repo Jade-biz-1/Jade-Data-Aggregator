@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { SkipLink } from "@/components/ui/SkipLink";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ClientLayout } from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
   title: "Data Aggregator Platform",
@@ -19,11 +18,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#ffffff" />
       </head>
       <body className="font-sans antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
-        <ThemeProvider>
-          <SkipLink href="#main-content">Skip to main content</SkipLink>
-          <SkipLink href="#navigation">Skip to navigation</SkipLink>
+        <ClientLayout>
           {children}
-        </ThemeProvider>
+        </ClientLayout>
       </body>
     </html>
   );
