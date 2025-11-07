@@ -109,6 +109,40 @@ dataaggregator/
 
 ## Getting Started
 
+### Quick start (one command)
+
+If you have Docker installed, you can bring up the whole stack and wait for the API to be healthy with a single command:
+
+```bash
+bash scripts/dev-up.sh
+```
+
+Then open:
+
+- Frontend: <http://localhost:3000>
+- API docs: <http://localhost:8001/docs>
+
+Default credentials (for local only): admin / password
+
+To populate a small end-to-end example with connectors and a pipeline, run:
+
+```bash
+bash scripts/load-example.sh
+```
+
+This creates two file connectors using example JSON files under `uploads/examples/` and an "E-commerce Orders Unification (Example)" pipeline, then triggers a run.
+
+### Run the tutorial (example)
+
+For a guided, end-to-end walkthrough of the example pipeline, see:
+
+- `docs/tutorial/example-ecommerce.md`
+
+Notes (local/dev):
+
+- You can also trigger the example from the UI via the "Example Data" page (visible only in development). After starting with the quick start above, open <http://localhost:3000/example-data> and click "Create example now".
+- The example creates a pipeline named "E-commerce Orders Unification (Example)" and uses sample files under `uploads/examples/ecommerce/`. The unified output is written to `uploads/examples/ecommerce/unified_orders.json`.
+
 ### 1. Environment Setup
 
 First, make sure you have Docker installed and running. Then, create a `.env` file in the root of the project:
@@ -214,16 +248,18 @@ The easiest way to get started is using Docker Compose:
 
 ```bash
 # Start all services (including database, Redis, Kafka, etc.)
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Access the services:
 # - Frontend (with enhanced UI): http://localhost:3000
 # - Backend API: http://localhost:8001
 # - Adminer (DB UI): http://localhost:8080
 ```
+
+Tip: Prefer `bash scripts/dev-up.sh` which builds, starts, and waits for backend health automatically.
 
 ### 3. Backend Development Setup
 

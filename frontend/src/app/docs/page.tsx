@@ -262,12 +262,12 @@ export default function DocumentationPage() {
                     <div className="flex items-center text-sm text-gray-600">
                       <ExternalLink className="h-4 w-4 mr-1" />
                       <span>Need more help? Check out our </span>
-                      <a href="#" className="ml-1 text-primary-600 hover:underline">
-                        community forums
+                      <a href="/docs" className="ml-1 text-primary-600 hover:underline">
+                        documentation
                       </a>
                       <span className="mx-2">•</span>
-                      <a href="#" className="text-primary-600 hover:underline">
-                        API documentation
+                      <a href="http://localhost:8001/docs" target="_blank" rel="noreferrer" className="text-primary-600 hover:underline">
+                        API documentation (Swagger)
                       </a>
                     </div>
                   </div>

@@ -13,16 +13,22 @@ cd dataaggregator
 # 2. Configure
 cp .env.example .env
 
-# 3. Start
-docker compose up -d
+# 3. Start (one command)
+bash scripts/dev-up.sh
 
 # 4. Access
 # Frontend: http://localhost:3000
 # Backend: http://localhost:8001/docs
-# Login: admin / admin123!
+# Login: admin / password
 ```
 
 **Done! Platform is running.** 🎉
+
+Optional: load a ready-made example (connectors + pipeline) and trigger a run:
+
+```bash
+bash scripts/load-example.sh
+```
 
 ---
 
@@ -63,9 +69,9 @@ POSTGRES_PASSWORD=postgres
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| **Frontend** | http://localhost:3000 | admin / admin123! |
-| **API Docs** | http://localhost:8001/docs | - |
-| **API** | http://localhost:8001 | - |
+| **Frontend** | <http://localhost:3000> | admin / admin123! |
+| **API Docs** | <http://localhost:8001/docs> | - |
+| **API** | <http://localhost:8001> | - |
 
 ---
 
@@ -157,9 +163,10 @@ docker system prune -a
 
 ## 📖 Full Documentation
 
-- **Complete Guide:** `DEPLOYMENT_GUIDE_COMPLETE.md`
-- **API Docs:** http://localhost:8001/docs
-- **User Guide:** `docs/user-guide.md`
+- Deployment Guide: `docs/deployment-guide.md`
+- API Docs: http://localhost:8001/docs
+- User Guide: `docs/UserGuide.md`
+- Example walkthrough: `docs/tutorial/example-ecommerce.md`
 
 ---
 
@@ -205,6 +212,6 @@ docker compose up -d
 
 **Quick Start Guide**
 **Version:** 1.0
-**Last Updated:** October 23, 2025
+**Last Updated:** November 7, 2025
 
 🎉 **Happy data aggregating!**

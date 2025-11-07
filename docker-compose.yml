@@ -115,6 +115,8 @@ services:
       # Backend API URL - Frontend uses this to communicate with backend
       # Must include /api/v1 path prefix
       NEXT_PUBLIC_API_URL: http://localhost:8001/api/v1
+      # Show dev-only example data link in UI
+      NEXT_PUBLIC_SHOW_EXAMPLE_DATA: "true"
     depends_on:
       - backend
 

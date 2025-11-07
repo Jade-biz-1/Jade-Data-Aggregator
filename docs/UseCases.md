@@ -1591,6 +1591,8 @@ An e-commerce company wants to consolidate sales data from multiple platforms (S
 
 ### Solution with Data Aggregator Platform:
 
+Tip (local/dev): For a quick hands-on demo of this scenario, see `docs/tutorial/example-ecommerce.md` and the dev-only "Example Data" link in the app sidebar.
+
 **Step 1: Create Connectors for Each Platform**
 - Shopify: REST API connector with OAuth authentication
 - WooCommerce: REST API connector with API key authentication

@@ -43,7 +43,7 @@ const adminNavigationItems: NavigationItem[] = [
   { name: 'Activity Logs', href: '/admin/activity-logs', icon: ClipboardList, requiredNavKey: 'activity_logs' },
 ];
 
-const secondaryNavigation: NavigationItem[] = [
+const baseSecondaryNavigation: NavigationItem[] = [
   { name: 'Documentation', href: '/docs', icon: FileText },
   { name: 'Settings', href: '/settings', icon: Settings, requiredNavKey: 'settings' },
   { name: 'Help', href: '/help', icon: HelpCircle },
@@ -57,6 +57,11 @@ export function SidebarRBAC({ className }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { navigation, devWarning, loading } = usePermissions();
+
+  // Dev-only example data link gate
+  const showExampleData =
+    (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SHOW_EXAMPLE_DATA === 'true') ||
+    (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production');
 
   // Filter navigation items based on user permissions
   const getVisibleNavItems = () => {
@@ -80,6 +85,10 @@ export function SidebarRBAC({ className }: SidebarProps) {
 
   // Filter secondary navigation items
   const getVisibleSecondaryNavItems = () => {
+    const secondaryNavigation = showExampleData
+      ? [...baseSecondaryNavigation, { name: 'Example Data', href: '/example-data', icon: FileText }]
+      : baseSecondaryNavigation;
+
     if (!navigation || loading) return secondaryNavigation;
 
     return secondaryNavigation.filter(item => {
