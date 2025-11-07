@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { TrendChart } from '@/components/charts/trend-chart';
 import { ComparativeChart } from '@/components/charts/comparative-chart';
 import { PredictiveIndicator } from '@/components/charts/predictive-indicator';

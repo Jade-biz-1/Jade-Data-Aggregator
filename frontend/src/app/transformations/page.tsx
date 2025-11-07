@@ -167,7 +167,7 @@ export default function TransformationsPage() {
               Function Library
             </Button>
             {features?.transformations?.create && (
-              <Button>
+              <Button onClick={() => router.push('/transformations/functions')}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Transformation
               </Button>
@@ -249,7 +249,7 @@ export default function TransformationsPage() {
                   Get started by creating a new transformation rule.
                 </p>
                 <div className="mt-6">
-                  <Button>
+                  <Button onClick={() => router.push('/transformations/functions')}>
                     <Plus className="h-4 w-4 mr-2" />
                     New Transformation
                   </Button>

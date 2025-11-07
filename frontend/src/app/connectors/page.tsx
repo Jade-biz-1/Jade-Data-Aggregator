@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ interface ConnectorDisplay extends Connector {
 }
 
 export default function ConnectorsPage() {
+  const router = useRouter();
   const [connectors, setConnectors] = useState<ConnectorDisplay[]>([]);
   const [filteredConnectors, setFilteredConnectors] = useState<ConnectorDisplay[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -172,7 +174,7 @@ export default function ConnectorsPage() {
             </p>
           </div>
           {features?.connectors?.create && (
-            <Button>
+            <Button onClick={() => router.push('/connectors/configure')}>
               <Plus className="h-4 w-4 mr-2" />
               New Connector
             </Button>
@@ -253,7 +255,7 @@ export default function ConnectorsPage() {
                   Get started by creating a new connector.
                 </p>
                 <div className="mt-6">
-                  <Button>
+                  <Button onClick={() => router.push('/connectors/configure')}>
                     <Plus className="h-4 w-4 mr-2" />
                     New Connector
                   </Button>

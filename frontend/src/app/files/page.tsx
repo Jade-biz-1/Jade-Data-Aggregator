@@ -15,7 +15,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import FileUpload from '@/components/upload/FileUpload';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';

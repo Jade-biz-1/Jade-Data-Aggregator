@@ -12,6 +12,9 @@ export { DropdownMenu } from './DropdownMenu';
 export { KeyboardShortcutHelper } from './KeyboardShortcutHelper';
 export { SkipLink } from './SkipLink';
 
+export { Textarea } from './textarea';
+export { Select } from './select';
+
 // Export types
 export type { ModalProps } from './Modal';
 export type { DialogProps, DialogType } from './Dialog';
@@ -25,3 +28,6 @@ export type { ContextMenuProps, ContextMenuItem } from './ContextMenu';
 export type { DropdownMenuProps, DropdownMenuItem } from './DropdownMenu';
 export type { KeyboardShortcutHelperProps, Shortcut } from './KeyboardShortcutHelper';
 export type { SkipLinkProps } from './SkipLink';
+
+export type { TextareaProps } from './textarea';
+export type { SelectProps } from './select';

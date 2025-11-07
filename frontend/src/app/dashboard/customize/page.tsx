@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
 import { useRouter } from 'next/navigation';
 import { usePermissions } from '@/hooks/usePermissions';

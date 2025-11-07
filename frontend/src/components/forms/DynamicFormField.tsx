@@ -76,7 +76,8 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
       },
       placeholder: field.placeholder,
       required: field.required,
-      className: `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+  // All fields editable unless schema is updated to support these properties
+      className: `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 ${
         error ? 'border-red-500' : 'border-gray-300'
       }`
     };
@@ -125,10 +126,10 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
 
       case 'select':
         return (
-          <select {...commonProps}>
+          <select {...commonProps} className={`${commonProps.className} bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100`}>
             <option value="">Select an option...</option>
             {field.options?.map((option, idx) => (
-              <option key={idx} value={option.value}>
+              <option key={idx} value={option.value} className="bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">
                 {option.label}
               </option>
             ))}
@@ -169,20 +170,30 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
 
       case 'file':
         return (
-          <input
-            type="file"
-            id={field.name}
-            name={field.name}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                onChange(field.name, file.name);
-              }
-            }}
-            className={`w-full px-4 py-2 border rounded-lg ${
-              error ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
+          <div>
+            <input
+              type="file"
+              id={field.name}
+              name={field.name}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  onChange(field.name, file); // Pass the file object, not just the name
+                } else {
+                  onChange(field.name, undefined);
+                }
+              }}
+              className={`w-full px-4 py-2 border rounded-lg ${
+                error ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {/* Show selected file name if present */}
+            {value && value.name && (
+              <div className="mt-1 text-sm text-gray-700 truncate" data-testid="selected-file-name">
+                Selected file: {value.name}
+              </div>
+            )}
+          </div>
         );
 
       default:

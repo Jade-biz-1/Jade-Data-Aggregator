@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+// Removed Label import; use inline <label> instead
 import { apiClient } from '@/lib/api';
 
 interface DestinationNodeConfigProps {
@@ -38,7 +38,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="connector">Database Connector</Label>
+          <label htmlFor="connector" className="block text-sm font-medium text-gray-700 mb-1">Database Connector</label>
           <select
             id="connector"
             value={config.connector_id || ''}
@@ -55,7 +55,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="table_name">Target Table</Label>
+          <label htmlFor="table_name" className="block text-sm font-medium text-gray-700 mb-1">Target Table</label>
           <Input
             id="table_name"
             type="text"
@@ -66,7 +66,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="write_mode">Write Mode</Label>
+          <label htmlFor="write_mode" className="block text-sm font-medium text-gray-700 mb-1">Write Mode</label>
           <select
             id="write_mode"
             value={config.write_mode || 'insert'}
@@ -81,7 +81,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
 
         {config.write_mode === 'upsert' && (
           <div>
-            <Label htmlFor="unique_key">Unique Key (for upsert)</Label>
+            <label htmlFor="unique_key" className="block text-sm font-medium text-gray-700 mb-1">Unique Key (for upsert)</label>
             <Input
               id="unique_key"
               type="text"
@@ -100,7 +100,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="file_path">Output File Path</Label>
+          <label htmlFor="file_path" className="block text-sm font-medium text-gray-700 mb-1">Output File Path</label>
           <Input
             id="file_path"
             type="text"
@@ -109,9 +109,8 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
             placeholder="/path/to/output.csv"
           />
         </div>
-
         <div>
-          <Label htmlFor="format">File Format</Label>
+          <label htmlFor="format" className="block text-sm font-medium text-gray-700 mb-1">File Format</label>
           <select
             id="format"
             value={config.format || 'csv'}
@@ -124,9 +123,8 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
             <option value="parquet">Parquet</option>
           </select>
         </div>
-
         <div>
-          <Label htmlFor="compression">Compression</Label>
+          <label htmlFor="compression" className="block text-sm font-medium text-gray-700 mb-1">Compression</label>
           <select
             id="compression"
             value={config.compression || 'none'}
@@ -139,18 +137,15 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
             <option value="bz2">BZ2</option>
           </select>
         </div>
-
-        <div>
-          <Label htmlFor="overwrite">
-            <input
-              id="overwrite"
-              type="checkbox"
-              checked={config.overwrite || false}
-              onChange={(e) => updateConfig('overwrite', e.target.checked)}
-              className="mr-2"
-            />
-            Overwrite if exists
-          </Label>
+        <div className="flex items-center">
+          <input
+            id="overwrite"
+            type="checkbox"
+            checked={config.overwrite || false}
+            onChange={(e) => updateConfig('overwrite', e.target.checked)}
+            className="mr-2"
+          />
+          <label htmlFor="overwrite" className="text-sm font-medium text-gray-700">Overwrite if exists</label>
         </div>
       </div>
     );
@@ -161,7 +156,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="connector">Warehouse Connector</Label>
+          <label htmlFor="connector" className="block text-sm font-medium text-gray-700 mb-1">Warehouse Connector</label>
           <select
             id="connector"
             value={config.connector_id || ''}
@@ -178,7 +173,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="schema">Schema</Label>
+          <label htmlFor="schema" className="block text-sm font-medium text-gray-700 mb-1">Schema</label>
           <Input
             id="schema"
             type="text"
@@ -189,7 +184,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="table_name">Table Name</Label>
+          <label htmlFor="table_name" className="block text-sm font-medium text-gray-700 mb-1">Table Name</label>
           <Input
             id="table_name"
             type="text"
@@ -200,7 +195,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="partition_by">Partition By (optional)</Label>
+          <label htmlFor="partition_by" className="block text-sm font-medium text-gray-700 mb-1">Partition By (optional)</label>
           <Input
             id="partition_by"
             type="text"
@@ -218,7 +213,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="endpoint">API Endpoint</Label>
+          <label htmlFor="endpoint" className="block text-sm font-medium text-gray-700 mb-1">API Endpoint</label>
           <Input
             id="endpoint"
             type="url"
@@ -229,7 +224,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="method">HTTP Method</Label>
+          <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
           <select
             id="method"
             value={config.method || 'POST'}
@@ -243,7 +238,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
 
         <div>
-          <Label htmlFor="batch_size">Batch Size</Label>
+          <label htmlFor="batch_size" className="block text-sm font-medium text-gray-700 mb-1">Batch Size</label>
           <Input
             id="batch_size"
             type="number"

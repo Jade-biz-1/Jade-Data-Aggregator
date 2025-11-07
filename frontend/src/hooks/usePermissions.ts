@@ -148,7 +148,11 @@ export function usePermissions() {
       setFeatures(sessionData.features);
 
       // Check for developer role warning
-      if (sessionData.user.role === 'developer') {
+      // Only check developer role warning if user is developer AND has system.settings permission (admin-like)
+      if (
+        sessionData.user.role === 'developer' &&
+        sessionData.features?.system?.settings === true
+      ) {
         checkDeveloperRoleWarning();
       }
 

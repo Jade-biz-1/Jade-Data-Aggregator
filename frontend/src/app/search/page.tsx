@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Clock, Bookmark, X, Zap, Database, FileText, User } from 'lucide-react';
 import { api } from '@/lib/api';
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
 import useToast from '@/hooks/useToast';

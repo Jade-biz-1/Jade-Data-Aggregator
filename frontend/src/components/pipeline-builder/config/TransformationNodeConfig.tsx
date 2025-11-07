@@ -1,8 +1,8 @@
 'use client';
 
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+// Removed Label import; use inline <label> instead
+import { Textarea } from '../../ui';
 
 interface TransformationNodeConfigProps {
   config: any;
@@ -20,11 +20,11 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="condition">Filter Condition</Label>
+          <label htmlFor="condition" className="block text-sm font-medium text-gray-700 mb-1">Filter Condition</label>
           <Textarea
             id="condition"
             value={config.condition || ''}
-            onChange={(e) => updateConfig('condition', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateConfig('condition', e.target.value)}
             placeholder="age > 18 AND status == 'active'"
             rows={3}
           />
@@ -34,7 +34,7 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
         </div>
 
         <div>
-          <Label htmlFor="filter_type">Filter Type</Label>
+          <label htmlFor="filter_type" className="block text-sm font-medium text-gray-700 mb-1">Filter Type</label>
           <select
             id="filter_type"
             value={config.filter_type || 'include'}
@@ -54,29 +54,27 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
     return (
       <div className="space-y-4">
         <div>
-          <Label>Field Mappings</Label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Field Mappings</label>
           <Textarea
             value={config.mappings || ''}
-            onChange={(e) => updateConfig('mappings', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateConfig('mappings', e.target.value)}
             placeholder={'{\n  "new_field": "old_field",\n  "full_name": "first_name + last_name"\n}'}
             rows={6}
           />
           <p className="text-xs text-gray-500 mt-1">
-            JSON object mapping target fields to source fields or expressions
+            JSON object of field mappings
           </p>
         </div>
 
-        <div>
-          <Label htmlFor="drop_unmapped">
-            <input
-              id="drop_unmapped"
-              type="checkbox"
-              checked={config.drop_unmapped || false}
-              onChange={(e) => updateConfig('drop_unmapped', e.target.checked)}
-              className="mr-2"
-            />
-            Drop unmapped fields
-          </Label>
+        <div className="flex items-center">
+          <input
+            id="drop_unmapped"
+            type="checkbox"
+            checked={config.drop_unmapped || false}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateConfig('drop_unmapped', e.target.checked)}
+            className="mr-2"
+          />
+          <label htmlFor="drop_unmapped" className="text-sm font-medium text-gray-700">Drop unmapped fields</label>
         </div>
       </div>
     );
@@ -87,7 +85,7 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="group_by">Group By Fields</Label>
+          <label htmlFor="group_by" className="block text-sm font-medium text-gray-700 mb-1">Group By Fields</label>
           <Input
             id="group_by"
             type="text"
@@ -99,10 +97,10 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
         </div>
 
         <div>
-          <Label>Aggregations</Label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Aggregations</label>
           <Textarea
             value={config.aggregations || ''}
-            onChange={(e) => updateConfig('aggregations', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateConfig('aggregations', e.target.value)}
             placeholder={'{\n  "total_sales": "SUM(amount)",\n  "avg_price": "AVG(price)",\n  "count": "COUNT(*)"\n}'}
             rows={6}
           />
@@ -119,7 +117,7 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="sort_by">Sort By Field</Label>
+          <label htmlFor="sort_by" className="block text-sm font-medium text-gray-700 mb-1">Sort By Field</label>
           <Input
             id="sort_by"
             type="text"
@@ -130,7 +128,7 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
         </div>
 
         <div>
-          <Label htmlFor="order">Sort Order</Label>
+          <label htmlFor="order" className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
           <select
             id="order"
             value={config.order || 'asc'}
@@ -150,7 +148,7 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="join_key">Join Key</Label>
+          <label htmlFor="join_key" className="block text-sm font-medium text-gray-700 mb-1">Join Key</label>
           <Input
             id="join_key"
             type="text"
@@ -161,7 +159,7 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
         </div>
 
         <div>
-          <Label htmlFor="join_type">Join Type</Label>
+          <label htmlFor="join_type" className="block text-sm font-medium text-gray-700 mb-1">Join Type</label>
           <select
             id="join_type"
             value={config.join_type || 'inner'}
