@@ -107,6 +107,21 @@ export default function DashboardPage() {
     <DashboardLayout>
       <ToastContainer toasts={toasts} />
       <div className="space-y-6">
+        {/* Dev-only hint to try the example */}
+        {(process.env.NEXT_PUBLIC_SHOW_EXAMPLE_DATA === 'true' || process.env.NODE_ENV !== 'production') && (
+          <Card>
+            <CardContent className="py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Try the example pipeline (dev)</h2>
+                <p className="text-sm text-gray-600">Create demo connectors and run a unification pipeline.</p>
+              </div>
+              <a href="/example-data" className="inline-flex items-center px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700">
+                Go to Example Data
+              </a>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
