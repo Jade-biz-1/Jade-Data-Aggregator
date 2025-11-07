@@ -11,28 +11,34 @@
 
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
+  - [2.1 Prerequisites](#21-prerequisites)
+  - [2.2 System Requirements](#22-system-requirements)
+  - [2.3 Quick Start](#23-quick-start)
+  - [2.4 Try the built-in example (local/dev)](#24-try-the-built-in-example-localdev)
+  - [2.5 Run the tutorial (detailed)](#25-run-the-tutorial-detailed)
+  - [2.6 Example data and end-to-end loaders](#26-example-data-and-end-to-end-loaders)
 3. [Installation and Deployment](#installation-and-deployment)
 4. [Architecture Overview](#architecture-overview)
 5. [Core Application Features](#core-application-features)
-    - [5.1 Pipelines](#51-pipelines)
-    - [5.2 Transformations](#52-transformations)
-    - [5.3 Connectors](#53-connectors)
-    - [5.4 Settings](#54-settings)
+  - [5.1 Pipelines](#51-pipelines)
+  - [5.2 Transformations](#52-transformations)
+  - [5.3 Connectors](#53-connectors)
+  - [5.4 Settings](#54-settings)
 6. [User Interface Guide](#user-interface-guide)
 7. [API Documentation](#api-documentation)
 8. [Security Features](#security-features)
 9. [Monitoring and Maintenance](#monitoring-and-maintenance)
 10. [Troubleshooting](#troubleshooting)
 11. [Getting Started Guide for New Users](#11-getting-started-guide-for-new-users)
-    - [11.1 First Steps](#111-first-steps)
-    - [11.2 Create Your First Connector](#112-create-your-first-connector)
-    - [11.3 Create Your First Transformation](#113-create-your-first-transformation)
-    - [11.4 Create Your First Pipeline](#114-create-your-first-pipeline)
-    - [11.5 Best Practices for Beginners](#115-best-practices-for-beginners)
+  - [11.1 First Steps](#111-first-steps)
+  - [11.2 Create Your First Connector](#112-create-your-first-connector)
+  - [11.3 Create Your First Transformation](#113-create-your-first-transformation)
+  - [11.4 Create Your First Pipeline](#114-create-your-first-pipeline)
+  - [11.5 Best Practices for Beginners](#115-best-practices-for-beginners)
 12. [FAQ](#12-faq)
-    - [12.1 General Questions](#121-general-questions)
-    - [12.2 Technical Questions](#122-technical-questions)
-    - [12.3 Deployment Questions](#123-deployment-questions)
+  - [12.1 General Questions](#121-general-questions)
+  - [12.2 Technical Questions](#122-technical-questions)
+  - [12.3 Deployment Questions](#123-deployment-questions)
 
 ## 1. Introduction
 
@@ -152,6 +158,79 @@ Before installing the Data Aggregator Platform, ensure you have the following pr
 5. **Explore the API documentation**:
    - Swagger UI: http://localhost:8001/docs
    - ReDoc: http://localhost:8001/redoc
+
+### 2.4 Try the built-in example (local/dev)
+
+For a quick end-to-end demo with connectors and a pipeline:
+
+1. Start the stack and wait for health:
+  - `bash scripts/dev-up.sh`
+2. Create connectors and a unification pipeline, then trigger a run:
+  - `bash scripts/load-example.sh`
+3. Read the walkthrough: `docs/tutorial/example-ecommerce.md`
+
+Notes:
+- In development, a convenient “Example Data” link may appear in the UI sidebar. This link is hidden in production builds and only available when running locally.
+
+### 2.5 Run the tutorial (detailed)
+
+Follow the end-to-end tutorial for the e-commerce example to understand connectors, transformations, and pipeline execution.
+
+Prerequisites:
+
+- Stack running locally (recommended: `bash scripts/dev-up.sh` which waits for backend health)
+- Default local credentials: `admin` / `password`
+
+Option A — CLI (fastest):
+
+```bash
+bash scripts/load-example.sh
+```
+
+What this does:
+
+- Creates two file connectors that point to sample JSON under `uploads/examples/ecommerce/`
+- Provisions a pipeline named "E-commerce Orders Unification (Example)"
+- Triggers the pipeline once and writes `uploads/examples/ecommerce/unified_orders.json`
+
+Option B — In-app (dev-only UI):
+
+1. Sign in at <http://localhost:3000>
+2. Open the "Example Data" page: <http://localhost:3000/example-data>
+3. Click "Create example now" to provision connectors + pipeline and execute a run
+
+Where to verify:
+
+- Pipelines: open `/pipelines` and locate "E-commerce Orders Unification (Example)"; view execution history
+- Files: open `/files` to preview `unified_orders.json`
+
+For a narrative walkthrough and screenshots, see `docs/tutorial/example-ecommerce.md`.
+
+### 2.6 Example data and end-to-end loaders
+
+This repository includes a small example dataset and a loader script for quick demos.
+
+Locations:
+
+- Example sources: `uploads/examples/ecommerce/` (Shopify and WooCommerce sample orders)
+- Unified output: `uploads/examples/ecommerce/unified_orders.json`
+- Loader script: `scripts/load-example.sh`
+
+What the loader creates:
+
+- Connectors: two file connectors that read the sample JSON files
+- Pipeline: "E-commerce Orders Unification (Example)" that merges and standardizes orders
+- Execution: triggers one run and writes the unified output file
+
+UI access (development only):
+
+- A sidebar link "Example Data" is shown when running locally to provision the same example from the browser
+- This link is controlled by an environment flag (e.g., `NEXT_PUBLIC_SHOW_EXAMPLE_DATA`) and is disabled/hidden in production
+
+Tips:
+
+- Re-run the loader to trigger additional executions; you can manage or remove resources from the UI if needed
+- After running, explore the pipeline definition and connectors in the UI to learn the configuration structure
 
 ## 3. Installation and Deployment
 
