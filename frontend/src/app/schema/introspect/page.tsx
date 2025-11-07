@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { SchemaTree } from '@/components/schema/schema-tree';
 import { Database, FileJson, Table, Save, Search } from 'lucide-react';
 

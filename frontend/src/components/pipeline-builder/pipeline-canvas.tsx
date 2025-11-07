@@ -30,21 +30,18 @@ const nodeTypes = {
   destination: DestinationNode
 };
 
+
 interface PipelineCanvasProps {
-  initialNodes?: Node[];
-  initialEdges?: Edge[];
+  nodes: Node[];
+  edges: Edge[];
+  onNodesChange: (changes: any) => void;
+  onEdgesChange: (changes: any) => void;
   onSave?: (nodes: Node[], edges: Edge[]) => void;
   readOnly?: boolean;
 }
 
-export function PipelineCanvas({
-  initialNodes = [],
-  initialEdges = [],
-  onSave,
-  readOnly = false
-}: PipelineCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+export function PipelineCanvas(props: PipelineCanvasProps) {
+  const { nodes, edges, onNodesChange, onEdgesChange, onSave, readOnly = false } = props;
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -52,9 +49,10 @@ export function PipelineCanvas({
   const onConnect = useCallback(
     (params: Connection) => {
       if (readOnly) return;
-      setEdges((eds) => addEdge(params, eds));
+      // React Flow expects onEdgesChange to receive a change array, not an updater
+      onEdgesChange([{ type: 'add', item: { ...params, id: `${params.source}-${params.target}` } }]);
     },
-    [setEdges, readOnly]
+    [onEdgesChange, readOnly]
   );
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -76,12 +74,12 @@ export function PipelineCanvas({
       const result = await pipelineBuilderService.validatePipeline(nodes, edges);
 
       setValidationResult({
-        valid: result.valid,
+        valid: result.is_valid,
         errors: result.errors || []
       });
 
       // Auto-hide success message after 3 seconds
-      if (result.valid) {
+      if (result.is_valid) {
         setTimeout(() => setValidationResult(null), 3000);
       }
     } catch (error: any) {
@@ -95,7 +93,7 @@ export function PipelineCanvas({
   }, [nodes, edges]);
 
   const handleConfigSave = useCallback((nodeId: string, config: any) => {
-    setNodes((nds) =>
+    onNodesChange((nds: Node[]) =>
       nds.map((node) => {
         if (node.id === nodeId) {
           return {
@@ -110,7 +108,7 @@ export function PipelineCanvas({
         return node;
       })
     );
-  }, [setNodes]);
+  }, [onNodesChange]);
 
   const handleCloseConfig = useCallback(() => {
     setSelectedNode(null);
@@ -118,9 +116,9 @@ export function PipelineCanvas({
 
   const handleAutoLayout = useCallback(() => {
     const layouted = getLayoutedElements(nodes, edges, 'LR');
-    setNodes(layouted.nodes);
-    setEdges(layouted.edges);
-  }, [nodes, edges, setNodes, setEdges]);
+    onNodesChange(layouted.nodes);
+    onEdgesChange(layouted.edges);
+  }, [nodes, edges, onNodesChange, onEdgesChange]);
 
   return (
     <div className="h-full w-full">

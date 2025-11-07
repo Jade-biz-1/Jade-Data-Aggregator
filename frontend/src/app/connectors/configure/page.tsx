@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DynamicForm } from '@/components/forms/DynamicForm';
 import { Database, Globe, Cloud, FileText, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -55,7 +55,7 @@ const ConnectorConfigPage = () => {
 
       if (validation.is_valid) {
         // Save connector
-        const response = await api.post('/connectors/', {
+        const response = await api.post('/connectors', {
           name: values.name || `${selectedType} Connector`,
           connector_type: selectedType,
           config: values,

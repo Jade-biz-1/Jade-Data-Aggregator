@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { SchemaTree } from '@/components/schema/schema-tree';
 import { FieldMapper } from '@/components/schema/field-mapper';
 import {

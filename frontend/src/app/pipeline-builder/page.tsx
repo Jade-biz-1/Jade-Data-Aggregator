@@ -10,7 +10,7 @@ import { ExecutionPanel } from '@/components/pipeline-builder/ExecutionPanel';
 import { TemplateBrowserModal } from '@/components/pipeline-builder/TemplateBrowserModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Node, Edge } from 'reactflow';
+import { Node, Edge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
 import { pipelineBuilderService } from '@/services/pipelineBuilderService';
 import useToast from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/ToastContainer';
@@ -87,12 +87,19 @@ export default function PipelineBuilderPage() {
           [`${type}Type`]: subtype
         }
       };
-
       setNodes((nds) => [...nds, newNode]);
       setNodeIdCounter((c) => c + 1);
     },
     [nodeIdCounter]
   );
+
+  // React Flow expects onNodesChange/onEdgesChange handlers
+  const handleNodesChange = useCallback((changes) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
+  const handleEdgesChange = useCallback((changes) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+  }, []);
 
   const handleSave = useCallback(async (savedNodes: Node[], savedEdges: Edge[]) => {
     // Check if pipeline has a name
@@ -292,8 +299,10 @@ export default function PipelineBuilderPage() {
           {/* Canvas Area */}
           <div className="flex-1 bg-gray-50">
             <PipelineCanvas
-              initialNodes={nodes}
-              initialEdges={edges}
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={handleNodesChange}
+              onEdgesChange={handleEdgesChange}
               onSave={handleSave}
             />
           </div>

@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+// Removed Label import; use inline <label> instead
+import { Select, Textarea } from '../../ui';
 import { apiClient } from '@/lib/api';
 
 interface SourceNodeConfigProps {
@@ -41,7 +40,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="connector">Database Connector</Label>
+          <label htmlFor="connector" className="block text-sm font-medium text-gray-700 mb-1">Database Connector</label>
           <select
             id="connector"
             value={config.connector_id || ''}
@@ -58,7 +57,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         </div>
 
         <div>
-          <Label htmlFor="query_type">Query Type</Label>
+          <label htmlFor="query_type" className="block text-sm font-medium text-gray-700 mb-1">Query Type</label>
           <select
             id="query_type"
             value={config.query_type || 'table'}
@@ -72,7 +71,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
 
         {config.query_type === 'table' ? (
           <div>
-            <Label htmlFor="table_name">Table Name</Label>
+            <label htmlFor="table_name" className="block text-sm font-medium text-gray-700 mb-1">Table Name</label>
             <Input
               id="table_name"
               type="text"
@@ -83,11 +82,11 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
           </div>
         ) : (
           <div>
-            <Label htmlFor="query">SQL Query</Label>
+            <label htmlFor="query" className="block text-sm font-medium text-gray-700 mb-1">SQL Query</label>
             <Textarea
               id="query"
               value={config.query || ''}
-              onChange={(e) => updateConfig('query', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateConfig('query', e.target.value)}
               placeholder="SELECT * FROM table WHERE ..."
               rows={4}
             />
@@ -95,7 +94,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         )}
 
         <div>
-          <Label htmlFor="batch_size">Batch Size (optional)</Label>
+          <label htmlFor="batch_size" className="block text-sm font-medium text-gray-700 mb-1">Batch Size (optional)</label>
           <Input
             id="batch_size"
             type="number"
@@ -114,7 +113,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="endpoint">API Endpoint</Label>
+          <label htmlFor="endpoint" className="block text-sm font-medium text-gray-700 mb-1">API Endpoint</label>
           <Input
             id="endpoint"
             type="url"
@@ -125,7 +124,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         </div>
 
         <div>
-          <Label htmlFor="method">HTTP Method</Label>
+          <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
           <select
             id="method"
             value={config.method || 'GET'}
@@ -138,7 +137,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         </div>
 
         <div>
-          <Label htmlFor="auth_type">Authentication</Label>
+          <label htmlFor="auth_type" className="block text-sm font-medium text-gray-700 mb-1">Authentication</label>
           <select
             id="auth_type"
             value={config.auth_type || 'none'}
@@ -154,7 +153,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
 
         {config.auth_type === 'bearer' && (
           <div>
-            <Label htmlFor="bearer_token">Bearer Token</Label>
+            <label htmlFor="bearer_token" className="block text-sm font-medium text-gray-700 mb-1">Bearer Token</label>
             <Input
               id="bearer_token"
               type="password"
@@ -168,7 +167,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         {config.auth_type === 'api_key' && (
           <>
             <div>
-              <Label htmlFor="api_key_header">API Key Header</Label>
+              <label htmlFor="api_key_header" className="block text-sm font-medium text-gray-700 mb-1">API Key Header</label>
               <Input
                 id="api_key_header"
                 type="text"
@@ -178,7 +177,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
               />
             </div>
             <div>
-              <Label htmlFor="api_key_value">API Key Value</Label>
+              <label htmlFor="api_key_value" className="block text-sm font-medium text-gray-700 mb-1">API Key Value</label>
               <Input
                 id="api_key_value"
                 type="password"
@@ -191,11 +190,11 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         )}
 
         <div>
-          <Label htmlFor="headers">Additional Headers (JSON)</Label>
+          <label htmlFor="headers" className="block text-sm font-medium text-gray-700 mb-1">Additional Headers (JSON)</label>
           <Textarea
             id="headers"
             value={config.headers || ''}
-            onChange={(e) => updateConfig('headers', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateConfig('headers', e.target.value)}
             placeholder='{"Content-Type": "application/json"}'
             rows={3}
           />
@@ -210,7 +209,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="file_path">File Path</Label>
+          <label htmlFor="file_path" className="block text-sm font-medium text-gray-700 mb-1">File Path</label>
           <Input
             id="file_path"
             type="text"
@@ -219,9 +218,8 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
             placeholder="/path/to/file.csv"
           />
         </div>
-
         <div>
-          <Label htmlFor="format">File Format</Label>
+          <label htmlFor="format" className="block text-sm font-medium text-gray-700 mb-1">File Format</label>
           <select
             id="format"
             value={config.format || 'csv'}
@@ -238,7 +236,7 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         {config.format === 'csv' && (
           <>
             <div>
-              <Label htmlFor="delimiter">Delimiter</Label>
+              <label htmlFor="delimiter" className="block text-sm font-medium text-gray-700 mb-1">Delimiter</label>
               <Input
                 id="delimiter"
                 type="text"
@@ -249,23 +247,21 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
               />
             </div>
 
-            <div>
-              <Label htmlFor="has_header">
-                <input
-                  id="has_header"
-                  type="checkbox"
-                  checked={config.has_header !== false}
-                  onChange={(e) => updateConfig('has_header', e.target.checked)}
-                  className="mr-2"
-                />
-                First row is header
-              </Label>
+            <div className="flex items-center">
+              <input
+                id="has_header"
+                type="checkbox"
+                checked={config.has_header !== false}
+                onChange={(e) => updateConfig('has_header', e.target.checked)}
+                className="mr-2"
+              />
+              <label htmlFor="has_header" className="text-sm font-medium text-gray-700">First row is header</label>
             </div>
           </>
         )}
 
         <div>
-          <Label htmlFor="encoding">Encoding</Label>
+          <label htmlFor="encoding" className="block text-sm font-medium text-gray-700 mb-1">Encoding</label>
           <select
             id="encoding"
             value={config.encoding || 'utf-8'}

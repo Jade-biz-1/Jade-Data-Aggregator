@@ -33,23 +33,43 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
+
   useEffect(() => {
     fetchSchema();
   }, [connectorType]);
 
+  const getAccessToken = () => {
+    if (typeof document !== 'undefined') {
+      return document.cookie
+        .split('; ')
+        .find(row => row.startsWith('access_token='))
+        ?.split('=')[1];
+    }
+    return undefined;
+  };
+
   const fetchSchema = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const token = getAccessToken();
 
-      const response = await fetch(
-        `${baseUrl}/api/v1/configuration/schemas/${connectorType}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      // Remove trailing slash
+      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+      // Remove /api/v1 if already present
+      let url = '';
+      if (baseUrl.endsWith('/api/v1')) {
+        url = `${baseUrl}/configuration/schemas/${connectorType}`;
+      } else {
+        url = `${baseUrl}/api/v1/configuration/schemas/${connectorType}`;
+      }
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url, { headers });
 
       if (response.ok) {
         const data = await response.json();
@@ -152,24 +172,40 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         await onTest(formValues);
       } else {
         // Default test implementation
-        const token = localStorage.getItem('token');
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
+        // Use the same token extraction as fetchSchema
+        let token;
+        if (typeof document !== 'undefined') {
+          token = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('access_token='))
+            ?.split('=')[1];
+        }
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        // Remove /api/v1 if already present
+        let url = '';
+        if (baseUrl.endsWith('/api/v1')) {
+          url = `${baseUrl}/configuration/test-connection`;
+        } else {
+          url = `${baseUrl}/api/v1/configuration/test-connection`;
+        }
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
         const response = await fetch(
-          `${baseUrl}/api/v1/configuration/test-connection`,
+          url,
           {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
+            headers,
             body: JSON.stringify({
               connector_type: connectorType,
               configuration: formValues
             })
           }
         );
-
         if (response.ok) {
           const result = await response.json();
           setTestResult(result);
