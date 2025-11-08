@@ -92,14 +92,51 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   };
 
   const handleFieldChange = (name: string, value: any) => {
-    setFormValues(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+    // If the field is file_path and value is a File object, upload it
+    if (name === 'file_path' && value instanceof File) {
+      const uploadFile = async () => {
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        let url = '';
+        if (baseUrl.endsWith('/api/v1')) {
+          url = `${baseUrl}/files/upload`;
+        } else {
+          url = `${baseUrl}/api/v1/files/upload`;
+        }
+        const token = getAccessToken();
+        const formData = new FormData();
+        formData.append('file', value);
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setFormValues(prev => ({ ...prev, [name]: { file: value, file_path: data.file_path } }));
+          } else {
+            setErrors(prev => ({ ...prev, [name]: 'File upload failed' }));
+          }
+        } catch (err) {
+          setErrors(prev => ({ ...prev, [name]: 'File upload error' }));
+        }
+      };
+      uploadFile();
+    } else {
+      setFormValues(prev => ({ ...prev, [name]: value }));
+      // Clear error for this field
+      if (errors[name]) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
     }
   };
 

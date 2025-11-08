@@ -1,4 +1,5 @@
 from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -21,6 +22,7 @@ class CRUDConnector:
             connector_type=obj_in.connector_type,
             config=obj_in.config,
             is_active=obj_in.is_active,
+            owner_id=obj_in.owner_id,
         )
         db.add(db_obj)
         await db.commit()

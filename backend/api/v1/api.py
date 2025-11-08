@@ -1,13 +1,37 @@
 from fastapi import APIRouter
+
 from backend.api.v1.endpoints import (
-    auth, users, pipelines, connectors, transformations,
-    monitoring, analytics, dashboard, pipeline_execution, websocket, pipeline_builder,
-    analytics_advanced, schema, configuration, pipeline_templates, pipeline_versions, transformation_functions,
-    logs, alerts, search, health, preferences, dashboards, admin, roles, admin_cleanup
+    admin,
+    admin_cleanup,
+    alerts,
+    analytics,
+    analytics_advanced,
+    auth,
+    configuration,
+    connectors,
+    dashboard,
+    dashboards,
+    file_upload,
+    health,
+    logs,
+    monitoring,
+    pipeline_builder,
+    pipeline_execution,
+    pipeline_templates,
+    pipeline_versions,
+    pipelines,
+    preferences,
+    roles,
+    schema,
+    search,
+    transformation_functions,
+    transformations,
+    users,
+    websocket,
 )
 
-
 api_router = APIRouter()
+api_router.include_router(file_upload.router, prefix="/files", tags=["file-upload"])
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(pipelines.router, prefix="/pipelines", tags=["pipelines"])
