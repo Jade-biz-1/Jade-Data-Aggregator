@@ -188,9 +188,9 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
               }`}
             />
             {/* Show selected file name if present */}
-            {value && value.name && (
+            {value && ((value.name) || (value.file && value.file.name)) && (
               <div className="mt-1 text-sm text-gray-700 truncate" data-testid="selected-file-name">
-                Selected file: {value.name}
+                Selected file: {value.name || value.file.name}
               </div>
             )}
           </div>

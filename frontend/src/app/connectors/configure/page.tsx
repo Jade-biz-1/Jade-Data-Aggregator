@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DynamicForm } from '@/components/forms/DynamicForm';
 import { Database, Globe, Cloud, FileText, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
@@ -20,15 +20,36 @@ interface ConnectorType {
 
 const ConnectorConfigPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [connectorTypes, setConnectorTypes] = useState<Record<string, ConnectorType[]>>({});
   const [loading, setLoading] = useState(true);
+  const [editingConnector, setEditingConnector] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const { features, loading: permissionsLoading, error: permissionsError, refresh, currentUser } = usePermissions();
   const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
     fetchConnectorTypes();
+    checkForEditMode();
   }, []);
+
+  const checkForEditMode = async () => {
+    const editId = searchParams.get('edit');
+    if (editId) {
+      try {
+        setIsEditing(true);
+        const response = await api.get(`/connectors/${editId}`);
+        const connector = response.data;
+        setEditingConnector(connector);
+        setSelectedType(connector.connector_type);
+      } catch (err: any) {
+        console.error('Error loading connector for editing:', err);
+        error('Failed to load connector for editing', 'Error');
+        router.push('/connectors');
+      }
+    }
+  };
 
   const fetchConnectorTypes = async () => {
     try {
@@ -54,18 +75,28 @@ const ConnectorConfigPage = () => {
       const validation = validateResponse.data;
 
       if (validation.is_valid) {
-        // Save connector
-        // Get owner_id from currentUser if available
-        const owner_id = currentUser?.id;
-        const response = await api.post('/connectors', {
-          name: values.name || `${selectedType} Connector`,
-          connector_type: selectedType,
-          config: values,
-          is_active: true,
-          ...(owner_id ? { owner_id } : {})
-        });
-
-        success('Connector created successfully', 'Success');
+        if (isEditing && editingConnector) {
+          // Update existing connector
+          await api.put(`/connectors/${editingConnector.id}`, {
+            name: values.name || editingConnector.name,
+            connector_type: selectedType,
+            config: values,
+            is_active: values.is_active !== undefined ? values.is_active : editingConnector.is_active
+          });
+          success('Connector updated successfully', 'Success');
+        } else {
+          // Create new connector
+          // Get owner_id from currentUser if available
+          const owner_id = currentUser?.id;
+          const response = await api.post('/connectors', {
+            name: values.name || `${selectedType} Connector`,
+            connector_type: selectedType,
+            config: values,
+            is_active: true,
+            ...(owner_id ? { owner_id } : {})
+          });
+          success('Connector created successfully', 'Success');
+        }
         router.push('/connectors');
       } else {
         error(`Validation failed: ${validation.errors.join(', ')}`, 'Validation Error');
@@ -120,15 +151,17 @@ const ConnectorConfigPage = () => {
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setSelectedType(null)}
+              onClick={() => isEditing ? router.push('/connectors') : setSelectedType(null)}
               className="p-2 hover:bg-gray-100 rounded-lg"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Configure Connector</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isEditing ? 'Edit Connector' : 'Configure Connector'}
+              </h1>
               <p className="text-gray-600 mt-1">
-                Configure a new {selectedType} connector
+                {isEditing ? `Edit the ${selectedType} connector` : `Configure a new ${selectedType} connector`}
               </p>
             </div>
           </div>
@@ -136,8 +169,9 @@ const ConnectorConfigPage = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <DynamicForm
               connectorType={selectedType}
+              initialValues={isEditing ? editingConnector?.config : {}}
               onSubmit={handleSubmit}
-              submitLabel="Create Connector"
+              submitLabel={isEditing ? "Update Connector" : "Create Connector"}
               showTestButton={true}
             />
           </div>
@@ -151,9 +185,11 @@ const ConnectorConfigPage = () => {
       <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">New Connector</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isEditing ? 'Edit Connector' : 'New Connector'}
+          </h1>
           <p className="text-gray-600 mt-1">
-            Select a connector type to configure
+            {isEditing ? 'Modify the connector configuration' : 'Select a connector type to configure'}
           </p>
         </div>
 

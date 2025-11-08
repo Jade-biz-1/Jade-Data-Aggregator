@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 // Removed Label import; use inline <label> instead
+import { Select } from '../../ui';
 import { apiClient } from '@/lib/api';
 
 interface DestinationNodeConfigProps {
@@ -39,11 +40,10 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
       <div className="space-y-4">
         <div>
           <label htmlFor="connector" className="block text-sm font-medium text-gray-700 mb-1">Database Connector</label>
-          <select
+          <Select
             id="connector"
             value={config.connector_id || ''}
             onChange={(e) => updateConfig('connector_id', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">Select a connector...</option>
             {connectors.map((conn) => (
@@ -51,7 +51,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
                 {conn.name} ({conn.type})
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -67,16 +67,15 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
 
         <div>
           <label htmlFor="write_mode" className="block text-sm font-medium text-gray-700 mb-1">Write Mode</label>
-          <select
+          <Select
             id="write_mode"
             value={config.write_mode || 'insert'}
             onChange={(e) => updateConfig('write_mode', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="insert">Insert (append)</option>
             <option value="upsert">Upsert (insert or update)</option>
             <option value="replace">Replace (truncate and insert)</option>
-          </select>
+          </Select>
         </div>
 
         {config.write_mode === 'upsert' && (
@@ -111,31 +110,29 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
         </div>
         <div>
           <label htmlFor="format" className="block text-sm font-medium text-gray-700 mb-1">File Format</label>
-          <select
+          <Select
             id="format"
             value={config.format || 'csv'}
             onChange={(e) => updateConfig('format', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="csv">CSV</option>
             <option value="json">JSON</option>
             <option value="excel">Excel</option>
             <option value="parquet">Parquet</option>
-          </select>
+          </Select>
         </div>
         <div>
           <label htmlFor="compression" className="block text-sm font-medium text-gray-700 mb-1">Compression</label>
-          <select
+          <Select
             id="compression"
             value={config.compression || 'none'}
             onChange={(e) => updateConfig('compression', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="none">None</option>
             <option value="gzip">GZIP</option>
             <option value="zip">ZIP</option>
             <option value="bz2">BZ2</option>
-          </select>
+          </Select>
         </div>
         <div className="flex items-center">
           <input
@@ -157,11 +154,10 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
       <div className="space-y-4">
         <div>
           <label htmlFor="connector" className="block text-sm font-medium text-gray-700 mb-1">Warehouse Connector</label>
-          <select
+          <Select
             id="connector"
             value={config.connector_id || ''}
             onChange={(e) => updateConfig('connector_id', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">Select a connector...</option>
             {connectors.map((conn) => (
@@ -169,7 +165,7 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
                 {conn.name} ({conn.type})
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -225,16 +221,15 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
 
         <div>
           <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
-          <select
+          <Select
             id="method"
             value={config.method || 'POST'}
             onChange={(e) => updateConfig('method', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="POST">POST</option>
             <option value="PUT">PUT</option>
             <option value="PATCH">PATCH</option>
-          </select>
+          </Select>
         </div>
 
         <div>

@@ -2,7 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 // Removed Label import; use inline <label> instead
-import { Textarea } from '../../ui';
+import { Select, Textarea } from '../../ui';
 
 interface TransformationNodeConfigProps {
   config: any;
@@ -35,15 +35,14 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
 
         <div>
           <label htmlFor="filter_type" className="block text-sm font-medium text-gray-700 mb-1">Filter Type</label>
-          <select
+          <Select
             id="filter_type"
             value={config.filter_type || 'include'}
             onChange={(e) => updateConfig('filter_type', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="include">Include matching records</option>
             <option value="exclude">Exclude matching records</option>
-          </select>
+          </Select>
         </div>
       </div>
     );
@@ -129,15 +128,14 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
 
         <div>
           <label htmlFor="order" className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
-          <select
+          <Select
             id="order"
             value={config.order || 'asc'}
             onChange={(e) => updateConfig('order', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
-          </select>
+          </Select>
         </div>
       </div>
     );
@@ -160,17 +158,16 @@ export function TransformationNodeConfig({ config, onChange, subtype }: Transfor
 
         <div>
           <label htmlFor="join_type" className="block text-sm font-medium text-gray-700 mb-1">Join Type</label>
-          <select
+          <Select
             id="join_type"
             value={config.join_type || 'inner'}
             onChange={(e) => updateConfig('join_type', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="inner">Inner Join</option>
             <option value="left">Left Join</option>
             <option value="right">Right Join</option>
             <option value="outer">Outer Join</option>
-          </select>
+          </Select>
         </div>
       </div>
     );

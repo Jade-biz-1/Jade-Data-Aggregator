@@ -41,11 +41,10 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
       <div className="space-y-4">
         <div>
           <label htmlFor="connector" className="block text-sm font-medium text-gray-700 mb-1">Database Connector</label>
-          <select
+          <Select
             id="connector"
             value={config.connector_id || ''}
             onChange={(e) => updateConfig('connector_id', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="">Select a connector...</option>
             {connectors.map((conn) => (
@@ -53,20 +52,19 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
                 {conn.name} ({conn.type})
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
           <label htmlFor="query_type" className="block text-sm font-medium text-gray-700 mb-1">Query Type</label>
-          <select
+          <Select
             id="query_type"
             value={config.query_type || 'table'}
             onChange={(e) => updateConfig('query_type', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="table">Table</option>
             <option value="query">Custom Query</option>
-          </select>
+          </Select>
         </div>
 
         {config.query_type === 'table' ? (
@@ -125,30 +123,28 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
 
         <div>
           <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
-          <select
+          <Select
             id="method"
             value={config.method || 'GET'}
             onChange={(e) => updateConfig('method', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="GET">GET</option>
             <option value="POST">POST</option>
-          </select>
+          </Select>
         </div>
 
         <div>
           <label htmlFor="auth_type" className="block text-sm font-medium text-gray-700 mb-1">Authentication</label>
-          <select
+          <Select
             id="auth_type"
             value={config.auth_type || 'none'}
             onChange={(e) => updateConfig('auth_type', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="none">None</option>
             <option value="bearer">Bearer Token</option>
             <option value="api_key">API Key</option>
             <option value="basic">Basic Auth</option>
-          </select>
+          </Select>
         </div>
 
         {config.auth_type === 'bearer' && (
@@ -220,17 +216,16 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
         </div>
         <div>
           <label htmlFor="format" className="block text-sm font-medium text-gray-700 mb-1">File Format</label>
-          <select
+          <Select
             id="format"
             value={config.format || 'csv'}
             onChange={(e) => updateConfig('format', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="csv">CSV</option>
             <option value="json">JSON</option>
             <option value="excel">Excel</option>
             <option value="parquet">Parquet</option>
-          </select>
+          </Select>
         </div>
 
         {config.format === 'csv' && (
@@ -262,16 +257,15 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
 
         <div>
           <label htmlFor="encoding" className="block text-sm font-medium text-gray-700 mb-1">Encoding</label>
-          <select
+          <Select
             id="encoding"
             value={config.encoding || 'utf-8'}
             onChange={(e) => updateConfig('encoding', e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
           >
             <option value="utf-8">UTF-8</option>
             <option value="latin1">Latin-1</option>
             <option value="ascii">ASCII</option>
-          </select>
+          </Select>
         </div>
       </div>
     );
