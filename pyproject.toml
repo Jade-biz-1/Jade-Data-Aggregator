@@ -36,6 +36,7 @@ structlog = "^25.4.0"
 python-json-logger = "^3.3.0"
 prometheus-client = "^0.23.1"
 psutil = "^7.1.0"
+pymysql = "^1.1.0"
 
 # Required for FastAPI/Uvicorn WebSocket support
 websockets = "^11.0.3"

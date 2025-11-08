@@ -193,7 +193,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       return;
     }
 
-    await onSubmit(formValues);
+    // If file_path is an object, replace with its file_path string
+    const submitValues = { ...formValues };
+    if (submitValues.file_path && typeof submitValues.file_path === 'object' && submitValues.file_path.file_path) {
+      submitValues.file_path = submitValues.file_path.file_path;
+    }
+    await onSubmit(submitValues);
   };
 
   const handleTest = async () => {
@@ -205,8 +210,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     setTestResult(null);
 
     try {
+      // If file_path is an object, replace with its file_path string
+      const testValues = { ...formValues };
+      if (testValues.file_path && typeof testValues.file_path === 'object' && testValues.file_path.file_path) {
+        testValues.file_path = testValues.file_path.file_path;
+      }
       if (onTest) {
-        await onTest(formValues);
+        await onTest(testValues);
       } else {
         // Default test implementation
         // Use the same token extraction as fetchSchema
@@ -239,7 +249,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             headers,
             body: JSON.stringify({
               connector_type: connectorType,
-              configuration: formValues
+              configuration: testValues
             })
           }
         );

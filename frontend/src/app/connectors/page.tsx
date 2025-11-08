@@ -82,8 +82,7 @@ export default function ConnectorsPage() {
 
   const handleEditConnector = (id: number) => {
     // Navigate to edit connector page
-    console.log(`Editing connector ${id}`);
-    // TODO: Implement navigation to /connectors/${id}/edit
+    router.push(`/connectors/configure?edit=${id}`);
   };
 
   const handleDeleteConnector = async (id: number) => {
