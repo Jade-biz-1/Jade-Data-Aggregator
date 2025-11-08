@@ -23,7 +23,7 @@ const ConnectorConfigPage = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [connectorTypes, setConnectorTypes] = useState<Record<string, ConnectorType[]>>({});
   const [loading, setLoading] = useState(true);
-  const { features, loading: permissionsLoading } = usePermissions();
+  const { features, loading: permissionsLoading, error: permissionsError, refresh, currentUser } = usePermissions();
   const { toasts, error, success, warning } = useToast();
 
   useEffect(() => {
@@ -55,11 +55,14 @@ const ConnectorConfigPage = () => {
 
       if (validation.is_valid) {
         // Save connector
+        // Get owner_id from currentUser if available
+        const owner_id = currentUser?.id;
         const response = await api.post('/connectors', {
           name: values.name || `${selectedType} Connector`,
           connector_type: selectedType,
           config: values,
-          is_active: true
+          is_active: true,
+          ...(owner_id ? { owner_id } : {})
         });
 
         success('Connector created successfully', 'Success');

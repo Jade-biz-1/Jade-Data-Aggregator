@@ -96,6 +96,7 @@ export function usePermissions() {
   const [devWarning, setDevWarning] = useState<DeveloperRoleWarning>({ isActive: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const buildApiUrl = (path: string) => {
     const envBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
@@ -140,12 +141,13 @@ export function usePermissions() {
         throw new Error('Failed to fetch session information');
       }
 
-      const sessionData = await sessionResponse.json();
+  const sessionData = await sessionResponse.json();
 
-      // Set all data from single response
-      setPermissions(sessionData.permissions);
-      setNavigation(sessionData.navigation);
-      setFeatures(sessionData.features);
+  // Set all data from single response
+  setPermissions(sessionData.permissions);
+  setNavigation(sessionData.navigation);
+  setFeatures(sessionData.features);
+  setCurrentUser(sessionData.user);
 
       // Check for developer role warning
       // Only check developer role warning if user is developer AND has system.settings permission (admin-like)
@@ -278,6 +280,7 @@ export function usePermissions() {
     devWarning,
     loading,
     error,
+    currentUser,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
