@@ -2,7 +2,19 @@ import axios from 'axios';
 import { Pipeline } from '@/types/pipeline';
 import { Connector } from '@/types/connector';
 import { User } from '@/types/user';
-import { Transformation } from '@/types/transformation';
+import {
+  DashboardStats,
+  DashboardRecentActivity,
+  DashboardTimeSeriesPoint
+} from '@/types';
+import { Transformation, TransformationMetricsResponse } from '@/types/transformation';
+import {
+  SchemaDefinition,
+  SchemaMappingCreateResponse,
+  SchemaFieldMapping,
+  SchemaMappingValidationResult,
+  SchemaMappingCodeResponse
+} from '@/types/schema';
 
 // Base API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
@@ -61,6 +73,13 @@ api.interceptors.response.use(
 
 interface ApiError {
   detail: string;
+}
+
+interface CreateSchemaMappingPayload {
+  name: string;
+  source_schema_id: number;
+  destination_schema_id: number;
+  auto_generate?: boolean;
 }
 
 class ApiClient {
@@ -232,8 +251,58 @@ class ApiClient {
     });
   }
 
+  async testTransformation(id: number, payload: Record<string, unknown>): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/transformations/${id}/test`, {
+      method: 'POST',
+      body: JSON.stringify(payload ?? {}),
+    });
+  }
+
+  async getTransformationMetrics(): Promise<TransformationMetricsResponse> {
+    return this.request<TransformationMetricsResponse>('/transformations/metrics');
+  }
+
+  // Schema methods
+  async getSchemas(): Promise<SchemaDefinition[]> {
+    const response = await this.request<{ schemas: SchemaDefinition[] }>('/schema/schemas');
+    return response.schemas || [];
+  }
+
+  async getSchema(schemaId: number): Promise<SchemaDefinition> {
+    return this.request<SchemaDefinition>(`/schema/schemas/${schemaId}`);
+  }
+
+  async createSchemaMapping(payload: CreateSchemaMappingPayload): Promise<SchemaMappingCreateResponse> {
+    return this.request<SchemaMappingCreateResponse>('/schema/mappings', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateSchemaMappingFields(mappingId: number, fieldMappings: SchemaFieldMapping[]): Promise<{ message: string; field_count: number }> {
+    return this.request<{ message: string; field_count: number }>(`/schema/mappings/${mappingId}/fields`, {
+      method: 'PUT',
+      body: JSON.stringify(fieldMappings),
+    });
+  }
+
+  async validateSchemaMapping(mappingId: number): Promise<SchemaMappingValidationResult> {
+    return this.request<SchemaMappingValidationResult>(`/schema/mappings/${mappingId}/validate`, {
+      method: 'POST',
+    });
+  }
+
+  async generateSchemaMappingCode(mappingId: number, language: 'python' | 'sql' = 'python'): Promise<SchemaMappingCodeResponse> {
+    return this.request<SchemaMappingCodeResponse>(`/schema/mappings/${mappingId}/generate-code?language=${language}`, {
+      method: 'POST',
+    });
+  }
+
   // Pipeline Execution methods - NEW
-  async executePipeline(pipelineId: number, executionConfig?: any): Promise<any> {
+  async executePipeline(
+    pipelineId: number,
+    executionConfig?: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     return this.request(`/pipelines/${pipelineId}/execute`, {
       method: 'POST',
       body: JSON.stringify({
@@ -244,65 +313,65 @@ class ApiClient {
     });
   }
 
-  async getPipelineRuns(pipelineId: number): Promise<any[]> {
+  async getPipelineRuns(pipelineId: number): Promise<Record<string, unknown>[]> {
     return this.request(`/pipelines/${pipelineId}/runs`);
   }
 
-  async getPipelineRun(runId: number): Promise<any> {
+  async getPipelineRun(runId: number): Promise<Record<string, unknown>> {
     return this.request(`/pipelines/runs/${runId}`);
   }
 
-  async cancelPipelineRun(runId: number): Promise<any> {
+  async cancelPipelineRun(runId: number): Promise<Record<string, unknown>> {
     return this.request(`/pipelines/runs/${runId}/cancel`, {
       method: 'POST',
     });
   }
 
-  async getAllRecentRuns(): Promise<any[]> {
+  async getAllRecentRuns(): Promise<Record<string, unknown>[]> {
     return this.request(`/pipelines/runs`);
   }
 
   // Monitoring methods - Now using real API endpoints
-  async getPipelineStats(): Promise<any> {
-    return this.request<any>('/monitoring/pipeline-stats');
+  async getPipelineStats(): Promise<Record<string, unknown>> {
+    return this.request('/monitoring/pipeline-stats');
   }
 
-  async getRecentAlerts(): Promise<any[]> {
-    return this.request<any[]>('/monitoring/alerts');
+  async getRecentAlerts(): Promise<Record<string, unknown>[]> {
+    return this.request('/monitoring/alerts');
   }
 
-  async getPipelinePerformance(): Promise<any[]> {
-    return this.request<any[]>('/monitoring/pipeline-performance');
+  async getPipelinePerformance(): Promise<Record<string, unknown>[]> {
+    return this.request('/monitoring/pipeline-performance');
   }
 
   // Analytics methods - Now using real API endpoints
-  async getAnalyticsData(): Promise<any> {
-    return this.request<any>('/analytics/data');
+  async getAnalyticsData(): Promise<Record<string, unknown>> {
+    return this.request('/analytics/data');
   }
 
-  async getTimeSeriesData(): Promise<any[]> {
-    return this.request<any[]>('/analytics/timeseries');
+  async getTimeSeriesData(): Promise<DashboardTimeSeriesPoint[]> {
+    return this.request('/analytics/timeseries');
   }
 
-  async getTopPipelines(): Promise<any[]> {
-    return this.request<any[]>('/analytics/top-pipelines');
+  async getTopPipelines(): Promise<Record<string, unknown>[]> {
+    return this.request('/analytics/top-pipelines');
   }
 
   // Dashboard methods - New real API endpoints
-  async getDashboardStats(): Promise<any> {
-    return this.request<any>('/dashboard/stats');
+  async getDashboardStats(): Promise<DashboardStats> {
+    return this.request<DashboardStats>('/dashboard/stats');
   }
 
-  async getRecentActivity(): Promise<any[]> {
-    return this.request<any[]>('/dashboard/recent-activity');
+  async getRecentActivity(): Promise<DashboardRecentActivity[]> {
+    return this.request('/dashboard/recent-activity');
   }
 
-  async getSystemStatus(): Promise<any> {
-    return this.request<any>('/dashboard/system-status');
+  async getSystemStatus(): Promise<Record<string, unknown>> {
+    return this.request('/dashboard/system-status');
   }
 
-  async getPerformanceMetrics(): Promise<any> {
-    return this.request<any>('/dashboard/performance-metrics');
+  async getPerformanceMetrics(): Promise<Record<string, unknown>> {
+    return this.request('/dashboard/performance-metrics');
   }
 
   // Users management methods - Now using real API endpoints
@@ -380,7 +449,7 @@ class ApiClient {
     action?: string;
     start_date?: string;
     end_date?: string;
-  }): Promise<any[]> {
+  }): Promise<Record<string, unknown>[]> {
     const queryParams = new URLSearchParams();
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
@@ -398,7 +467,7 @@ class ApiClient {
     action?: string;
     start_date?: string;
     end_date?: string;
-  }): Promise<any[]> {
+  }): Promise<Record<string, unknown>[]> {
     const queryParams = new URLSearchParams();
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());

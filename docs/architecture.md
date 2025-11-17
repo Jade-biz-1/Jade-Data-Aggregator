@@ -453,7 +453,7 @@ frontend/src/
 │   ├── connectors/         # Connector management interface
 │   ├── dashboard/          # Main dashboard with real-time metrics
 │   ├── docs/               # Documentation viewer
-│   ├── monitoring/         # System monitoring dashboard
+│   ├── platform/monitoring/ # System monitoring dashboard
 │   ├── pipelines/          # Pipeline management interface
 │   ├── settings/           # User and system settings
 │   ├── transformations/    # Data transformation management
@@ -532,7 +532,7 @@ frontend/src/components/
 │   │   └── AggregateFunction.tsx # Data aggregation
 │   └── preview/            # Transformation preview
 │       └── TransformationPreview.tsx
-├── monitoring/             # Advanced monitoring
+├── platform/monitoring/     # Advanced monitoring
 │   ├── SystemHealthDashboard.tsx # System status
 │   ├── PerformanceTrends.tsx     # Performance analytics
 │   ├── AlertManager.tsx          # Alert management

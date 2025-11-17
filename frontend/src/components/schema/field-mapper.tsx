@@ -1,28 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowRight, Trash2, Plus, Wand2, Check, X } from 'lucide-react';
-
-interface SchemaField {
-  name: string;
-  data_type: string;
-  nullable?: boolean;
-}
-
-interface FieldMapping {
-  source_field?: string;
-  destination_field: string;
-  mapping_type: string;
-  transformation?: any;
-  description?: string;
-}
+import { ArrowRight, Wand2, Check, X } from 'lucide-react';
+import type { SchemaField, SchemaFieldMapping } from '@/types/schema';
 
 interface FieldMapperProps {
   sourceFields: SchemaField[];
   destinationFields: SchemaField[];
-  mappings: FieldMapping[];
-  onMappingsChange: (mappings: FieldMapping[]) => void;
+  mappings: SchemaFieldMapping[];
+  onMappingsChange: (mappings: SchemaFieldMapping[]) => void;
   onAutoGenerate?: () => void;
+  isGenerating?: boolean;
 }
 
 export const FieldMapper: React.FC<FieldMapperProps> = ({
@@ -30,11 +18,12 @@ export const FieldMapper: React.FC<FieldMapperProps> = ({
   destinationFields,
   mappings,
   onMappingsChange,
-  onAutoGenerate
+  onAutoGenerate,
+  isGenerating = false
 }) => {
   const [selectedDestField, setSelectedDestField] = useState<string | null>(null);
 
-  const getMappingForDestField = (destFieldName: string): FieldMapping | undefined => {
+  const getMappingForDestField = (destFieldName: string): SchemaFieldMapping | undefined => {
     return mappings.find(m => m.destination_field === destFieldName);
   };
 
@@ -73,10 +62,15 @@ export const FieldMapper: React.FC<FieldMapperProps> = ({
         <h3 className="text-lg font-semibold text-gray-900">Field Mappings</h3>
         <button
           onClick={onAutoGenerate}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+          disabled={isGenerating}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 text-white ${
+            isGenerating
+              ? 'bg-purple-400 cursor-not-allowed'
+              : 'bg-purple-600 hover:bg-purple-700'
+          }`}
         >
-          <Wand2 className="w-4 h-4" />
-          Auto-Generate
+          <Wand2 className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+          {isGenerating ? 'Generating...' : 'Auto-Generate'}
         </button>
       </div>
 

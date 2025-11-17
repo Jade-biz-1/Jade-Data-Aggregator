@@ -14,8 +14,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./infrastructure/prometheus/rules:/etc/prometheus/rules:ro
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -52,8 +52,8 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
@@ -74,7 +74,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./infrastructure/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
@@ -174,7 +174,7 @@ services:
     ports:
       - "9115:9115"
     volumes:
-      - ./infrastructure/blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+      - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
     command:
       - '--config.file=/etc/blackbox/blackbox.yml'
     networks:
@@ -191,7 +191,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./infrastructure/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -210,7 +210,7 @@ services:
     container_name: data-aggregator-promtail
     restart: unless-stopped
     volumes:
-      - ./infrastructure/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     command: -config.file=/etc/promtail/config.yml

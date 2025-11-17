@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, type ComponentType } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart } from '@/components/charts';
@@ -11,26 +11,42 @@ import {
   ArrowUpRight,
   Database,
   GitBranch,
-  TrendingUp,
-  Users
+  TrendingUp
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import useToast from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/ToastContainer';
+import type {
+  DashboardStats,
+  DashboardRecentActivity,
+  DashboardTimeSeriesPoint
+} from '@/types';
 
 function StatCard({ 
   title, 
   value, 
-  change, 
+  changePercent, 
   icon: Icon, 
-  trend = 'up' 
+  direction = 'up' 
 }: { 
   title: string; 
-  value: string | number; 
-  change?: string; 
-  icon: any; 
-  trend?: 'up' | 'down';
+  value: number; 
+  changePercent?: number; 
+  icon: ComponentType<{ className?: string }>; 
+  direction?: 'up' | 'down';
 }) {
+  const formattedValue = useMemo(() => value.toLocaleString(), [value]);
+  const showChange = typeof changePercent === 'number';
+  const magnitude = showChange ? Math.abs(changePercent as number) : 0;
+  const isNeutral = showChange && magnitude < 0.1;
+  const trendDirection = direction ?? 'up';
+  const trendColor = isNeutral
+    ? 'text-gray-500'
+    : trendDirection === 'down'
+    ? 'text-red-600'
+    : 'text-green-600';
+  const arrowClasses = `h-4 w-4 mr-1 ${trendDirection === 'down' ? 'rotate-180' : ''}`;
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -38,13 +54,11 @@ function StatCard({
         <Icon className="h-4 w-4 text-gray-500" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value.toLocaleString()}</div>
-        {change && (
-          <p className={`text-xs flex items-center mt-1 ${
-            trend === 'up' ? 'text-green-600' : 'text-red-600'
-          }`}>
-            <ArrowUpRight className={`h-4 w-4 mr-1 ${trend === 'down' && 'rotate-180'}`} />
-            {change} from last month
+        <div className="text-2xl font-bold">{formattedValue}</div>
+        {showChange && (
+          <p className={`text-xs flex items-center mt-1 ${trendColor}`}>
+            <ArrowUpRight className={arrowClasses} />
+            {`${magnitude.toFixed(1)}%`} vs previous period
           </p>
         )}
       </CardContent>
@@ -54,10 +68,10 @@ function StatCard({
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [performanceData, setPerformanceData] = useState<any[]>([]);
-  const { toasts, error, success, warning } = useToast();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<DashboardRecentActivity[]>([]);
+  const [performanceData, setPerformanceData] = useState<DashboardTimeSeriesPoint[]>([]);
+  const { toasts, error } = useToast();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -73,9 +87,10 @@ export default function DashboardPage() {
         setStats(statsData);
         setRecentActivity(activityData);
         setPerformanceData(perfData);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching dashboard data:', err);
-        error(err.message || 'Failed to load dashboard data', 'Error');
+        const message = err instanceof Error ? err.message : 'Failed to load dashboard data';
+        error(message, 'Error');
 
         // Set empty/default data instead of mock data
         setStats({
@@ -91,7 +106,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [error]);
 
   if (isLoading) {
     return (
@@ -126,7 +141,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-2 text-gray-600">
-            Welcome back! Here's an overview of your data processing activities.
+            Welcome back! Here&apos;s an overview of your data processing activities.
           </p>
         </div>
 
@@ -135,19 +150,22 @@ export default function DashboardPage() {
           <StatCard
             title="Total Pipelines"
             value={stats?.pipelines?.total || 0}
-            change="+12%"
+            changePercent={stats?.trends?.pipelines?.percent}
+            direction={stats?.trends?.pipelines?.direction || 'up'}
             icon={GitBranch}
           />
           <StatCard
             title="Active Connectors"
             value={stats?.connectors?.active || 0}
-            change="+8%"
+            changePercent={stats?.trends?.connectors?.percent}
+            direction={stats?.trends?.connectors?.direction || 'up'}
             icon={Database}
           />
           <StatCard
             title="Records Processed Today"
             value={stats?.data_processed?.today || 0}
-            change="+23%"
+            changePercent={stats?.trends?.records_processed?.percent}
+            direction={stats?.trends?.records_processed?.direction || 'up'}
             icon={TrendingUp}
           />
           <StatCard

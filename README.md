@@ -89,8 +89,12 @@ dataaggregator/
 │   ├── package.json         # Frontend dependencies
 │   ├── tailwind.config.js   # Tailwind CSS configuration
 │   └── tsconfig.json        # TypeScript configuration
-├── terraform/               # Infrastructure as Code (AWS)
-├── monitoring/              # Monitoring stack (Prometheus, Grafana)
+├── platform/                # Operational assets (infrastructure, backups, IaC)
+│   ├── backups/             # Database backup archives and scripts
+│   ├── infrastructure/      # Docker, monitoring stack, infra utilities
+│   ├── migrations/          # SQL migration scripts
+│   ├── monitoring/          # Standalone Prometheus/Grafana stack
+│   └── terraform/           # Infrastructure as Code (AWS)
 ├── docs/                    # Documentation
 ├── theme/                   # UI theme files
 ├── .github/workflows/       # CI/CD pipelines
@@ -237,8 +241,8 @@ For a complete list of all available environment variables with detailed descrip
 **Environment-Specific Configuration:**
 
 For production and staging deployments, see:
-- `infrastructure/environments/.env.production` - Production template
-- `infrastructure/environments/.env.staging` - Staging template
+- `platform/infrastructure/environments/.env.production` - Production template
+- `platform/infrastructure/environments/.env.staging` - Staging template
 
 These templates include additional production-ready configurations for SSL, backups, Kubernetes, and more.
 
@@ -328,7 +332,7 @@ The frontend follows Next.js 15+ app directory structure with modern React patte
 
 ### Infrastructure Setup with Terraform
 
-The infrastructure is defined in the `terraform/` directory and provisions:
+The infrastructure is defined in the `platform/terraform/` directory and provisions:
 
 - VPC with public and private subnets
 - ECS cluster for running containers
@@ -388,7 +392,7 @@ The platform includes a comprehensive monitoring stack:
 To run the monitoring stack:
 
 ```bash
-cd monitoring
+cd platform/monitoring
 docker-compose -f docker-compose.monitoring.yml up -d
 
 # Access Grafana at http://localhost:3000 (admin/admin)

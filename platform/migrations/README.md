@@ -11,7 +11,7 @@ This directory contains SQL migration scripts for the Data Aggregator Platform.
 psql -U your_username -d your_database_name
 
 # Run the migration
-\i migrations/001_add_system_settings.sql
+\i platform/migrations/001_add_system_settings.sql
 
 # Verify
 SELECT * FROM system_settings;
@@ -20,7 +20,7 @@ SELECT * FROM system_settings;
 ### Using psql from command line
 
 ```bash
-psql "postgresql://user:password@localhost:5432/dbname" < migrations/001_add_system_settings.sql
+psql "postgresql://user:password@localhost:5432/dbname" < platform/migrations/001_add_system_settings.sql
 ```
 
 ### Using Python script
@@ -34,7 +34,7 @@ from pathlib import Path
 
 async def run_migration():
     async with engine.begin() as conn:
-        migration_sql = Path('migrations/001_add_system_settings.sql').read_text()
+        migration_sql = Path('platform/migrations/001_add_system_settings.sql').read_text()
         await conn.execute(migration_sql)
         print('Migration completed successfully')
 

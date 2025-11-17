@@ -2414,7 +2414,7 @@ The platform includes a comprehensive monitoring stack:
 To run the monitoring stack:
 
 ```bash
-cd monitoring
+cd platform/monitoring
 docker-compose -f docker-compose.monitoring.yml up -d
 
 # Access Grafana at http://localhost:3000 (admin/admin)
