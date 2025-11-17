@@ -23,14 +23,19 @@
 ├── backend/                 # FastAPI services
 ├── frontend/                # Next.js 15 App Router
 ├── docs/                    # Canonical documentation set (architecture, PRD, security, deployment, troubleshooting, tutorial)
-├── infrastructure/, terraform/, monitoring/ # Ops & infra
+├── platform/                # Operational assets (infrastructure, backups, monitoring, IaC)
+│   ├── backups/             # Database backup archives and scripts
+│   ├── infrastructure/      # Docker, monitoring, and ops tooling
+│   ├── migrations/          # SQL migration scripts
+│   ├── monitoring/          # Standalone Prometheus/Grafana stack
+│   └── terraform/           # Infrastructure as Code (AWS)
 ├── IMPLEMENTATION_TASKS.md  # Master roadmap (Phases 1-10)
 ├── CHANGELOG.md             # Chronological change log
 ├── PROJECT_COMPLETION_SUMMARY.md, PHASE_*.md, etc. # Progress write-ups
 └── docker-compose*.yml, Dockerfile(s), pyproject.toml, package.json, README.md
 ```
 
-_Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + frontend suites), `backups/`, `migrations/`, `monitoring/` stack, `docs/archive/` for historical analyses.
+_Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + frontend suites), `platform/backups/`, `platform/migrations/`, `platform/monitoring/` stack, `docs/archive/` for historical analyses.
 
 ## 3. Backend (FastAPI, Python 3.11)
 
@@ -111,10 +116,10 @@ _Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + 
 ## 5. Infrastructure & Operations
 
 - **Docker Compose**: Primary local stack in `docker-compose.yml` exposing PostgreSQL, Redis, Kafka, Zookeeper, backend (FastAPI with autoreload), frontend. Frontend container now targets backend via `localhost:8001` for local development (`NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1`).
-- **Monitoring Stack**: `monitoring/` contains Prometheus, Grafana, Loki, Alertmanager definitions. Additional Compose file `docker-compose.monitoring.yml` for observability.
-- **Terraform**: Provisioning for AWS VPC, ECS, RDS, MSK, ElastiCache, ALB. Deploy instructions in `DEPLOYMENT_GUIDE_COMPLETE.md`, `docs/deployment-guide.md`, `infrastructure/README.md`.
+- **Monitoring Stack**: `platform/monitoring/` contains Prometheus, Grafana, Loki, Alertmanager definitions. Additional Compose file `platform/infrastructure/docker-compose.monitoring.yml` for observability.
+- **Terraform**: Provisioning for AWS VPC, ECS, RDS, MSK, ElastiCache, ALB. Deploy instructions in `DEPLOYMENT_GUIDE_COMPLETE.md`, `docs/deployment-guide.md`, `platform/infrastructure/README.md`.
 - **CI/CD**: GitHub Actions workflows (not inspected here) for lint/test/build/deploy (Implementation doc T019/T020). Docker multi-stage builds in root `Dockerfile` and frontend-specific Dockerfiles.
-- **Backups**: `backups/database/`, `backend/core/init_db.py` handles default admin + dev accounts with toggles (`CREATE_DEV_USER`, `ALLOW_DEV_ROLE_IN_PRODUCTION`, `AUTO_INIT_DB`). Cleanup includes DB backup reminders.
+- **Backups**: `platform/backups/database/`, `backend/core/init_db.py` handles default admin + dev accounts with toggles (`CREATE_DEV_USER`, `ALLOW_DEV_ROLE_IN_PRODUCTION`, `AUTO_INIT_DB`). Cleanup includes DB backup reminders.
 
 ## 6. Documentation & Knowledge Base
 

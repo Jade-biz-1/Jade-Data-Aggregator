@@ -10,3 +10,25 @@ export interface Transformation {
   created_at: string;
   updated_at?: string;
 }
+
+export interface TransformationMetric {
+  transformationId: number;
+  name: string;
+  isActive: boolean;
+  recordsProcessed: number;
+  successRate: number;
+  lastRun: string;
+}
+
+export interface TransformationMetricsSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  recordsProcessed: number;
+  lastUpdated: string;
+}
+
+export interface TransformationMetricsResponse {
+  summary: TransformationMetricsSummary;
+  metrics: TransformationMetric[];
+}

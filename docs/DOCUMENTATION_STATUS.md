@@ -60,7 +60,7 @@
 7. **docs/connectors-guide.md** - Connector configuration guide (per-connector docs)
 8. **docs/pipeline-examples.md** - Pipeline cookbook with examples
 9. **docs/migration-guide.md** - Version migration and upgrade guide
-10. **monitoring/README.md** - Monitoring setup guide (Prometheus/Grafana)
+10. **platform/monitoring/README.md** - Monitoring setup guide (Prometheus/Grafana)
 11. **docs/performance-benchmarks.md** - Performance test results
 12. **docs/testing-guide.md** - Testing strategy and how to run tests
 

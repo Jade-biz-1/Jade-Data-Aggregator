@@ -257,7 +257,7 @@ jobs:
       - name: Deploy with blue-green strategy
         run: |
           # Deploy to green environment
-          kubectl apply -f infrastructure/kubernetes/production/deployment-green.yaml
+          kubectl apply -f platform/infrastructure/kubernetes/production/deployment-green.yaml
 
           # Wait for green deployment to be ready
           kubectl rollout status deployment/dataaggregator-backend-green -n production --timeout=5m
@@ -296,7 +296,7 @@ jobs:
         run: |
           kubectl run migration --rm -i --restart=Never \
             --image=${{ needs.build.outputs.backend_image }} \
-            --env-file=infrastructure/environments/.env.production \
+            --env-file=platform/infrastructure/environments/.env.production \
             -- poetry run alembic upgrade head
 
       - name: Notify Sentry of deployment

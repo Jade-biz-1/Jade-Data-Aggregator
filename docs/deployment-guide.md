@@ -216,7 +216,7 @@ docker-compose exec postgres psql -U postgres -d dataaggregator
 
 **📖 For detailed AWS deployment instructions**, see:
 - [Main README - AWS Section](../README.md#deployment)
-- Infrastructure code: `terraform/` directory
+- Infrastructure code: `platform/terraform/` directory
 
 ### Overview
 
@@ -238,7 +238,7 @@ docker-compose exec postgres psql -U postgres -d dataaggregator
 aws configure
 
 # 2. Deploy infrastructure with Terraform
-cd terraform
+cd platform/terraform
 terraform init
 terraform plan -var-file="prod.tfvars"
 terraform apply -var-file="prod.tfvars"

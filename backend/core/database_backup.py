@@ -3,18 +3,19 @@ Database backup and restore utilities.
 Provides functionality to backup and restore database before destructive operations.
 """
 
-import os
 import logging
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Backup directory
-BACKUP_DIR = Path("backups/database")
+# Backup directory relative to repository root
+BACKUP_DIR = Path("platform/backups/database")
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 

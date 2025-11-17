@@ -1,174 +1,243 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { SchemaTree } from '@/components/schema/schema-tree';
 import { FieldMapper } from '@/components/schema/field-mapper';
 import {
   Database,
-  FileJson,
-  Table as TableIcon,
   Save,
   Code,
   CheckCircle,
-  AlertTriangle,
-  RefreshCw
+  AlertTriangle
 } from 'lucide-react';
-
-interface Schema {
-  id?: number;
-  name: string;
-  source_type: string;
-  schema_data: any;
-  fields?: any[];
-  tables?: any[];
-}
-
-interface FieldMapping {
-  source_field?: string;
-  destination_field: string;
-  mapping_type: string;
-  transformation?: any;
-  description?: string;
-}
+import { apiClient } from '@/lib/api';
+import useToast from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
+import type {
+  SchemaDefinition,
+  SchemaField,
+  SchemaFieldMapping,
+  SchemaMappingValidationResult
+} from '@/types/schema';
 
 const SchemaMappingPage = () => {
-  const [sourceSchema, setSourceSchema] = useState<Schema | null>(null);
-  const [destSchema, setDestSchema] = useState<Schema | null>(null);
-  const [mappings, setMappings] = useState<FieldMapping[]>([]);
-  const [savedSchemas, setSavedSchemas] = useState<Schema[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [sourceSchema, setSourceSchema] = useState<SchemaDefinition | null>(null);
+  const [destSchema, setDestSchema] = useState<SchemaDefinition | null>(null);
+  const [mappings, setMappings] = useState<SchemaFieldMapping[]>([]);
+  const [savedSchemas, setSavedSchemas] = useState<SchemaDefinition[]>([]);
+  const [isGeneratingMapping, setIsGeneratingMapping] = useState(false);
+  const [validationResult, setValidationResult] = useState<SchemaMappingValidationResult | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [selectedSourceId, setSelectedSourceId] = useState<number | null>(null);
   const [selectedDestId, setSelectedDestId] = useState<number | null>(null);
+  const [currentMappingId, setCurrentMappingId] = useState<number | null>(null);
+  const [isSavingMapping, setIsSavingMapping] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState<'python' | 'sql' | null>(null);
+  const { toasts, success, error, warning } = useToast();
+
+  const fetchSavedSchemas = useCallback(async () => {
+    try {
+      const schemas = await apiClient.getSchemas();
+      setSavedSchemas(schemas);
+    } catch (err: unknown) {
+      console.error('Error fetching schemas:', err);
+      const message = err instanceof Error ? err.message : 'Failed to load schemas';
+      error(message, 'Error');
+    }
+  }, [error]);
 
   useEffect(() => {
     fetchSavedSchemas();
+  }, [fetchSavedSchemas]);
+
+  const resetMappingState = useCallback(() => {
+    setMappings([]);
+    setCurrentMappingId(null);
+    setValidationResult(null);
+    setGeneratedCode(null);
   }, []);
 
-  const fetchSavedSchemas = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
-      const response = await fetch(`${baseUrl}/api/v1/schema/schemas`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSavedSchemas(data.schemas || []);
-      }
-    } catch (error) {
-      console.error('Error fetching schemas:', error);
-    }
-  };
-
   const loadSchema = async (schemaId: number, isSource: boolean) => {
-    try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-
-      const response = await fetch(`${baseUrl}/api/v1/schema/schemas/${schemaId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const schema = await response.json();
-        if (isSource) {
-          setSourceSchema(schema);
-          setSelectedSourceId(schemaId);
-        } else {
-          setDestSchema(schema);
-          setSelectedDestId(schemaId);
-        }
+    if (!schemaId) {
+      if (isSource) {
+        setSourceSchema(null);
+        setSelectedSourceId(null);
+      } else {
+        setDestSchema(null);
+        setSelectedDestId(null);
       }
-    } catch (error) {
-      console.error('Error loading schema:', error);
-    }
-  };
-
-  const handleAutoGenerate = async () => {
-    if (!selectedSourceId || !selectedDestId) {
-      alert('Please select both source and destination schemas');
+      resetMappingState();
       return;
     }
 
-    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+      const schema = await apiClient.getSchema(schemaId);
+      if (isSource) {
+        setSourceSchema(schema);
+        setSelectedSourceId(schemaId);
+      } else {
+        setDestSchema(schema);
+        setSelectedDestId(schemaId);
+      }
 
-      const response = await fetch(`${baseUrl}/api/v1/schema/mappings`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: `Mapping ${sourceSchema?.name} to ${destSchema?.name}`,
-          source_schema_id: selectedSourceId,
-          destination_schema_id: selectedDestId,
-          auto_generate: true
-        })
+      resetMappingState();
+    } catch (err: unknown) {
+      console.error('Error loading schema:', err);
+      const message = err instanceof Error ? err.message : 'Failed to load schema';
+      error(message, 'Error');
+    }
+  };
+
+  const buildMappingName = useCallback(() => {
+    if (sourceSchema?.name && destSchema?.name) {
+      return `${sourceSchema.name} -> ${destSchema.name}`;
+    }
+    return 'Schema Mapping';
+  }, [sourceSchema, destSchema]);
+
+  const syncMappingToServer = useCallback(async () => {
+    if (!selectedSourceId || !selectedDestId) {
+      throw new Error('Select both source and destination schemas before saving.');
+    }
+
+    let mappingId = currentMappingId;
+
+    if (!mappingId) {
+      const created = await apiClient.createSchemaMapping({
+        name: buildMappingName(),
+        source_schema_id: selectedSourceId,
+        destination_schema_id: selectedDestId,
+        auto_generate: false,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setMappings(data.field_mappings || []);
+      mappingId = created.id;
+      setCurrentMappingId(mappingId);
+
+      if (!mappings.length && created.field_mappings?.length) {
+        setMappings(created.field_mappings);
       }
-    } catch (error) {
-      console.error('Error auto-generating mappings:', error);
+    }
+
+    await apiClient.updateSchemaMappingFields(mappingId, mappings);
+    return mappingId;
+  }, [buildMappingName, currentMappingId, mappings, selectedDestId, selectedSourceId]);
+
+  const handleAutoGenerate = async () => {
+    if (!selectedSourceId || !selectedDestId) {
+      warning('Select both source and destination schemas before generating mappings.', 'Schema Mapping');
+      return;
+    }
+
+    setIsGeneratingMapping(true);
+    try {
+      const response = await apiClient.createSchemaMapping({
+        name: buildMappingName(),
+        source_schema_id: selectedSourceId,
+        destination_schema_id: selectedDestId,
+        auto_generate: true,
+      });
+
+      setMappings(response.field_mappings || []);
+      setCurrentMappingId(response.id);
+      setValidationResult(null);
+      setGeneratedCode(null);
+      success('Generated mappings automatically.', 'Success');
+    } catch (err: unknown) {
+      console.error('Error auto-generating mappings:', err);
+      const message = err instanceof Error ? err.message : 'Failed to generate mappings';
+      error(message, 'Error');
     } finally {
-      setLoading(false);
+      setIsGeneratingMapping(false);
+    }
+  };
+
+  const handleMappingsChange = (updated: SchemaFieldMapping[]) => {
+    setMappings(updated);
+    setValidationResult(null);
+    setGeneratedCode(null);
+  };
+
+  const handleSaveMapping = async () => {
+    if (!mappings.length) {
+      warning('Add at least one field mapping before saving.', 'Schema Mapping');
+      return;
+    }
+
+    setIsSavingMapping(true);
+    try {
+      await syncMappingToServer();
+      success('Mapping saved successfully.', 'Success');
+    } catch (err: unknown) {
+      console.error('Error saving mapping:', err);
+      const message = err instanceof Error ? err.message : 'Failed to save mapping';
+      if (message.toLowerCase().includes('select both')) {
+        warning(message, 'Schema Mapping');
+      } else {
+        error(message, 'Error');
+      }
+    } finally {
+      setIsSavingMapping(false);
     }
   };
 
   const handleValidate = async () => {
-    // In a real implementation, this would call the validation endpoint
-    const unmappedRequired = getUnmappedRequiredFields();
+    if (!mappings.length) {
+      warning('Map at least one field before validating.', 'Schema Mapping');
+      return;
+    }
 
-    setValidationResult({
-      is_valid: unmappedRequired.length === 0,
-      errors: unmappedRequired.map(f => `Required field '${f.name}' is not mapped`)
-    });
-  };
+    setIsValidating(true);
+    try {
+      const mappingId = await syncMappingToServer();
+      const result = await apiClient.validateSchemaMapping(mappingId);
+      setValidationResult(result);
 
-  const handleGenerateCode = async (language: 'python' | 'sql') => {
-    // Mock code generation
-    if (language === 'python') {
-      const code = `def transform_data(source_record: dict) -> dict:
-    """Transform source record to destination format"""
-    destination_record = {}
-
-${mappings.map(m => {
-  if (m.mapping_type === 'direct') {
-    return `    destination_record['${m.destination_field}'] = source_record.get('${m.source_field}')`;
-  }
-  return `    # TODO: Transform ${m.source_field} to ${m.destination_field}`;
-}).join('\n')}
-
-    return destination_record`;
-
-      setGeneratedCode(code);
-    } else {
-      const code = `SELECT
-${mappings.map((m, idx) => {
-  const isLast = idx === mappings.length - 1;
-  return `    src.${m.source_field} AS ${m.destination_field}${isLast ? '' : ','}`;
-}).join('\n')}
-FROM source_table AS src`;
-
-      setGeneratedCode(code);
+      if (result.is_valid) {
+        success('Mapping validated successfully.', 'Success');
+      } else if (result.errors && result.errors.length > 0) {
+        warning('Validation completed with errors.', 'Validation');
+      }
+    } catch (err: unknown) {
+      console.error('Error validating mapping:', err);
+      const message = err instanceof Error ? err.message : 'Failed to validate mapping';
+      if (message.toLowerCase().includes('select both')) {
+        warning(message, 'Schema Mapping');
+      } else {
+        error(message, 'Error');
+      }
+    } finally {
+      setIsValidating(false);
     }
   };
 
-  const getSourceFields = () => {
+  const handleGenerateCode = async (language: 'python' | 'sql') => {
+    if (!mappings.length) {
+      warning('Map at least one field before generating code.', 'Schema Mapping');
+      return;
+    }
+
+    setIsGeneratingCode(language);
+    try {
+      const mappingId = await syncMappingToServer();
+      const result = await apiClient.generateSchemaMappingCode(mappingId, language);
+      setGeneratedCode(result.code);
+      success(`Generated ${language.toUpperCase()} code.`, 'Success');
+    } catch (err: unknown) {
+      console.error('Error generating code:', err);
+      const message = err instanceof Error ? err.message : 'Failed to generate code';
+      if (message.toLowerCase().includes('select both')) {
+        warning(message, 'Schema Mapping');
+      } else {
+        error(message, 'Error');
+      }
+    } finally {
+      setIsGeneratingCode(null);
+    }
+  };
+
+  const getSourceFields = (): SchemaField[] => {
     if (!sourceSchema?.schema_data) return [];
     if (sourceSchema.schema_data.fields) return sourceSchema.schema_data.fields;
     if (sourceSchema.schema_data.tables && sourceSchema.schema_data.tables[0]) {
@@ -177,7 +246,7 @@ FROM source_table AS src`;
     return [];
   };
 
-  const getDestFields = () => {
+  const getDestFields = (): SchemaField[] => {
     if (!destSchema?.schema_data) return [];
     if (destSchema.schema_data.fields) return destSchema.schema_data.fields;
     if (destSchema.schema_data.tables && destSchema.schema_data.tables[0]) {
@@ -186,14 +255,9 @@ FROM source_table AS src`;
     return [];
   };
 
-  const getUnmappedRequiredFields = () => {
-    const destFields = getDestFields();
-    const mappedFields = new Set(mappings.map(m => m.destination_field));
-    return destFields.filter(f => !f.nullable && !mappedFields.has(f.name));
-  };
-
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -265,8 +329,9 @@ FROM source_table AS src`;
               sourceFields={getSourceFields()}
               destinationFields={getDestFields()}
               mappings={mappings}
-              onMappingsChange={setMappings}
+              onMappingsChange={handleMappingsChange}
               onAutoGenerate={handleAutoGenerate}
+              isGenerating={isGeneratingMapping}
             />
           </div>
         )}
@@ -275,29 +340,49 @@ FROM source_table AS src`;
         {mappings.length > 0 && (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold mb-4">Actions</h3>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={handleSaveMapping}
+                disabled={isSavingMapping}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-white ${
+                  isSavingMapping ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                <Save className={`w-4 h-4 ${isSavingMapping ? 'animate-spin' : ''}`} />
+                {isSavingMapping ? 'Saving...' : 'Save Mapping'}
+              </button>
+
               <button
                 onClick={handleValidate}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                disabled={isValidating}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-white ${
+                  isValidating ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                }`}
               >
-                <CheckCircle className="w-4 h-4" />
-                Validate Mapping
+                <CheckCircle className={`w-4 h-4 ${isValidating ? 'animate-spin' : ''}`} />
+                {isValidating ? 'Validating...' : 'Validate Mapping'}
               </button>
 
               <button
                 onClick={() => handleGenerateCode('python')}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                disabled={isGeneratingCode === 'python'}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-white ${
+                  isGeneratingCode === 'python' ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
+                }`}
               >
                 <Code className="w-4 h-4" />
-                Generate Python Code
+                {isGeneratingCode === 'python' ? 'Generating...' : 'Generate Python Code'}
               </button>
 
               <button
                 onClick={() => handleGenerateCode('sql')}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2"
+                disabled={isGeneratingCode === 'sql'}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-white ${
+                  isGeneratingCode === 'sql' ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                }`}
               >
                 <Code className="w-4 h-4" />
-                Generate SQL
+                {isGeneratingCode === 'sql' ? 'Generating...' : 'Generate SQL'}
               </button>
             </div>
           </div>
@@ -340,9 +425,14 @@ FROM source_table AS src`;
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Generated Transformation Code</h3>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(generatedCode);
-                  alert('Code copied to clipboard!');
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(generatedCode);
+                    success('Code copied to clipboard.', 'Copied');
+                  } catch (err: unknown) {
+                    console.error('Clipboard error:', err);
+                    error('Failed to copy code to clipboard', 'Error');
+                  }
                 }}
                 className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
               >

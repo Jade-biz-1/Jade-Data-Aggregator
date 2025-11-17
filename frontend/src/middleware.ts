@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify, JWTPayload } from 'jose';
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -66,20 +67,40 @@ function hasRequiredRole(userRole: string, requiredRole: string, exact: boolean 
   return userLevel >= requiredLevel;
 }
 
-function getUserRoleFromToken(token: string): string | null {
-  try {
-    // Decode JWT token (simple base64 decode for the payload)
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
+async function getUserRoleFromToken(token: string): Promise<string | null> {
+  const secret = process.env.JWT_SECRET_KEY || process.env.NEXT_PUBLIC_JWT_SECRET_KEY;
 
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-    return payload.role || null;
+  if (!secret) {
+    return null;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const { payload } = await jwtVerify(token, encoder.encode(secret));
+
+    const role = (payload as JWTPayload & { role?: string; roles?: string | string[] }).role;
+
+    if (role) {
+      return role;
+    }
+
+    const roles = (payload as JWTPayload & { roles?: string | string[] }).roles;
+
+    if (Array.isArray(roles) && roles.length > 0) {
+      return String(roles[0]);
+    }
+
+    if (typeof roles === 'string') {
+      return roles;
+    }
+
+    return null;
   } catch {
     return null;
   }
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
@@ -103,7 +124,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check role-based access for protected routes
-  const userRole = getUserRoleFromToken(token);
+  const userRole = await getUserRoleFromToken(token);
 
   if (!userRole) {
     // Invalid token, redirect to login

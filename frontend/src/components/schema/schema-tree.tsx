@@ -2,29 +2,10 @@
 
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Database, Key, Link as LinkIcon, Type } from 'lucide-react';
-
-interface SchemaField {
-  name: string;
-  data_type: string;
-  nullable?: boolean;
-  primary_key?: boolean;
-  foreign_key?: string | null;
-  description?: string;
-}
-
-interface SchemaTable {
-  name: string;
-  fields: SchemaField[];
-  description?: string;
-}
+import type { SchemaField, SchemaTable, SchemaData } from '@/types/schema';
 
 interface SchemaTreeProps {
-  schema: {
-    tables?: SchemaTable[];
-    fields?: SchemaField[];
-    schema_name?: string;
-    source_type?: string;
-  };
+  schema: SchemaData;
   onFieldClick?: (field: SchemaField, table?: SchemaTable) => void;
   selectedFields?: Set<string>;
 }

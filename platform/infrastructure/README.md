@@ -384,15 +384,15 @@ gh workflow run ci-cd-production.yml \
 
 ```bash
 # Run backup script
-./infrastructure/scripts/backup-database.sh
+./platform/infrastructure/scripts/backup-database.sh
 
 # Backup to specific location
-BACKUP_DIR=/custom/path ./infrastructure/scripts/backup-database.sh
+BACKUP_DIR=/custom/path ./platform/infrastructure/scripts/backup-database.sh
 
 # Backup with S3 upload
 S3_BACKUP_ENABLED=true \
 S3_BUCKET=my-backups \
-./infrastructure/scripts/backup-database.sh
+./platform/infrastructure/scripts/backup-database.sh
 ```
 
 ### Restore Backup
@@ -418,7 +418,7 @@ pg_restore \
 crontab -e
 
 # Add backup schedule (daily at 2 AM)
-0 2 * * * /path/to/infrastructure/scripts/backup-database.sh
+0 2 * * * /path/to/platform/infrastructure/scripts/backup-database.sh
 ```
 
 ---
