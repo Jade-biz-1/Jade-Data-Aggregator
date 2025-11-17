@@ -11,20 +11,22 @@ Tests cover:
 - Dry run mode
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
+from backend.schemas.pipeline_visual import (
+    NodeType,
+    PipelineEdge,
+    PipelineNode,
+    Position,
+    VisualPipelineDefinition,
+)
 from backend.services.pipeline_execution_engine import (
+    ExecutionStatus,
     PipelineExecutionEngine,
     PipelineExecutionState,
-    ExecutionStatus
-)
-from backend.schemas.pipeline_visual import (
-    VisualPipelineDefinition,
-    PipelineNode,
-    PipelineEdge,
-    NodeType,
-    Position
 )
 
 
@@ -215,4 +217,4 @@ class TestExecutionStatus:
         assert ExecutionStatus.ROLLED_BACK == "rolled_back"
 
 
-# Run with: pytest backend/backend/tests/unit/services/test_pipeline_execution_engine.py -v
+# Run with: pytest testing/backend-tests/unit/services/test_pipeline_execution_engine.py -v

@@ -407,22 +407,22 @@ The default dashboard includes panels for:
 ```bash
 # Run all backend tests
 cd backend
-poetry run pytest
+python -m pytest ../testing/backend-tests -v
 
 # Run tests with coverage
-poetry run pytest --cov=.
+python -m pytest ../testing/backend-tests --cov=backend --cov-report=term --cov-report=xml
 
 # Run specific test file
-poetry run pytest tests/test_pipelines.py
+python -m pytest ../testing/backend-tests/unit/test_pipeline_validation_service.py
 ```
 
 ### Frontend Testing
 
 ```bash
 # Run frontend tests
-cd frontend
-npm run test
-npm run test:watch
+cd testing/frontend-tests
+npm run test:unit
+npm run test:unit:watch
 
 # Run linting
 npm run lint

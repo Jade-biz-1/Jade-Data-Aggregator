@@ -39,6 +39,7 @@ jobs:
       run: |
         cd backend
         poetry install
+        poetry run pip install -r ../testing/backend-tests/requirements.txt
 
     - name: Lint with flake8
       run: |
@@ -49,7 +50,7 @@ jobs:
     - name: Test with pytest
       run: |
         cd backend
-        poetry run pytest tests/ -v
+        PYTHONPATH=$(pwd):$PYTHONPATH poetry run python -m pytest -v
 
   test-frontend:
     name: Test Frontend

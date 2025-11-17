@@ -10,18 +10,20 @@ Tests cover:
 - User authentication
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch, Mock
-from backend.services.auth_service import AuthService
-from backend.models.user import User
-from backend.models.auth_token import AuthToken
-from backend.schemas.auth import (
-    PasswordResetRequest,
-    PasswordResetConfirm,
-    EmailVerificationRequest
-)
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
 from backend.core.security import get_password_hash
+from backend.models.auth_token import AuthToken
+from backend.models.user import User
+from backend.schemas.auth import (
+    EmailVerificationRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+)
+from backend.services.auth_service import AuthService
 
 
 class TestAuthService:
@@ -189,4 +191,4 @@ class TestAuthService:
                 assert mock_db_session.add.called
 
 
-# Run with: pytest backend/backend/tests/unit/services/test_auth_service.py -v
+# Run with: pytest testing/backend-tests/unit/services/test_auth_service.py -v

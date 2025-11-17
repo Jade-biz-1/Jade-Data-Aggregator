@@ -14,10 +14,11 @@ Tests cover:
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models.transformation import Transformation
-from backend.models.user import User
+
 from backend.core.database import Base
 from backend.core.security import get_password_hash
+from backend.models.transformation import Transformation
+from backend.models.user import User
 
 
 @pytest.fixture(scope="function")
@@ -228,4 +229,4 @@ class TestTransformationUserRelationship:
         assert "Transform 2" in transform_names
 
 
-# Run with: pytest backend/tests/unit/models/test_transformation_model.py -v
+# Run with: pytest testing/backend-tests/unit/legacy_models/test_transformation_model.py -v
