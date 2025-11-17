@@ -11,15 +11,17 @@ Tests cover:
 - Error handling
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models.pipeline_run import PipelineRun
-from backend.models.pipeline import Pipeline
-from backend.models.user import User
+
 from backend.core.database import Base
 from backend.core.security import get_password_hash
+from backend.models.pipeline import Pipeline
+from backend.models.pipeline_run import PipelineRun
+from backend.models.user import User
 
 
 @pytest.fixture(scope="function")
@@ -286,4 +288,4 @@ class TestPipelineRunTriggering:
         assert run.triggered_by == trigger
 
 
-# Run with: pytest backend/tests/unit/models/test_pipeline_run_model.py -v
+# Run with: pytest testing/backend-tests/unit/legacy_models/test_pipeline_run_model.py -v

@@ -73,6 +73,7 @@ jobs:
           cd backend
           pip install poetry
           poetry install
+          poetry run pip install -r ../testing/backend-tests/requirements.txt
 
       - name: Run backend tests
         env:
@@ -80,30 +81,37 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
         run: |
           cd backend
-          poetry run pytest --cov=. --cov-report=xml --cov-report=term
+          PYTHONPATH=$(pwd):$PYTHONPATH poetry run python -m pytest --cov=backend --cov-report=xml --cov-report=term
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            testing/frontend-tests/package-lock.json
 
       - name: Install frontend dependencies
         run: |
           cd frontend
           npm ci
 
+      - name: Install frontend test dependencies
+        run: |
+          cd testing/frontend-tests
+          npm ci
+
       - name: Run frontend tests
         run: |
-          cd frontend
-          npm test
+          cd testing/frontend-tests
+          npm run test:unit
 
       - name: Run E2E tests
         run: |
-          cd frontend
+          cd testing/frontend-tests
           npx playwright install --with-deps
-          npm run test
+          npm run test:e2e
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3

@@ -17,6 +17,7 @@ NC='\033[0m'
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PYTHON_BIN=${PYTHON_BIN:-python3}
 
 # Load configuration
 source "${PROJECT_ROOT}/testing/config/test-config.sh"
@@ -106,17 +107,20 @@ run_backend_unit_tests() {
     
     cd "${PROJECT_ROOT}/backend"
     
-    if poetry run pytest backend/tests/unit/ -v --tb=short --cov=backend --cov-report=html:../testing/reports/coverage/backend-unit 2>&1 | tee ../testing/reports/logs/backend-unit.log; then
+    if PYTHONPATH="${PROJECT_ROOT}/backend:${PYTHONPATH}" \
+        ${PYTHON_BIN} -m pytest ../testing/backend-tests/unit/ -v 2>&1 | tee ../testing/reports/logs/backend-unit.log; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[backend_unit]="PASSED"
         STAGE_DURATIONS[backend_unit]=$duration
+        cd "${PROJECT_ROOT}"
         return 0
     else
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[backend_unit]="FAILED"
         STAGE_DURATIONS[backend_unit]=$duration
+        cd "${PROJECT_ROOT}"
         return 1
     fi
 }
@@ -128,17 +132,20 @@ run_backend_integration_tests() {
     
     cd "${PROJECT_ROOT}/backend"
     
-    if poetry run pytest backend/tests/integration/ -v --tb=short 2>&1 | tee ../testing/reports/logs/backend-integration.log; then
+    if PYTHONPATH="${PROJECT_ROOT}/backend:${PYTHONPATH}" \
+        ${PYTHON_BIN} -m pytest ../testing/backend-tests/integration/ -v --tb=short 2>&1 | tee ../testing/reports/logs/backend-integration.log; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[backend_integration]="PASSED"
         STAGE_DURATIONS[backend_integration]=$duration
+        cd "${PROJECT_ROOT}"
         return 0
     else
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[backend_integration]="FAILED"
         STAGE_DURATIONS[backend_integration]=$duration
+        cd "${PROJECT_ROOT}"
         return 1
     fi
 }
@@ -148,19 +155,21 @@ run_frontend_unit_tests() {
     print_stage_header "Frontend Unit Tests"
     local start_time=$(date +%s)
     
-    cd "${PROJECT_ROOT}/frontend"
+    cd "${PROJECT_ROOT}/testing/frontend-tests"
     
-    if npm run test -- --coverage --watchAll=false 2>&1 | tee ../testing/reports/logs/frontend-unit.log; then
+    if npm run test:unit:coverage -- --watchAll=false 2>&1 | tee ../reports/logs/frontend-unit.log; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[frontend_unit]="PASSED"
         STAGE_DURATIONS[frontend_unit]=$duration
+        cd "${PROJECT_ROOT}"
         return 0
     else
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[frontend_unit]="FAILED"
         STAGE_DURATIONS[frontend_unit]=$duration
+        cd "${PROJECT_ROOT}"
         return 1
     fi
 }
@@ -170,19 +179,21 @@ run_e2e_tests() {
     print_stage_header "End-to-End Tests"
     local start_time=$(date +%s)
     
-    cd "${PROJECT_ROOT}/frontend"
+    cd "${PROJECT_ROOT}/testing/frontend-tests"
     
-    if npm run test:e2e 2>&1 | tee ../testing/reports/logs/e2e.log; then
+    if npm run test:e2e 2>&1 | tee ../reports/logs/e2e.log; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[e2e]="PASSED"
         STAGE_DURATIONS[e2e]=$duration
+        cd "${PROJECT_ROOT}"
         return 0
     else
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))s
         STAGE_RESULTS[e2e]="FAILED"
         STAGE_DURATIONS[e2e]=$duration
+        cd "${PROJECT_ROOT}"
         return 1
     fi
 }

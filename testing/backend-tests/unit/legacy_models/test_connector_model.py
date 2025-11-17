@@ -13,10 +13,11 @@ Tests cover:
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models.connector import Connector
-from backend.models.user import User
+
 from backend.core.database import Base
 from backend.core.security import get_password_hash
+from backend.models.connector import Connector
+from backend.models.user import User
 
 
 @pytest.fixture(scope="function")
@@ -246,4 +247,4 @@ class TestConnectorUserRelationship:
         assert "API Connector" in connector_names
 
 
-# Run with: pytest backend/tests/unit/models/test_connector_model.py -v
+# Run with: pytest testing/backend-tests/unit/legacy_models/test_connector_model.py -v

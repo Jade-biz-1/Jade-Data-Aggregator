@@ -14,9 +14,10 @@ Tests cover:
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models.user import User
+
 from backend.core.database import Base
 from backend.core.security import get_password_hash, verify_password
+from backend.models.user import User
 
 
 # Test database setup (in-memory SQLite for unit tests)
@@ -360,4 +361,4 @@ class TestUserEmailVerification:
         assert user.is_email_verified is True
 
 
-# Run with: pytest backend/tests/unit/models/test_user_model.py -v
+# Run with: pytest testing/backend-tests/unit/legacy_models/test_user_model.py -v

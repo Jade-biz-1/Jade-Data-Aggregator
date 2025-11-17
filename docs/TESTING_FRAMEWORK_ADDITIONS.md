@@ -293,12 +293,12 @@ generate_reports() {
 
     # Backend coverage
     cd "$PROJECT_ROOT/backend"
-    poetry run coverage combine
-    poetry run coverage html -d "$REPORTS_DIR/coverage/backend"
-    poetry run coverage json -o "$REPORTS_DIR/coverage/backend/coverage.json"
+    python -m coverage combine
+    python -m coverage html -d "$REPORTS_DIR/coverage/backend"
+    python -m coverage json -o "$REPORTS_DIR/coverage/backend/coverage.json"
 
     # Frontend coverage
-    cd "$PROJECT_ROOT/frontend"
+    cd "$PROJECT_ROOT/testing/frontend-tests"
     npm run test:unit:coverage
     cp -r coverage/* "$REPORTS_DIR/coverage/frontend/"
 
@@ -325,7 +325,7 @@ main() {
     # Stage 1: Backend Unit Tests
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "1" ]; then
         if ! run_stage 1 "Backend Unit Tests" \
-            "cd $PROJECT_ROOT/backend && poetry run pytest testing/backend-tests/unit -v --cov=backend --cov-report=html"; then
+          "cd $PROJECT_ROOT/backend && PYTHONPATH=\"$PROJECT_ROOT/backend:$PYTHONPATH\" python -m pytest ../testing/backend-tests/unit -v --cov=backend --cov-report=html:../testing/reports/coverage/backend-unit"; then
             overall_success=false
             if [ "$FAIL_FAST" = true ]; then
                 echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 1 failures"
@@ -339,7 +339,7 @@ main() {
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "2" ]; then
         if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
             if ! run_stage 2 "Backend Integration Tests" \
-                "cd $PROJECT_ROOT/backend && poetry run pytest testing/backend-tests/integration -v --cov=backend --cov-append"; then
+              "cd $PROJECT_ROOT/backend && PYTHONPATH=\"$PROJECT_ROOT/backend:$PYTHONPATH\" python -m pytest ../testing/backend-tests/integration -v --cov=backend --cov-append"; then
                 overall_success=false
                 if [ "$FAIL_FAST" = true ]; then
                     echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 2 failures"
@@ -356,7 +356,7 @@ main() {
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "3" ]; then
         if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
             if ! run_stage 3 "Frontend Unit Tests" \
-                "cd $PROJECT_ROOT/frontend && npm run test:unit"; then
+              "cd $PROJECT_ROOT/testing/frontend-tests && npm run test:unit"; then
                 overall_success=false
                 if [ "$FAIL_FAST" = true ]; then
                     echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 3 failures"
@@ -373,7 +373,7 @@ main() {
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "4" ]; then
         if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
             if ! run_stage 4 "Frontend Integration Tests" \
-                "cd $PROJECT_ROOT/frontend && npm run test:integration"; then
+              "cd $PROJECT_ROOT/testing/frontend-tests && npm run test:integration"; then
                 overall_success=false
                 if [ "$FAIL_FAST" = true ]; then
                     echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 4 failures"
@@ -390,7 +390,7 @@ main() {
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "5" ]; then
         if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
             if ! run_stage 5 "End-to-End Tests" \
-                "cd $PROJECT_ROOT/frontend && npm run test"; then
+              "cd $PROJECT_ROOT/testing/frontend-tests && npm run test:e2e"; then
                 overall_success=false
                 if [ "$FAIL_FAST" = true ]; then
                     echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 5 failures"
@@ -407,7 +407,7 @@ main() {
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "6" ]; then
         if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
             if ! run_stage 6 "Performance Tests" \
-                "cd $PROJECT_ROOT/backend && poetry run pytest testing/backend-tests/performance -v"; then
+              "cd $PROJECT_ROOT/backend && PYTHONPATH=\"$PROJECT_ROOT/backend:$PYTHONPATH\" python -m pytest ../testing/backend-tests/performance -v"; then
                 overall_success=false
                 if [ "$FAIL_FAST" = true ]; then
                     echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 6 failures"
@@ -424,7 +424,7 @@ main() {
     if [ -z "$STAGE_TO_RUN" ] || [ "$STAGE_TO_RUN" = "7" ]; then
         if [ "$overall_success" = true ] || [ "$FAIL_FAST" = false ]; then
             if ! run_stage 7 "Security Tests" \
-                "cd $PROJECT_ROOT/backend && poetry run pytest testing/backend-tests/security -v && poetry run bandit -r backend/ && poetry run safety check"; then
+              "cd $PROJECT_ROOT/backend && PYTHONPATH=\"$PROJECT_ROOT/backend:$PYTHONPATH\" python -m pytest ../testing/backend-tests/security -v && poetry run bandit -r backend/ && poetry run safety check"; then
                 overall_success=false
                 if [ "$FAIL_FAST" = true ]; then
                     echo -e "${RED}[FAIL-FAST]${NC} Stopping due to Stage 7 failures"
