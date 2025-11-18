@@ -3,6 +3,7 @@ Logging API Endpoints
 
 API endpoints for log management, search, and analytics.
 Part of Sub-Phase 5B: Advanced Monitoring
+Updated: Phase 11A - SEC-002 (Fixed error message leakage)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from backend.core.database import get_db
+from backend.core.error_handler import safe_error_response, database_error
 from backend.services.logging_service import EnhancedLoggingService
 from backend.models.monitoring import LogLevel
 
@@ -84,7 +86,11 @@ async def create_log(
             "message": log_entry.message
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating log: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to create log entry",
+            internal_error=e
+        )
 
 
 @router.post("/search")
@@ -134,7 +140,11 @@ async def search_logs(
             "limit": search_request.limit
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error searching logs: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to search logs",
+            internal_error=e
+        )
 
 
 @router.get("/correlation/{correlation_id}")
@@ -164,7 +174,11 @@ async def get_logs_by_correlation(
             "count": len(logs)
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching correlation logs: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to fetch correlation logs",
+            internal_error=e
+        )
 
 
 @router.get("/errors/recent")
@@ -196,7 +210,11 @@ async def get_recent_errors(
             "hours": hours
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching recent errors: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to fetch recent errors",
+            internal_error=e
+        )
 
 
 @router.get("/statistics")
@@ -221,7 +239,11 @@ async def get_log_statistics(
             "group_by": group_by
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching statistics: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to fetch log statistics",
+            internal_error=e
+        )
 
 
 @router.get("/trends/errors")
@@ -240,7 +262,11 @@ async def get_error_trends(
             "interval_minutes": interval_minutes
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching trends: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to fetch log trends",
+            internal_error=e
+        )
 
 
 @router.post("/archive")
@@ -263,7 +289,11 @@ async def archive_logs(
             "message": result.get("message", "Logs archived successfully")
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error archiving logs: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to archive logs",
+            internal_error=e
+        )
 
 
 @router.delete("/archives/cleanup")
@@ -280,4 +310,8 @@ async def cleanup_expired_archives(
             "message": f"Deleted {deleted_count} expired archives"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error cleaning up archives: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to cleanup log archives",
+            internal_error=e
+        )

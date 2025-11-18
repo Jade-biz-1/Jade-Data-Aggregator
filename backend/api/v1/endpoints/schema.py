@@ -1,5 +1,6 @@
 """
 Schema Introspection and Mapping API Endpoints
+Updated: Phase 11A - SEC-002 (Fixed error message leakage)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
@@ -12,6 +13,7 @@ from datetime import datetime
 from backend.schemas.user import User
 from backend.core.database import get_db
 from backend.core.rbac import require_any_authenticated
+from backend.core.error_handler import safe_error_response
 from backend.services.schema_introspector import (
     DatabaseSchemaIntrospector,
     APISchemaIntrospector,
@@ -115,7 +117,11 @@ async def introspect_database_schema(
         return schema
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database introspection failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to introspect database schema",
+            internal_error=e
+        )
 
 
 @router.post("/introspect/api")
@@ -138,7 +144,11 @@ async def introspect_api_schema(
         return schema
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"API introspection failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to introspect API schema",
+            internal_error=e
+        )
 
 
 @router.post("/introspect/json")
@@ -161,7 +171,11 @@ async def introspect_json_schema(
         return schema
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"JSON introspection failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to introspect JSON schema",
+            internal_error=e
+        )
 
 
 @router.post("/introspect/csv")
@@ -185,7 +199,11 @@ async def introspect_csv_schema(
         return schema
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"CSV introspection failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to introspect CSV schema",
+            internal_error=e
+        )
 
 
 @router.post("/compare")
@@ -210,7 +228,11 @@ async def compare_schemas(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Schema comparison failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to compare schemas",
+            internal_error=e
+        )
 
 
 # Schema Storage Endpoints
@@ -244,7 +266,11 @@ async def save_schema(
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to save schema: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to save schema",
+            internal_error=e
+        )
 
 
 @router.get("/schemas")
@@ -278,7 +304,11 @@ async def list_schemas(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list schemas: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to list schemas",
+            internal_error=e
+        )
 
 
 @router.get("/schemas/{schema_id}")
@@ -309,7 +339,11 @@ async def get_schema(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get schema: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to retrieve schema",
+            internal_error=e
+        )
 
 
 # Schema Mapping Endpoints
@@ -370,7 +404,11 @@ async def create_schema_mapping(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create mapping: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to create schema mapping",
+            internal_error=e
+        )
 
 
 @router.get("/mappings")
@@ -400,7 +438,11 @@ async def list_schema_mappings(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list mappings: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to list schema mappings",
+            internal_error=e
+        )
 
 
 @router.get("/mappings/{mapping_id}")
@@ -433,7 +475,11 @@ async def get_schema_mapping(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get mapping: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to retrieve schema mapping",
+            internal_error=e
+        )
 
 
 @router.put("/mappings/{mapping_id}/fields")
@@ -466,7 +512,11 @@ async def update_field_mappings(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to update mappings: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to update schema mappings",
+            internal_error=e
+        )
 
 
 @router.post("/mappings/{mapping_id}/validate")
@@ -526,7 +576,11 @@ async def validate_schema_mapping(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Schema mapping validation failed",
+            internal_error=e
+        )
 
 
 @router.post("/mappings/{mapping_id}/generate-code")
@@ -584,7 +638,11 @@ async def generate_transformation_code(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
+        raise safe_error_response(
+            500,
+            "Unable to generate transformation code",
+            internal_error=e
+        )
 
 
 @router.get("/health")

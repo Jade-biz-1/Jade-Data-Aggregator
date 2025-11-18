@@ -51,7 +51,7 @@ async def execute_pipeline(
     except PipelineExecutionError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {str(e)}")
+        raise safe_error_response(500, "Unable to execute pipeline", internal_error=e)
 
 
 @router.get("/{pipeline_id}/runs", response_model=List[PipelineRun])

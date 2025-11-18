@@ -25,4 +25,4 @@ async def upload_file(
             f.write(content)
         return {"file_path": file_location, "filename": file.filename}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+        raise safe_error_response(500, "Unable to upload file", internal_error=e)

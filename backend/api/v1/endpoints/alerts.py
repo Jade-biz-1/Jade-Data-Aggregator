@@ -3,6 +3,7 @@ Alert Management API Endpoints
 
 API endpoints for alert rules, alerts, and escalation policies.
 Part of Sub-Phase 5B: Advanced Monitoring
+Updated: Phase 11A - SEC-002 (Fixed error message leakage)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from backend.core.database import get_db
+from backend.core.error_handler import safe_error_response
 from backend.services.alert_management_service import AlertManagementService
 from backend.models.monitoring import AlertSeverity, AlertStatus
 
@@ -98,7 +100,7 @@ async def create_alert_rule(
             "created_at": alert_rule.created_at
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating alert rule: {str(e)}")
+        raise safe_error_response(500, "Unable to create alert rule", internal_error=e)
 
 
 @router.post("/rules/{rule_id}/evaluate")
@@ -136,7 +138,7 @@ async def evaluate_alert_rule(
                 "message": "Rule not triggered or in cooldown"
             }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error evaluating rule: {str(e)}")
+        raise safe_error_response(500, "Unable to evaluate alert rule", internal_error=e)
 
 
 # Alert Endpoints
@@ -179,7 +181,7 @@ async def get_active_alerts(
             "count": len(alerts)
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching alerts: {str(e)}")
+        raise safe_error_response(500, "Unable to fetch alerts", internal_error=e)
 
 
 @router.post("/{alert_id}/acknowledge")
@@ -211,7 +213,7 @@ async def acknowledge_alert(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error acknowledging alert: {str(e)}")
+        raise safe_error_response(500, "Unable to acknowledge alert", internal_error=e)
 
 
 @router.post("/{alert_id}/resolve")
@@ -245,7 +247,7 @@ async def resolve_alert(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error resolving alert: {str(e)}")
+        raise safe_error_response(500, "Unable to resolve alert", internal_error=e)
 
 
 @router.post("/{alert_id}/escalate")
@@ -274,7 +276,7 @@ async def escalate_alert(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error escalating alert: {str(e)}")
+        raise safe_error_response(500, "Unable to escalate alert", internal_error=e)
 
 
 @router.get("/{alert_id}/history")
@@ -303,7 +305,7 @@ async def get_alert_history(
             "count": len(history)
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching alert history: {str(e)}")
+        raise safe_error_response(500, "Unable to fetch alert history", internal_error=e)
 
 
 @router.get("/statistics")
@@ -327,7 +329,7 @@ async def get_alert_statistics(
             "hours": hours
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching statistics: {str(e)}")
+        raise safe_error_response(500, "Unable to fetch alert statistics", internal_error=e)
 
 
 # Escalation Policy Endpoints
@@ -355,4 +357,4 @@ async def create_escalation_policy(
             "created_at": escalation_policy.created_at
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating escalation policy: {str(e)}")
+        raise safe_error_response(500, "Unable to create escalation policy", internal_error=e)
