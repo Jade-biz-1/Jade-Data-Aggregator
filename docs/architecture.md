@@ -67,15 +67,17 @@ The architecture encompasses all components required for data ingestion, process
 ### 2.3 Processing Layer
 - **Stream Processing Service**: Handles real-time data streams
   - Apache Kafka for message queuing
-  - Apache Flink for stream processing
+  - Custom Python-based stream processing
   - Event processing and pattern matching
   - Real-time transformation capabilities
 
 - **Batch Processing Service**: Handles bulk data operations
-  - Apache Spark for large-scale data processing
-  - Job scheduling and execution
+  - Custom Python transformation engine (Pandas, NumPy)
+  - Job scheduling and execution via Celery
   - Resource allocation and optimization
   - Failure recovery mechanisms
+
+**Note:** Apache Spark and Apache Flink were initially planned but not implemented. The platform uses efficient Python-based processing with Pandas and NumPy for data transformations.
 
 - **Data Validation Service**: Ensures data quality and consistency
   - Schema validation against defined rules
@@ -109,9 +111,11 @@ The architecture encompasses all components required for data ingestion, process
   - Audit trail storage
 
 - **Monitoring Database**: Stores metrics and logs
-  - Time-series database for metrics (e.g., InfluxDB)
-  - Log storage and analysis (e.g., Elasticsearch)
+  - PostgreSQL with time-based table partitioning for metrics
+  - Log storage and analysis (Loki/Elasticsearch)
   - Alert configuration storage
+
+**Note:** InfluxDB was initially considered but not implemented. The platform uses PostgreSQL with time partitioning for efficient time-series data storage. TimescaleDB is planned as a future enhancement.
 
 ## 3. Component Architecture
 
@@ -158,7 +162,7 @@ The architecture encompasses all components required for data ingestion, process
 │ • Rule Execution                    │
 └─────────────────────────────────────┘
 ```
-- Technologies: Apache Spark, custom Python transformation engine
+- Technologies: Custom Python transformation engine (Pandas, NumPy), Celery for job execution
 - State: Processing rules in configuration service
 - Communication: Kafka events, direct API calls
 
@@ -256,9 +260,10 @@ The architecture encompasses all components required for data ingestion, process
 │ • Real-time Aggregation            │
 └─────────────────────────────────────┘
 ```
-- Technologies: Apache Spark, Pandas, TimescaleDB, Redis
+- Technologies: Python/Pandas for data processing, PostgreSQL with time partitioning, Redis for caching
 - State: Aggregated metrics and historical data
 - Communication: REST APIs, WebSocket for real-time updates
+- Note: TimescaleDB planned as future enhancement for advanced time-series capabilities
 
 #### 3.3.5 Dynamic Configuration Service
 ```
