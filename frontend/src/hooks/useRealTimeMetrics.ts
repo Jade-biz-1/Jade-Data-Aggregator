@@ -23,6 +23,8 @@ interface SystemMetrics {
     free_gb: number;
     percent: number;
   };
+  active_pipelines?: number;
+  failed_pipelines?: number;
 }
 
 export function useRealTimeMetrics() {

@@ -68,7 +68,7 @@ const AdvancedAnalyticsPage = () => {
       start.setDate(end.getDate() - days);
 
       // Fetch time series data
-      const tsResponse = await apiClient.get('/analytics/advanced/time-series', {
+      const tsResponse = await apiClient.fetch<any>('/analytics/advanced/time-series', {
         params: {
           start_date: start.toISOString(),
           end_date: end.toISOString(),
@@ -78,7 +78,7 @@ const AdvancedAnalyticsPage = () => {
       setTimeSeriesData(tsResponse.data.data || []);
 
       // Fetch trend analysis
-      const trendResponse = await apiClient.post('/analytics/advanced/trend-analysis', {
+      const trendResponse = await apiClient.post<any>('/analytics/advanced/trend-analysis', {
         metric: 'records_processed',
         start: start.toISOString(),
         end: end.toISOString()
@@ -86,7 +86,7 @@ const AdvancedAnalyticsPage = () => {
       setTrendData(trendResponse.data);
 
       // Fetch predictive indicators
-      const predResponse = await apiClient.get('/analytics/advanced/predictive-indicators');
+      const predResponse = await apiClient.fetch<any>('/analytics/advanced/predictive-indicators');
       setPredictiveData(predResponse.data);
 
       success('Analytics data loaded successfully');
@@ -105,7 +105,7 @@ const AdvancedAnalyticsPage = () => {
       const days = timeRange === '24h' ? 1 : timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       start.setDate(end.getDate() - days);
 
-      const response = await apiClient.post('/analytics/advanced/export', {
+      const response = await apiClient.post<any>('/analytics/advanced/export', {
         export_format: format,
         export_type: 'analytics',
         time_range: {
@@ -207,14 +207,16 @@ const AdvancedAnalyticsPage = () => {
 
         {/* Time Series Chart */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Records Processed Over Time</h3>
           <LineChart
             data={timeSeriesData.map(d => ({
               date: d.timestamp,
               value: d.records_processed || 0
             }))}
-            title="Records Processed Over Time"
-            dataKey="value"
-            xAxisKey="date"
+            xKey="date"
+            lines={[
+              { key: 'value', name: 'Records Processed', color: '#3b82f6' }
+            ]}
           />
         </div>
 

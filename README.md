@@ -126,7 +126,7 @@ Then open:
 - Frontend: <http://localhost:3000>
 - API docs: <http://localhost:8001/docs>
 
-Default credentials (for local only): admin / password
+Default credentials (for local only): admin / admin123!
 
 To populate a small end-to-end example with connectors and a pipeline, run:
 

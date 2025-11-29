@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { use Params } from 'next/navigation';
+import { useState, useEffect, use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,19 +74,19 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
       setIsLoading(true);
 
       const [pipelineRes, executionsRes, statsRes] = await Promise.all([
-        apiClient.get(`/pipelines/${pipelineId}`),
-        apiClient.get(`/pipelines/${pipelineId}/runs`, {
+        apiClient.fetch(`/pipelines/${pipelineId}`),
+        apiClient.fetch(`/pipelines/${pipelineId}/runs`, {
           params: {
             days: dateRange.replace('d', ''),
             status: filterStatus !== 'all' ? filterStatus : undefined
           }
         }),
-        apiClient.get(`/pipelines/${pipelineId}/runs/statistics`)
+        apiClient.fetch(`/pipelines/${pipelineId}/runs/statistics`)
       ]);
 
-      setPipelineName(pipelineRes.data.name);
-      setExecutions(executionsRes.data || []);
-      setStatistics(statsRes.data || null);
+      setPipelineName((pipelineRes as any).data.name);
+      setExecutions((executionsRes as any).data || []);
+      setStatistics((statsRes as any).data || null);
     } catch (err: any) {
       console.error('Error fetching execution data:', err);
       showError('Failed to load execution data');
@@ -99,7 +99,7 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
     if (!confirm('Are you sure you want to retry this execution?')) return;
 
     try {
-      await apiClient.post(`/pipelines/${pipelineId}/runs/${runId}/retry`);
+      await apiClient.fetch(`/pipelines/${pipelineId}/runs/${runId}/retry`, { method: 'POST' });
       success('Execution retry initiated');
       fetchData();
     } catch (err: any) {
@@ -111,7 +111,7 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
     if (!confirm('Are you sure you want to cancel this execution?')) return;
 
     try {
-      await apiClient.post(`/pipelines/${pipelineId}/runs/${runId}/cancel`);
+      await apiClient.fetch(`/pipelines/${pipelineId}/runs/${runId}/cancel`, { method: 'POST' });
       success('Execution cancelled');
       fetchData();
     } catch (err: any) {
@@ -121,12 +121,13 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
 
   const handleExport = async () => {
     try {
-      const response = await apiClient.get(`/pipelines/${pipelineId}/runs/export`, {
+      const response = await apiClient.fetch<Blob>(`/pipelines/${pipelineId}/runs/export`, {
         params: { format: 'csv', days: dateRange.replace('d', '') },
         responseType: 'blob'
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = response;
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `pipeline-${pipelineId}-executions-${Date.now()}.csv`);

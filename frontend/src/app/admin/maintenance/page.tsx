@@ -103,10 +103,10 @@ export default function MaintenancePage() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
   const { features, loading: permissionsLoading } = usePermissions();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (features?.system?.maintenance) {
@@ -188,14 +188,14 @@ export default function MaintenancePage() {
       const data = await response.json();
       setSchedule(data);
 
-      showToast({
+      addToast({
         type: 'success',
         title: 'Schedule Updated',
         message: 'Cleanup schedule has been updated successfully',
       });
     } catch (error) {
       console.error('Error updating schedule:', error);
-      showToast({
+      addToast({
         type: 'error',
         title: 'Update Failed',
         message: 'Failed to update cleanup schedule',
@@ -205,7 +205,7 @@ export default function MaintenancePage() {
 
   const runCleanup = async (type: string) => {
     if (!features?.system?.cleanup) {
-      showToast({
+      addToast({
         type: 'error',
         title: 'Permission Denied',
         message: "You don't have permission to execute cleanup operations",
@@ -249,7 +249,7 @@ export default function MaintenancePage() {
       await Promise.all([fetchStats(), fetchCleanupHistory()]);
 
       // Show success toast
-      showToast({
+      addToast({
         type: 'success',
         title: 'Cleanup Completed',
         message: `Deleted ${result.summary.total_records_deleted} records, freed ${result.summary.total_space_freed_mb.toFixed(2)} MB`,
@@ -257,7 +257,7 @@ export default function MaintenancePage() {
       });
     } catch (error) {
       console.error('Error running cleanup:', error);
-      showToast({
+      addToast({
         type: 'error',
         title: 'Cleanup Failed',
         message: 'Cleanup operation failed. Please check the logs or try again.',
@@ -307,7 +307,7 @@ export default function MaintenancePage() {
     link.click();
     document.body.removeChild(link);
 
-    showToast({
+    addToast({
       type: 'success',
       title: 'Export Successful',
       message: 'Statistics exported to CSV successfully',
@@ -357,7 +357,7 @@ export default function MaintenancePage() {
     // Write file
     XLSX.writeFile(workbook, `maintenance-stats-${new Date().toISOString().split('T')[0]}.xlsx`);
 
-    showToast({
+    addToast({
       type: 'success',
       title: 'Export Successful',
       message: 'Statistics exported to Excel successfully',
@@ -544,33 +544,30 @@ export default function MaintenancePage() {
           <div className="flex border-b border-gray-200">
             <button
               onClick={() => setActiveTab('operations')}
-              className={`px-6 py-3 font-medium text-sm ${
-                activeTab === 'operations'
-                  ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`px-6 py-3 font-medium text-sm ${activeTab === 'operations'
+                ? 'border-b-2 border-primary-600 text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               <Play className="inline h-4 w-4 mr-2" />
               Operations
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-3 font-medium text-sm ${
-                activeTab === 'history'
-                  ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`px-6 py-3 font-medium text-sm ${activeTab === 'history'
+                ? 'border-b-2 border-primary-600 text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               <HistoryIcon className="inline h-4 w-4 mr-2" />
               History
             </button>
             <button
               onClick={() => setActiveTab('schedule')}
-              className={`px-6 py-3 font-medium text-sm ${
-                activeTab === 'schedule'
-                  ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              className={`px-6 py-3 font-medium text-sm ${activeTab === 'schedule'
+                ? 'border-b-2 border-primary-600 text-primary-600'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
               <Calendar className="inline h-4 w-4 mr-2" />
               Schedule
@@ -580,214 +577,217 @@ export default function MaintenancePage() {
 
         {/* Data Visualization Charts - Phase 9D */}
         {activeTab === 'operations' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Record Distribution Pie Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Record Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recordDistributionData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={recordDistributionData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {recordDistributionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => value.toLocaleString()} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  No data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Record Distribution Pie Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Record Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {recordDistributionData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={recordDistributionData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {recordDistributionData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => value.toLocaleString()} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-gray-500">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Temp Files Bar Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Temporary Files Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tempFilesData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={tempFilesData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis dataKey="name" stroke="#6B7280" />
-                    <YAxis stroke="#6B7280" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E5E7EB',
-                        borderRadius: '0.5rem',
-                      }}
-                    />
-                    <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  No data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Cleanup Operations */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Cleanup Operations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                onClick={() => runCleanup('activity-logs')}
-                disabled={isCleaningUp || !features?.system?.cleanup}
-                className="h-auto py-4 flex flex-col items-start"
-                variant="outline"
-              >
-                <div className="flex items-center space-x-2 mb-2">
-                  <FileText className="h-5 w-5" />
-                  <span className="font-semibold">Clean Activity Logs</span>
-                </div>
-                <p className="text-xs text-gray-600 text-left">
-                  Remove activity logs older than 90 days
-                </p>
-              </Button>
-
-              <Button
-                onClick={() => runCleanup('temp-files')}
-                disabled={isCleaningUp || !features?.system?.cleanup}
-                className="h-auto py-4 flex flex-col items-start"
-                variant="outline"
-              >
-                <div className="flex items-center space-x-2 mb-2">
-                  <Trash2 className="h-5 w-5" />
-                  <span className="font-semibold">Clean Temp Files</span>
-                </div>
-                <p className="text-xs text-gray-600 text-left">
-                  Remove temporary files older than 24 hours
-                </p>
-              </Button>
-
-              <Button
-                onClick={() => runCleanup('orphaned-data')}
-                disabled={isCleaningUp || !features?.system?.cleanup}
-                className="h-auto py-4 flex flex-col items-start"
-                variant="outline"
-              >
-                <div className="flex items-center space-x-2 mb-2">
-                  <Database className="h-5 w-5" />
-                  <span className="font-semibold">Clean Orphaned Data</span>
-                </div>
-                <p className="text-xs text-gray-600 text-left">
-                  Remove records with no parent associations
-                </p>
-              </Button>
-
-              <Button
-                onClick={() => runCleanup('all')}
-                disabled={isCleaningUp || !features?.system?.cleanup}
-                className="h-auto py-4 flex flex-col items-start bg-primary-600 hover:bg-primary-700 text-white"
-              >
-                <div className="flex items-center space-x-2 mb-2">
-                  <Play className="h-5 w-5" />
-                  <span className="font-semibold">Run All Cleanup</span>
-                </div>
-                <p className="text-xs text-white text-opacity-90 text-left">
-                  Execute all cleanup operations at once
-                </p>
-              </Button>
+              {/* Temp Files Bar Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Temporary Files Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {tempFilesData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={tempFilesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                        <XAxis dataKey="name" stroke="#6B7280" />
+                        <YAxis stroke="#6B7280" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#FFFFFF',
+                            border: '1px solid #E5E7EB',
+                            borderRadius: '0.5rem',
+                          }}
+                        />
+                        <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-gray-500">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
-            {isCleaningUp && (
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
-                  <p className="text-sm text-blue-800">Cleanup operation in progress...</p>
+            {/* Cleanup Operations */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Cleanup Operations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => runCleanup('activity-logs')}
+                    disabled={isCleaningUp || !features?.system?.cleanup}
+                    className="h-auto py-4 flex flex-col items-start"
+                    variant="outline"
+                  >
+                    <div className="flex items-center space-x-2 mb-2">
+                      <FileText className="h-5 w-5" />
+                      <span className="font-semibold">Clean Activity Logs</span>
+                    </div>
+                    <p className="text-xs text-gray-600 text-left">
+                      Remove activity logs older than 90 days
+                    </p>
+                  </Button>
+
+                  <Button
+                    onClick={() => runCleanup('temp-files')}
+                    disabled={isCleaningUp || !features?.system?.cleanup}
+                    className="h-auto py-4 flex flex-col items-start"
+                    variant="outline"
+                  >
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Trash2 className="h-5 w-5" />
+                      <span className="font-semibold">Clean Temp Files</span>
+                    </div>
+                    <p className="text-xs text-gray-600 text-left">
+                      Remove temporary files older than 24 hours
+                    </p>
+                  </Button>
+
+                  <Button
+                    onClick={() => runCleanup('orphaned-data')}
+                    disabled={isCleaningUp || !features?.system?.cleanup}
+                    className="h-auto py-4 flex flex-col items-start"
+                    variant="outline"
+                  >
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Database className="h-5 w-5" />
+                      <span className="font-semibold">Clean Orphaned Data</span>
+                    </div>
+                    <p className="text-xs text-gray-600 text-left">
+                      Remove records with no parent associations
+                    </p>
+                  </Button>
+
+                  <Button
+                    onClick={() => runCleanup('all')}
+                    disabled={isCleaningUp || !features?.system?.cleanup}
+                    className="h-auto py-4 flex flex-col items-start bg-primary-600 hover:bg-primary-700 text-white"
+                  >
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Play className="h-5 w-5" />
+                      <span className="font-semibold">Run All Cleanup</span>
+                    </div>
+                    <p className="text-xs text-white text-opacity-90 text-left">
+                      Execute all cleanup operations at once
+                    </p>
+                  </Button>
                 </div>
-              </div>
+
+                {isCleaningUp && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+                      <p className="text-sm text-blue-800">Cleanup operation in progress...</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Cleanup Results */}
+            {cleanupResults && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span>Last Cleanup Results</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {Object.entries(cleanupResults.operations).map(([key, value]: [string, any]) => (
+                      <div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium capitalize">{key.replace('_', ' ')}</span>
+                        <span className="text-sm text-gray-600">
+                          {value.records_deleted || value.files_deleted || 0} items removed
+                        </span>
+                      </div>
+                    ))}
+
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {cleanupResults.summary.total_records_deleted}
+                          </p>
+                          <p className="text-xs text-gray-600">Records Deleted</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {cleanupResults.summary.total_space_freed_mb.toFixed(2)} MB
+                          </p>
+                          <p className="text-xs text-gray-600">Space Freed</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {cleanupResults.summary.duration_seconds.toFixed(2)}s
+                          </p>
+                          <p className="text-xs text-gray-600">Duration</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Cleanup Results */}
-        {cleanupResults && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span>Last Cleanup Results</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(cleanupResults.operations).map(([key, value]: [string, any]) => (
-                  <div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium capitalize">{key.replace('_', ' ')}</span>
-                    <span className="text-sm text-gray-600">
-                      {value.records_deleted || value.files_deleted || 0} items removed
-                    </span>
-                  </div>
-                ))}
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="grid grid-cols-3 gap-4 text-center">
+            {/* Permission Warning */}
+            {!features?.system?.cleanup && (
+              <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="pt-6">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {cleanupResults.summary.total_records_deleted}
+                      <p className="font-medium text-yellow-900">Read-Only Access</p>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        You have permission to view system stats but not to execute cleanup operations.
+                        Contact an administrator if you need execute permissions.
                       </p>
-                      <p className="text-xs text-gray-600">Records Deleted</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {cleanupResults.summary.total_space_freed_mb.toFixed(2)} MB
-                      </p>
-                      <p className="text-xs text-gray-600">Space Freed</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {cleanupResults.summary.duration_seconds.toFixed(2)}s
-                      </p>
-                      <p className="text-xs text-gray-600">Duration</p>
                     </div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Permission Warning */}
-        {!features?.system?.cleanup && (
-          <Card className="bg-yellow-50 border-yellow-200">
-            <CardContent className="pt-6">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-yellow-900">Read-Only Access</p>
-                  <p className="text-sm text-yellow-800 mt-1">
-                    You have permission to view system stats but not to execute cleanup operations.
-                    Contact an administrator if you need execute permissions.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
         {/* Cleanup History Tab */}
@@ -917,11 +917,10 @@ export default function MaintenancePage() {
                           })
                         }
                         disabled={!features?.system?.cleanup}
-                        className={`px-4 py-2 rounded-lg font-medium ${
-                          schedule?.enabled
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
-                        } disabled:opacity-50`}
+                        className={`px-4 py-2 rounded-lg font-medium ${schedule?.enabled
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
+                          } disabled:opacity-50`}
                       >
                         {schedule?.enabled ? 'Enabled' : 'Disabled'}
                       </button>

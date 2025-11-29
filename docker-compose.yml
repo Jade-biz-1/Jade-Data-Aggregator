@@ -52,7 +52,7 @@ services:
       ALLOW_ANONYMOUS_LOGIN: yes
 
   backend:
-    build: .
+    build: ./backend
     ports:
       - "8001:8001"
     volumes:

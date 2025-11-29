@@ -115,7 +115,7 @@ export default function TransformationsPage() {
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = transformations.filter(transformation => 
+      const filtered = transformations.filter(transformation =>
         transformation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transformation.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         transformation.transformation_type.toLowerCase().includes(searchTerm.toLowerCase())
@@ -287,7 +287,6 @@ export default function TransformationsPage() {
       <DashboardLayout>
         <AccessDenied
           message="You don't have permission to view transformations"
-          requiredRole="designer"
         />
       </DashboardLayout>
     );
@@ -350,7 +349,7 @@ export default function TransformationsPage() {
               <p className="text-xs text-gray-500">All transformations</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Active</CardTitle>
@@ -363,7 +362,7 @@ export default function TransformationsPage() {
               <p className="text-xs text-gray-500">Active transformations</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Records Processed</CardTitle>
@@ -434,11 +433,10 @@ export default function TransformationsPage() {
                             <h3 className="text-base font-medium text-gray-900 truncate">
                               {transformation.name}
                             </h3>
-                            <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              getTransformationStatus(transformation) === 'active'
+                            <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransformationStatus(transformation) === 'active'
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-gray-100 text-gray-800'
-                            }`}>
+                              }`}>
                               {getTransformationStatus(transformation).charAt(0).toUpperCase() + getTransformationStatus(transformation).slice(1)}
                             </span>
                             <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

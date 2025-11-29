@@ -362,7 +362,7 @@ export default function Module2ExercisePage() {
                     <span className="text-xs font-semibold text-gray-700">Endpoints:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {api.endpoints.map((ep) => (
-                        <Badge key={ep} variant="outline" className="text-xs">{ep}</Badge>
+                        <Badge key={ep} variant="default" className="text-xs">{ep}</Badge>
                       ))}
                     </div>
                   </div>
@@ -427,8 +427,8 @@ export default function Module2ExercisePage() {
 
           const categoryIcon = category === 'API Research' ? <Globe className="w-5 h-5" />
             : category === 'Connector Configuration' ? <Settings className="w-5 h-5" />
-            : category === 'Testing & Validation' ? <CheckCircle className="w-5 h-5" />
-            : <Database className="w-5 h-5" />;
+              : category === 'Testing & Validation' ? <CheckCircle className="w-5 h-5" />
+                : <Database className="w-5 h-5" />;
 
           return (
             <div key={category} className="mb-8">
@@ -451,11 +451,10 @@ export default function Module2ExercisePage() {
                 {categoryItems.map((item) => (
                   <Card
                     key={item.id}
-                    className={`p-5 transition-all cursor-pointer ${
-                      item.completed
+                    className={`p-5 transition-all cursor-pointer ${item.completed
                         ? 'border-2 border-success-200 bg-success-50'
                         : 'hover:shadow-md'
-                    }`}
+                      }`}
                     onClick={() => toggleChecklistItem(item.id)}
                   >
                     <div className="flex items-start gap-4">
@@ -471,9 +470,8 @@ export default function Module2ExercisePage() {
                         <div className="flex items-start justify-between gap-4 mb-2">
                           <div>
                             <h4
-                              className={`font-semibold mb-1 ${
-                                item.completed ? 'text-success-900 line-through' : 'text-gray-900'
-                              }`}
+                              className={`font-semibold mb-1 ${item.completed ? 'text-success-900 line-through' : 'text-gray-900'
+                                }`}
                             >
                               {item.task}
                             </h4>

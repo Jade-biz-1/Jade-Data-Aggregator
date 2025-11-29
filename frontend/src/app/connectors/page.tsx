@@ -69,9 +69,8 @@ export default function ConnectorsPage() {
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = connectors.filter(connector => 
+      const filtered = connectors.filter(connector =>
         connector.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        connector.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         connector.type.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredConnectors(filtered);
@@ -154,7 +153,6 @@ export default function ConnectorsPage() {
       <DashboardLayout>
         <AccessDenied
           message="You don't have permission to view connectors"
-          requiredRole="designer"
         />
       </DashboardLayout>
     );
@@ -263,25 +261,24 @@ export default function ConnectorsPage() {
             ) : (
               <div className="space-y-4">
                 {filteredConnectors.map((connector) => (
-                  <div 
-                    key={connector.id} 
+                  <div
+                    key={connector.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start space-x-4 flex-1 min-w-0">
                       <div className="flex-shrink-0">
-                        {getStatusIcon(connector.status)}
+                        {getStatusIcon(connector.status || 'unknown')}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline">
                           <h3 className="text-base font-medium text-gray-900 truncate">
                             {connector.name}
                           </h3>
-                          <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            connector.status === 'connected' 
-                              ? 'bg-green-100 text-green-800' 
+                          <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(connector.status || 'unknown') === 'connected'
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
-                            {getStatusText(connector.status)}
+                            }`}>
+                            {getStatusText(connector.status || 'unknown')}
                           </span>
                           <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {connector.type}
@@ -298,7 +295,7 @@ export default function ConnectorsPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="mt-4 sm:mt-0 flex items-center space-x-2">
                       <div className="flex space-x-1">
                         <Button

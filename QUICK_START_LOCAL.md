@@ -19,7 +19,7 @@ bash scripts/dev-up.sh
 # 4. Access
 # Frontend: http://localhost:3000
 # Backend: http://localhost:8001/docs
-# Login: admin / password
+# Login: admin / admin123!
 ```
 
 **Done! Platform is running.** 🎉

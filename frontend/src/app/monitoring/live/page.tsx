@@ -83,9 +83,9 @@ export default function LiveMonitoringPage() {
   useEffect(() => {
     if (metrics) {
       setSystemHealth({
-        cpu_usage: metrics.cpu_usage || 0,
-        memory_usage: metrics.memory_usage || 0,
-        disk_usage: metrics.disk_usage || 0,
+        cpu_usage: metrics.cpu?.percent || 0,
+        memory_usage: metrics.memory?.percent || 0,
+        disk_usage: metrics.disk?.percent || 0,
         active_pipelines: metrics.active_pipelines || 0,
         failed_pipelines: metrics.failed_pipelines || 0,
         status: getHealthStatus(metrics),
@@ -94,8 +94,17 @@ export default function LiveMonitoringPage() {
   }, [metrics]);
 
   useEffect(() => {
-    if (pipelineStatuses) {
-      setPipelines(pipelineStatuses);
+    if (pipelineStatuses && Object.keys(pipelineStatuses).length > 0) {
+      const executions: PipelineExecution[] = Object.values(pipelineStatuses).map((status: any) => ({
+        id: status.pipeline_id,
+        pipeline_name: status.metadata?.pipeline_name || `Pipeline ${status.pipeline_id}`,
+        status: status.status,
+        started_at: status.timestamp, // Mapped start_time to started_at
+        progress: status.progress || 0, // Added progress
+        duration: '0s', // placeholder
+        records_processed: status.metadata?.records_processed || 0
+      }));
+      setPipelines(executions);
     }
   }, [pipelineStatuses]);
 
@@ -215,11 +224,10 @@ export default function LiveMonitoringPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
-                autoRefresh
-                  ? 'bg-blue-600 text-white'
-                  : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${autoRefresh
+                ? 'bg-blue-600 text-white'
+                : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                }`}
             >
               {autoRefresh ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               {autoRefresh ? 'Auto-Refresh On' : 'Auto-Refresh Off'}
@@ -242,13 +250,12 @@ export default function LiveMonitoringPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">System Status</p>
-                  <p className={`mt-2 text-2xl font-bold ${
-                    systemHealth.status === 'healthy'
-                      ? 'text-green-600'
-                      : systemHealth.status === 'warning'
+                  <p className={`mt-2 text-2xl font-bold ${systemHealth.status === 'healthy'
+                    ? 'text-green-600'
+                    : systemHealth.status === 'warning'
                       ? 'text-yellow-600'
                       : 'text-red-600'
-                  }`}>
+                    }`}>
                     {systemHealth.status.toUpperCase()}
                   </p>
                 </div>
@@ -269,13 +276,12 @@ export default function LiveMonitoringPage() {
               </div>
               <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all ${
-                    systemHealth.cpu_usage > 90
-                      ? 'bg-red-600'
-                      : systemHealth.cpu_usage > 70
+                  className={`h-2 rounded-full transition-all ${systemHealth.cpu_usage > 90
+                    ? 'bg-red-600'
+                    : systemHealth.cpu_usage > 70
                       ? 'bg-yellow-600'
                       : 'bg-green-600'
-                  }`}
+                    }`}
                   style={{ width: `${systemHealth.cpu_usage}%` }}
                 />
               </div>
@@ -294,13 +300,12 @@ export default function LiveMonitoringPage() {
               </div>
               <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all ${
-                    systemHealth.memory_usage > 90
-                      ? 'bg-red-600'
-                      : systemHealth.memory_usage > 70
+                  className={`h-2 rounded-full transition-all ${systemHealth.memory_usage > 90
+                    ? 'bg-red-600'
+                    : systemHealth.memory_usage > 70
                       ? 'bg-yellow-600'
                       : 'bg-green-600'
-                  }`}
+                    }`}
                   style={{ width: `${systemHealth.memory_usage}%` }}
                 />
               </div>
@@ -319,13 +324,12 @@ export default function LiveMonitoringPage() {
               </div>
               <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all ${
-                    systemHealth.disk_usage > 90
-                      ? 'bg-red-600'
-                      : systemHealth.disk_usage > 70
+                  className={`h-2 rounded-full transition-all ${systemHealth.disk_usage > 90
+                    ? 'bg-red-600'
+                    : systemHealth.disk_usage > 70
                       ? 'bg-yellow-600'
                       : 'bg-green-600'
-                  }`}
+                    }`}
                   style={{ width: `${systemHealth.disk_usage}%` }}
                 />
               </div>
@@ -421,15 +425,14 @@ export default function LiveMonitoringPage() {
                   {alerts.map(alert => (
                     <div
                       key={alert.id}
-                      className={`p-4 rounded-lg border-l-4 ${
-                        alert.severity === 'critical'
-                          ? 'bg-red-50 dark:bg-red-900/20 border-red-600'
-                          : alert.severity === 'error'
+                      className={`p-4 rounded-lg border-l-4 ${alert.severity === 'critical'
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-600'
+                        : alert.severity === 'error'
                           ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-600'
                           : alert.severity === 'warning'
-                          ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-600'
-                          : 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
-                      } ${alert.acknowledged ? 'opacity-50' : ''}`}
+                            ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-600'
+                            : 'bg-blue-50 dark:bg-blue-900/20 border-blue-600'
+                        } ${alert.acknowledged ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

@@ -56,6 +56,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             onClick={handlePrevious}
             disabled={disabled}
             className="w-full sm:w-auto"
+            aria-label={previousLabel}
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
             {previousLabel}
@@ -69,10 +70,11 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       {showComplete && (
         <div className="flex justify-center">
           <Button
-            variant={isCompleted ? 'success' : 'default'}
+            variant="primary"
             onClick={handleComplete}
             disabled={disabled || isCompleted}
-            className="w-full sm:w-auto"
+            className={`w-full sm:w-auto ${isCompleted ? 'bg-green-600 hover:bg-green-700 border-green-600' : ''}`}
+            aria-label={isCompleted ? 'Lesson Completed' : 'Mark Lesson as Complete'}
           >
             <CheckCircle className="w-4 h-4 mr-2" />
             {isCompleted ? 'Completed' : 'Mark as Complete'}
@@ -84,10 +86,11 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       <div className="flex-1 flex justify-end">
         {nextUrl ? (
           <Button
-            variant="default"
+            variant="primary"
             onClick={handleNext}
             disabled={disabled}
             className="w-full sm:w-auto"
+            aria-label={nextLabel}
           >
             {nextLabel}
             <ChevronRight className="w-4 h-4 ml-2" />

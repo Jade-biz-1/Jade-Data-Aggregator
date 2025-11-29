@@ -223,7 +223,7 @@ const introspectSchema = async (connectorId) => {
                     {Object.keys(schemas).map((tableName) => (
                       <Button
                         key={tableName}
-                        variant={selectedTable === tableName ? 'default' : 'outline'}
+                        variant={selectedTable === tableName ? 'primary' : 'outline'}
                         size="sm"
                         onClick={() => {
                           setSelectedTable(tableName);

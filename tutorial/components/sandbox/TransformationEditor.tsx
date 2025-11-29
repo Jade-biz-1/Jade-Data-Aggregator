@@ -267,7 +267,7 @@ export default function TransformationEditor({
 
                 {testResult.success ? (
                   <div className="space-y-2">
-                    <Alert type="success" className="flex items-start gap-2">
+                    <Alert variant="success" className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
                       <div>
                         <div className="font-medium">Transformation successful!</div>

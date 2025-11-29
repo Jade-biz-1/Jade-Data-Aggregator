@@ -1,7 +1,5 @@
 import axios from 'axios';
-import { Pipeline } from '@/types/pipeline';
-import { Connector } from '@/types/connector';
-import { User } from '@/types/user';
+import { Pipeline, Connector, User } from '@/types';
 import {
   DashboardStats,
   DashboardRecentActivity,
@@ -82,15 +80,35 @@ interface CreateSchemaMappingPayload {
   auto_generate?: boolean;
 }
 
+interface ApiRequestOptions extends RequestInit {
+  params?: Record<string, string | number | boolean | undefined>;
+  responseType?: 'json' | 'blob' | 'text';
+}
+
 class ApiClient {
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  public async request<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+    let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+    if (options?.params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+      const separator = url.includes('?') ? '&' : '?';
+      url += `${separator}${searchParams.toString()}`;
+    }
+
+    const { params, responseType, ...fetchOptions } = options || {};
+
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
         ...this.getAuthHeaders(),
-        ...(options?.headers || {}),
+        ...(fetchOptions?.headers || {}),
       },
-      ...options,
+      ...fetchOptions,
     });
 
     if (!response.ok) {
@@ -103,7 +121,45 @@ class ApiClient {
       return {} as T;
     }
 
+    if (responseType === 'blob') {
+      return response.blob() as unknown as T;
+    }
+    if (responseType === 'text') {
+      return response.text() as unknown as T;
+    }
+
     return response.json();
+  }
+
+  public async fetch<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+    return this.request<T>(endpoint, options);
+  }
+
+  public async get<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+    return this.request<T>(endpoint, options);
+  }
+
+  public async post<T>(endpoint: string, body?: any, options?: ApiRequestOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  public async put<T>(endpoint: string, body?: any, options?: ApiRequestOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  public async delete<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'DELETE',
+    });
   }
 
   private getAuthHeaders(): Record<string, string> {

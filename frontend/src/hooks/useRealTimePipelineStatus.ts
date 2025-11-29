@@ -40,6 +40,7 @@ interface PipelineError {
 
 export function useRealTimePipelineStatus(pipelineId?: number) {
   const [status, setStatus] = useState<PipelineStatus | null>(null);
+  const [pipelineStatuses, setPipelineStatuses] = useState<Record<number, PipelineStatus>>({});
   const [progress, setProgress] = useState<PipelineProgress | null>(null);
   const [logs, setLogs] = useState<PipelineLog[]>([]);
   const [errors, setErrors] = useState<PipelineError[]>([]);
@@ -58,6 +59,10 @@ export function useRealTimePipelineStatus(pipelineId?: number) {
     const statusHandler = (data: PipelineStatus) => {
       if (!pipelineId || data.pipeline_id === pipelineId) {
         setStatus(data);
+        setPipelineStatuses(prev => ({
+          ...prev,
+          [data.pipeline_id]: data
+        }));
       }
     };
 
@@ -102,6 +107,7 @@ export function useRealTimePipelineStatus(pipelineId?: number) {
 
   return {
     status,
+    pipelineStatuses,
     progress,
     logs,
     errors,

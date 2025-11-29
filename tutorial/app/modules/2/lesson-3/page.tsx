@@ -294,7 +294,7 @@ const testConnection = async (connectorId) => {
                 {/* Test Buttons */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <Button
-                    variant="default"
+                    variant="primary"
                     onClick={() => simulateConnectionTest(false)}
                     disabled={connectionStatus === 'testing'}
                   >
@@ -373,7 +373,7 @@ const testConnection = async (connectorId) => {
                 )}
 
                 {connectionStatus === 'error' && errorType && (
-                  <Alert variant="error">
+                  <Alert variant="danger">
                     <div className="flex items-start gap-3">
                       <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                       <div>
@@ -410,7 +410,7 @@ const testConnection = async (connectorId) => {
                       {error.message}
                     </code>
                   </div>
-                  <Badge variant="error">Error</Badge>
+                  <Badge variant="danger">Error</Badge>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

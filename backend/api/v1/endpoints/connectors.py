@@ -5,6 +5,8 @@ from backend.schemas.connector import Connector, ConnectorCreate, ConnectorUpdat
 from backend.schemas.user import User
 from backend.core.database import get_db
 from backend.core.rbac import require_viewer, require_designer
+from backend.services.connection_test_service import ConnectionTestService
+from typing import Dict, Any
 from backend import crud
 
 
@@ -77,8 +79,32 @@ async def delete_connector(
     """
     Delete a connector (Designer, Developer, Admin only)
     """
+    connector = await crud.connector.remove(db, id=connector_id)
+    return connector
+
+
+@router.post("/{connector_id}/test", response_model=Dict[str, Any])
+async def test_connector_connection(
+    connector_id: int,
+    current_user: User = Depends(require_designer()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Test connection for an existing connector
+    """
     connector = await crud.connector.get(db, id=connector_id)
     if not connector:
         raise HTTPException(status_code=404, detail="Connector not found")
-    connector = await crud.connector.remove(db, id=connector_id)
-    return connector
+    
+    # Get configuration and type
+    config = connector.configuration
+    connector_type = connector.connector_type
+    
+    try:
+        result = await ConnectionTestService.test_connection(
+            connector_type,
+            config
+        )
+        return result.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Connection test failed: {str(e)}")

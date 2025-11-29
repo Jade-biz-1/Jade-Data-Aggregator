@@ -64,7 +64,7 @@ export default function AlertHistoryPage() {
   const fetchHistory = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/alerts/history', {
+      const response = await apiClient.fetch<any>('/alerts/history', {
         params: { days: dateRange.replace('d', '') }
       });
       setAlerts(response.data || []);
@@ -102,7 +102,7 @@ export default function AlertHistoryPage() {
 
   const handleExport = async () => {
     try {
-      const response = await apiClient.get('/alerts/history/export', {
+      const response = await apiClient.fetch<any>('/alerts/history/export', {
         params: { days: dateRange.replace('d', ''), format: 'csv' },
         responseType: 'blob'
       });

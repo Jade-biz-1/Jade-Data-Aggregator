@@ -27,13 +27,13 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --only=main
 
 # Copy project
-COPY . /app/
+COPY . /app/backend/
 
 # Set Python path to include parent directory
 ENV PYTHONPATH=/app
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8001
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8001"]

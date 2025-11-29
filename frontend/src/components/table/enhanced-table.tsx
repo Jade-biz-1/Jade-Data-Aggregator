@@ -39,45 +39,45 @@ export function EnhancedTable<T extends Record<string, any>>({
   // Add checkbox column for bulk selection
   const columns: Column<T>[] = enableBulkActions
     ? [
-        {
-          key: '_select',
-          header: (
-            <input
-              type="checkbox"
-              checked={selectedRows.size === data.length && data.length > 0}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setSelectedRows(new Set(data.map((_, i) => i)));
-                } else {
-                  setSelectedRows(new Set());
-                }
-              }}
-              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-          ) as any,
-          render: (_value, _row, index) => (
-            <input
-              type="checkbox"
-              checked={selectedRows.has(index as number)}
-              onChange={(e) => {
-                const newSelected = new Set(selectedRows);
-                if (e.target.checked) {
-                  newSelected.add(index as number);
-                } else {
-                  newSelected.delete(index as number);
-                }
-                setSelectedRows(newSelected);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-          ),
-          sortable: false,
-          filterable: false,
-          width: '50px'
-        },
-        ...initialColumns.filter(col => visibleColumns.has(col.key))
-      ]
+      {
+        key: '_select',
+        header: (
+          <input
+            type="checkbox"
+            checked={selectedRows.size === data.length && data.length > 0}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedRows(new Set(data.map((_, i) => i)));
+              } else {
+                setSelectedRows(new Set());
+              }
+            }}
+            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+        ) as any,
+        render: (_value, _row, index) => (
+          <input
+            type="checkbox"
+            checked={selectedRows.has(index as number)}
+            onChange={(e) => {
+              const newSelected = new Set(selectedRows);
+              if (e.target.checked) {
+                newSelected.add(index as number);
+              } else {
+                newSelected.delete(index as number);
+              }
+              setSelectedRows(newSelected);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+        ),
+        sortable: false,
+        filterable: false,
+        width: '50px'
+      },
+      ...initialColumns.filter(col => visibleColumns.has(col.key))
+    ]
     : initialColumns.filter(col => visibleColumns.has(col.key));
 
   const handleExport = () => {
@@ -90,7 +90,8 @@ export function EnhancedTable<T extends Record<string, any>>({
       const obj: any = {};
       initialColumns.forEach(col => {
         if (visibleColumns.has(col.key)) {
-          obj[col.header] = row[col.key];
+          const key = typeof col.header === 'string' ? col.header : col.key;
+          obj[key] = row[col.key];
         }
       });
       return obj;

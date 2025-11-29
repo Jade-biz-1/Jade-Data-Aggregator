@@ -132,11 +132,10 @@ export default function Lesson2_2Page() {
             {databases.map((db) => (
               <Card
                 key={db.id}
-                className={`p-5 transition-all cursor-pointer ${
-                  selectedDB === db.id
-                    ? 'ring-2 ring-primary-500 shadow-lg'
-                    : 'hover:shadow-md'
-                }`}
+                className={`p-5 transition-all cursor-pointer ${selectedDB === db.id
+                  ? 'ring-2 ring-primary-500 shadow-lg'
+                  : 'hover:shadow-md'
+                  }`}
                 onClick={() => {
                   setSelectedDB(db.id);
                   setPort(db.defaultPort);
@@ -148,7 +147,7 @@ export default function Lesson2_2Page() {
                     <h4 className="font-semibold text-gray-900">{db.name}</h4>
                     <p className="text-sm text-gray-600">Default port: {db.defaultPort}</p>
                   </div>
-                  <Badge variant={selectedDB === db.id ? 'default' : 'outline'}>
+                  <Badge variant={selectedDB === db.id ? 'primary' : 'default'}>
                     {selectedDB === db.id ? 'Selected' : 'Select'}
                   </Badge>
                 </div>
@@ -270,7 +269,7 @@ ${selectedDB}://myuser:p%40ssw%24rd@localhost:${selectedDatabase.defaultPort}/my
                     {databases.map((db) => (
                       <Button
                         key={db.id}
-                        variant={selectedDB === db.id ? 'default' : 'outline'}
+                        variant={selectedDB === db.id ? 'primary' : 'outline'}
                         size="sm"
                         onClick={() => {
                           setSelectedDB(db.id);

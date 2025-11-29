@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
@@ -18,7 +19,9 @@ interface ConnectorType {
   icon: string;
 }
 
-const ConnectorConfigPage = () => {
+import { Suspense } from 'react';
+
+const ConnectorConfigContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -240,4 +243,19 @@ const ConnectorConfigPage = () => {
   );
 };
 
-export default ConnectorConfigPage;
+export default function ConnectorConfigPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    }>
+      <ConnectorConfigContent />
+    </Suspense>
+  );
+}

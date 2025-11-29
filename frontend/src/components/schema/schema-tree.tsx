@@ -34,19 +34,22 @@ const FieldItem: React.FC<{
 }> = ({ field, table, onFieldClick, isSelected }) => {
   return (
     <div
-      className={`flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer ${
-        isSelected ? 'bg-blue-50 border-l-2 border-blue-500' : ''
-      }`}
+      className={`flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer ${isSelected ? 'bg-blue-50 border-l-2 border-blue-500' : ''
+        }`}
       onClick={() => onFieldClick?.(field, table)}
     >
       <div className="flex items-center gap-2 flex-1">
         <Type className="w-4 h-4 text-gray-400" />
         <span className="font-medium text-sm">{field.name}</span>
         {field.primary_key && (
-          <Key className="w-3 h-3 text-yellow-500" title="Primary Key" />
+          <span title="Primary Key">
+            <Key className="w-3 h-3 text-yellow-500" />
+          </span>
         )}
         {field.foreign_key && (
-          <LinkIcon className="w-3 h-3 text-blue-500" title={`Foreign Key: ${field.foreign_key}`} />
+          <span title={`Foreign Key: ${field.foreign_key}`}>
+            <LinkIcon className="w-3 h-3 text-blue-500" />
+          </span>
         )}
       </div>
 

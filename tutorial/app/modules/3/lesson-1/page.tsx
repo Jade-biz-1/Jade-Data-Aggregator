@@ -152,7 +152,7 @@ export default function Lesson3_1Page() {
                       <span className="text-xs font-semibold text-gray-700">Examples:</span>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {type.examples.map((ex, idx) => (
-                          <Badge key={idx} variant="outline">{ex}</Badge>
+                          <Badge key={idx} variant="default">{ex}</Badge>
                         ))}
                       </div>
                     </div>

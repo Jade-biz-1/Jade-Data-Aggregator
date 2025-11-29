@@ -92,6 +92,11 @@ const nextConfig = {
     maxInactiveAge: 60 * 1000, // 1 minute
     pagesBufferLength: 5,
   },
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;

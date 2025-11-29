@@ -66,7 +66,7 @@ const TransformationFunctionsPage = () => {
   const fetchFunctions = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/transformations/functions');
+      const response = await apiClient.fetch<any>('/transformations/functions');
       setFunctions(response.data.functions || []);
       success('Function library loaded');
     } catch (error: any) {
@@ -107,7 +107,7 @@ const TransformationFunctionsPage = () => {
 
     try {
       const parsedInput = JSON.parse(testInput);
-      const response = await apiClient.post(`/transformations/functions/${func.id}/test`, {
+      const response = await apiClient.post<any>(`/transformations/functions/${func.id}/test`, {
         input: parsedInput
       });
 

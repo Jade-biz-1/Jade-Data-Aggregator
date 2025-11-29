@@ -69,7 +69,7 @@ export default function AlertRulesPage() {
   const fetchRules = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get('/alerts/rules');
+      const response = await apiClient.fetch<any>('/alerts/rules');
       setRules(response.data || []);
     } catch (err: any) {
       console.error('Error fetching alert rules:', err);
@@ -86,7 +86,7 @@ export default function AlertRulesPage() {
         await apiClient.put(`/alerts/rules/${editingRule.id}`, formData);
         success('Alert rule updated successfully');
       } else {
-        await apiClient.post('/alerts/rules', formData);
+        await apiClient.post<any>('/alerts/rules', formData);
         success('Alert rule created successfully');
       }
       setShowForm(false);

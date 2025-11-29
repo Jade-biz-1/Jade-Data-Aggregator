@@ -31,6 +31,10 @@ export interface NavigationPermissions {
 }
 
 export interface FeatureAccess {
+  dashboard: {
+    view: boolean;
+    customize: boolean;
+  };
   users: {
     view: boolean;
     create: boolean;
@@ -58,6 +62,7 @@ export interface FeatureAccess {
     create: boolean;
     edit: boolean;
     delete: boolean;
+    execute: boolean;
   };
   monitoring: {
     view: boolean;
@@ -80,6 +85,13 @@ export interface FeatureAccess {
     view: boolean;
     upload: boolean;
     delete: boolean;
+    download: boolean;
+  };
+  search: {
+    view: boolean;
+  };
+  settings: {
+    view: boolean;
   };
 }
 
@@ -131,7 +143,7 @@ export function usePermissions() {
 
       // Fetch all session info in a single API call (OPTIMIZED - Phase 9A-2)
       // Replaces 3 separate calls: /me/permissions, /navigation/items, /features/access
-  const sessionResponse = await fetch(buildApiUrl('/users/me/session-info'), {
+      const sessionResponse = await fetch(buildApiUrl('/users/me/session-info'), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -141,13 +153,13 @@ export function usePermissions() {
         throw new Error('Failed to fetch session information');
       }
 
-  const sessionData = await sessionResponse.json();
+      const sessionData = await sessionResponse.json();
 
-  // Set all data from single response
-  setPermissions(sessionData.permissions);
-  setNavigation(sessionData.navigation);
-  setFeatures(sessionData.features);
-  setCurrentUser(sessionData.user);
+      // Set all data from single response
+      setPermissions(sessionData.permissions);
+      setNavigation(sessionData.navigation);
+      setFeatures(sessionData.features);
+      setCurrentUser(sessionData.user);
 
       // Check for developer role warning
       // Only check developer role warning if user is developer AND has system.settings permission (admin-like)
@@ -177,7 +189,7 @@ export function usePermissions() {
 
       if (!token) return;
 
-  const response = await fetch(buildApiUrl('/admin/settings/dev-role-production'), {
+      const response = await fetch(buildApiUrl('/admin/settings/dev-role-production'), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

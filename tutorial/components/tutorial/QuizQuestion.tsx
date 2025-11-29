@@ -83,7 +83,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
     <Card className="p-6">
       {/* Question */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-start gap-2">
+        <h3 id="quiz-question" className="text-lg font-semibold text-gray-900 mb-2 flex items-start gap-2">
           <HelpCircle className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
           {question}
         </h3>
@@ -95,7 +95,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
       </div>
 
       {/* Options */}
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2 mb-4" role="group" aria-labelledby="quiz-question">
         {options.map((option) => {
           const isSelected = selectedOptions.has(option.id);
           const showCorrectness = submitted;
@@ -106,6 +106,8 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
               key={option.id}
               onClick={() => handleOptionClick(option.id)}
               disabled={submitted && !allowRetry}
+              role={multipleChoice ? 'checkbox' : 'radio'}
+              aria-checked={isSelected}
               className={`
                 w-full text-left p-4 rounded-lg border-2 transition-all
                 ${isSelected && !showCorrectness ? 'border-primary-500 bg-primary-50' : 'border-gray-200'}
@@ -168,7 +170,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
       {/* Result */}
       {submitted && isCorrect !== null && (
         <div className="mb-4">
-          <Alert variant={isCorrect ? 'success' : 'error'}>
+          <Alert variant={isCorrect ? 'success' : 'danger'}>
             <div className="flex items-start gap-2">
               {isCorrect ? (
                 <CheckCircle className="w-5 h-5 flex-shrink-0" />
@@ -192,7 +194,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
       <div className="flex gap-2">
         {!submitted ? (
           <Button
-            variant="default"
+            variant="primary"
             onClick={handleSubmit}
             disabled={selectedOptions.size === 0}
           >
