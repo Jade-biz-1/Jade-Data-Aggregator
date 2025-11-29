@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  User,
+  User as UserIcon,
   Plus,
   Search,
   Mail,
@@ -23,7 +23,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { User as UserType } from '@/types/user';
+import { User as UserType } from '@/types';
 import { usePermissions } from '@/hooks/usePermissions';
 import { UserActionsMenu } from '@/components/users/UserActionsMenu';
 import { UserEditModal } from '@/components/users/UserEditModal';
@@ -381,7 +381,7 @@ export default function UsersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <User className="h-5 w-5 text-gray-500" />
+              <UserIcon className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{users.length}</div>
@@ -468,7 +468,7 @@ export default function UsersPage() {
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="text-center py-12">
-                <User className="mx-auto h-12 w-12 text-gray-400" />
+                <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No users</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Get started by adding a new user.
@@ -521,7 +521,7 @@ export default function UsersPage() {
                                 {adminUser ? (
                                   <Shield className="h-5 w-5 text-purple-600" />
                                 ) : (
-                                  <User className="h-5 w-5 text-primary-600" />
+                                  <UserIcon className="h-5 w-5 text-primary-600" />
                                 )}
                               </div>
                               <div className="ml-4">
@@ -567,14 +567,14 @@ export default function UsersPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(user.created_at)}
+                            {formatDate(user.created_at || '')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             {currentUser && (
                               <UserActionsMenu
-                                user={user}
-                                currentUser={currentUser}
-                                onAction={handleUserAction}
+                                user={user as any}
+                                currentUser={currentUser as any}
+                                onAction={handleUserAction as any}
                               />
                             )}
                           </td>
@@ -591,10 +591,10 @@ export default function UsersPage() {
 
       {/* User Edit Modal */}
       <UserEditModal
-        user={editingUser}
+        user={editingUser as any}
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
-        onSave={handleSaveUser}
+        onSave={handleSaveUser as any}
       />
     </DashboardLayout>
   );

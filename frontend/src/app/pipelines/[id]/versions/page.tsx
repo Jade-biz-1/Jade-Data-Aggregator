@@ -59,8 +59,8 @@ const PipelineVersionsPage = () => {
     setLoading(true);
     try {
       const [pipelineResponse, versionsResponse] = await Promise.all([
-        apiClient.get(`/pipelines/${pipelineId}`),
-        apiClient.get(`/pipelines/${pipelineId}/versions`)
+        apiClient.fetch<any>(`/pipelines/${pipelineId}`),
+        apiClient.fetch<any>(`/pipelines/${pipelineId}/versions`)
       ]);
 
       setPipeline(pipelineResponse.data);
@@ -76,7 +76,7 @@ const PipelineVersionsPage = () => {
 
   const handleCompare = async (v1: PipelineVersion, v2: PipelineVersion) => {
     try {
-      const response = await apiClient.get(`/pipelines/${pipelineId}/versions/compare`, {
+      const response = await apiClient.fetch<any>(`/pipelines/${pipelineId}/versions/compare`, {
         params: {
           version1: v1.version_number,
           version2: v2.version_number
@@ -100,7 +100,7 @@ const PipelineVersionsPage = () => {
     }
 
     try {
-      await apiClient.post(`/pipelines/${pipelineId}/versions/${version.id}/rollback`);
+      await apiClient.post<any>(`/pipelines/${pipelineId}/versions/${version.id}/rollback`);
       success(`Rolled back to version ${version.version_number}`);
       fetchVersions();
     } catch (error: any) {
@@ -114,7 +114,7 @@ const PipelineVersionsPage = () => {
     if (!tag) return;
 
     try {
-      await apiClient.post(`/pipelines/${pipelineId}/versions/${version.id}/tag`, {
+      await apiClient.post<any>(`/pipelines/${pipelineId}/versions/${version.id}/tag`, {
         tag: tag.trim()
       });
       success(`Tagged version ${version.version_number} as "${tag}"`);

@@ -120,7 +120,7 @@ export const InteractiveDemo: React.FC<InteractiveDemoProps> = ({
           <TabsContent value="preview" className="p-4 min-h-[200px]">
             <div className="bg-white rounded-lg border border-gray-200 p-4 relative">
               {isRunning && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
                   <div className="flex items-center gap-3 text-primary-600">
                     <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary-600 border-t-transparent"></div>
                     <span className="font-medium">Running...</span>

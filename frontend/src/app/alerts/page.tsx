@@ -71,9 +71,9 @@ export default function AlertsPage() {
       setIsLoading(true);
 
       const [alerts, rules, stats] = await Promise.all([
-        apiClient.get('/alerts/active'),
-        apiClient.get('/alerts/rules'),
-        apiClient.get('/alerts/statistics')
+        apiClient.fetch<any>('/alerts/active'),
+        apiClient.fetch<any>('/alerts/rules'),
+        apiClient.fetch<any>('/alerts/statistics')
       ]);
 
       setActiveAlerts(alerts.data || []);
@@ -89,7 +89,7 @@ export default function AlertsPage() {
 
   const handleAcknowledge = async (alertId: string) => {
     try {
-      await apiClient.post(`/alerts/${alertId}/acknowledge`);
+      await apiClient.post<any>(`/alerts/${alertId}/acknowledge`);
       success('Alert acknowledged successfully');
       fetchData();
     } catch (err: any) {

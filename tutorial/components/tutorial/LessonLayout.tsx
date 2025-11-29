@@ -79,7 +79,7 @@ export const LessonLayout: React.FC<LessonLayoutProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Lesson Content */}
           <div className="lg:col-span-3">
-            <Card className="p-6 sm:p-8">
+            <Card className="p-6 sm:p-8 animate-fade-in">
               <div className="prose-custom max-w-none">
                 {children}
               </div>

@@ -17,7 +17,7 @@ async def create_default_admin(db: AsyncSession) -> None:
     """
     Create default admin user if it doesn't exist
     Username: admin
-    Password: password
+    Password: admin123!
     Role: admin
     """
     try:
@@ -35,7 +35,7 @@ async def create_default_admin(db: AsyncSession) -> None:
         admin_user = User(
             username="admin",
             email="admin@dataaggregator.local",
-            hashed_password=get_password_hash("password"),
+            hashed_password=get_password_hash("admin123!"),
             role="admin",
             is_active=True,
             is_superuser=False  # Using role-based permissions, not superuser flag
@@ -47,7 +47,7 @@ async def create_default_admin(db: AsyncSession) -> None:
 
         logger.warning(
             "Default admin user created - "
-            "Username: admin, Password: password - "
+            "Username: admin, Password: admin123! - "
             "PLEASE CHANGE PASSWORD IMMEDIATELY"
         )
 

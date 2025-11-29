@@ -230,7 +230,7 @@ const DashboardWidget = ({ widgetType, widgetId }) => {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={dashboardLayout === 'default' ? 'default' : 'outline'}
+                      variant={dashboardLayout === 'default' ? 'primary' : 'outline'}
                       onClick={() => setDashboardLayout('default')}
                     >
                       <LayoutDashboard className="w-4 h-4 mr-1" />
@@ -238,7 +238,7 @@ const DashboardWidget = ({ widgetType, widgetId }) => {
                     </Button>
                     <Button
                       size="sm"
-                      variant={dashboardLayout === 'compact' ? 'default' : 'outline'}
+                      variant={dashboardLayout === 'compact' ? 'primary' : 'outline'}
                       onClick={() => setDashboardLayout('compact')}
                     >
                       Compact
@@ -254,17 +254,15 @@ const DashboardWidget = ({ widgetType, widgetId }) => {
                 </div>
 
                 {/* Widget Grid */}
-                <div className={`grid gap-3 ${
-                  dashboardLayout === 'compact' ? 'grid-cols-3' : 'grid-cols-1 md:grid-cols-3'
-                }`}>
+                <div className={`grid gap-3 ${dashboardLayout === 'compact' ? 'grid-cols-3' : 'grid-cols-1 md:grid-cols-3'
+                  }`}>
                   {widgets.map((widget) => (
                     <Card
                       key={widget.id}
-                      className={`p-4 cursor-pointer transition-all ${
-                        selectedWidget === widget.id
-                          ? 'ring-2 ring-primary-500 shadow-lg'
-                          : 'hover:shadow-md'
-                      }`}
+                      className={`p-4 cursor-pointer transition-all ${selectedWidget === widget.id
+                        ? 'ring-2 ring-primary-500 shadow-lg'
+                        : 'hover:shadow-md'
+                        }`}
                       onClick={() => setSelectedWidget(widget.id)}
                     >
                       <div className="flex items-center gap-3 mb-2">

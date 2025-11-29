@@ -179,15 +179,13 @@ export default function Module2Page() {
           <div className="space-y-4">
             {lessons.map((lesson, index) => (
               <Link key={lesson.id} href={`/modules/2/lesson-${lesson.id}`}>
-                <Card className={`p-6 transition-all hover:shadow-lg hover:-translate-y-0.5 ${
-                  lesson.completed ? 'border-2 border-success-200 bg-success-50' : ''
-                }`}>
+                <Card className={`p-6 transition-all hover:shadow-lg hover:-translate-y-0.5 ${lesson.completed ? 'border-2 border-success-200 bg-success-50' : ''
+                  }`}>
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      lesson.completed
-                        ? 'bg-success-100'
-                        : 'bg-primary-100'
-                    }`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${lesson.completed
+                      ? 'bg-success-100'
+                      : 'bg-primary-100'
+                      }`}>
                       {lesson.completed ? (
                         <CheckCircle className="w-6 h-6 text-success-600" />
                       ) : (
@@ -213,7 +211,7 @@ export default function Module2Page() {
 
                       <div className="mt-3">
                         <Button
-                          variant={lesson.completed ? 'success' : 'default'}
+                          variant={lesson.completed ? 'primary' : 'outline'}
                           size="sm"
                           className="group"
                         >
@@ -256,7 +254,7 @@ export default function Module2Page() {
                     Apply your knowledge by creating a real REST API connector, testing it, and
                     inspecting its schema. Use a sample API to complete the challenge!
                   </p>
-                  <Button variant="warning" size="sm" className="group">
+                  <Button variant="danger" size="sm" className="group">
                     <PlayCircle className="w-4 h-4 mr-2" />
                     Start Exercise
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

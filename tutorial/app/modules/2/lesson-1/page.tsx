@@ -132,11 +132,10 @@ export default function Lesson2_1Page() {
             {connectorTypes.map((connector) => (
               <Card
                 key={connector.id}
-                className={`p-5 transition-all cursor-pointer ${
-                  selectedConnector === connector.id
+                className={`p-5 transition-all cursor-pointer ${selectedConnector === connector.id
                     ? 'ring-2 ring-primary-500 shadow-lg'
                     : 'hover:shadow-md'
-                }`}
+                  }`}
                 onClick={() => setSelectedConnector(connector.id)}
               >
                 <div className="flex items-center gap-3 mb-3">
@@ -145,7 +144,7 @@ export default function Lesson2_1Page() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">{connector.name}</h4>
-                    <Badge variant={selectedConnector === connector.id ? 'default' : 'outline'}>
+                    <Badge variant={selectedConnector === connector.id ? 'primary' : 'default'}>
                       {selectedConnector === connector.id ? 'Selected' : 'Click to view'}
                     </Badge>
                   </div>

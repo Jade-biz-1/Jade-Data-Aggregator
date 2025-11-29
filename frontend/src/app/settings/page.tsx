@@ -75,8 +75,8 @@ export default function SettingsPage() {
     // Simulate fetching user data
     if (user) {
       setProfileData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
         email: user.email || '',
         username: user.username || '',
         timezone: 'UTC',
@@ -213,7 +213,7 @@ export default function SettingsPage() {
             placeholder="Enter your first name"
           />
         </div>
-        
+
         <div>
           <Input
             label="Last Name"
@@ -223,7 +223,7 @@ export default function SettingsPage() {
             placeholder="Enter your last name"
           />
         </div>
-        
+
         <div>
           <Input
             label="Username"
@@ -233,7 +233,7 @@ export default function SettingsPage() {
             placeholder="Enter your username"
           />
         </div>
-        
+
         <div>
           <Input
             label="Email"
@@ -244,7 +244,7 @@ export default function SettingsPage() {
             placeholder="Enter your email"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Timezone
@@ -252,7 +252,7 @@ export default function SettingsPage() {
           <select
             name="timezone"
             value={profileData.timezone}
-            onChange={(e) => setProfileData({...profileData, timezone: e.target.value})}
+            onChange={(e) => setProfileData({ ...profileData, timezone: e.target.value })}
             className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200 focus-visible:border-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="UTC">UTC (Coordinated Universal Time)</option>
@@ -263,7 +263,7 @@ export default function SettingsPage() {
           </select>
         </div>
       </div>
-      
+
       <div className="mt-8">
         <Button type="submit" className="flex items-center">
           <Save className="h-4 w-4 mr-2" />
@@ -293,7 +293,7 @@ export default function SettingsPage() {
             {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
-        
+
         <div className="relative">
           <Input
             label="New Password"
@@ -311,7 +311,7 @@ export default function SettingsPage() {
             {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
-        
+
         <div className="relative">
           <Input
             label="Confirm New Password"
@@ -330,7 +330,7 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
-      
+
       <div className="mt-8">
         <Button type="submit" className="flex items-center">
           <Key className="h-4 w-4 mr-2" />
@@ -351,18 +351,16 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => handleNotificationChange('emailNotifications')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-              notificationSettings.emailNotifications ? 'bg-primary-600' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings.emailNotifications ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                notificationSettings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${notificationSettings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-gray-900">Push Notifications</h3>
@@ -371,18 +369,16 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => handleNotificationChange('pushNotifications')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-              notificationSettings.pushNotifications ? 'bg-primary-600' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings.pushNotifications ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                notificationSettings.pushNotifications ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${notificationSettings.pushNotifications ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-gray-900">Pipeline Alerts</h3>
@@ -391,18 +387,16 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => handleNotificationChange('pipelineAlerts')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-              notificationSettings.pipelineAlerts ? 'bg-primary-600' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings.pipelineAlerts ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                notificationSettings.pipelineAlerts ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${notificationSettings.pipelineAlerts ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-gray-900">Connector Alerts</h3>
@@ -411,19 +405,17 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => handleNotificationChange('connectorAlerts')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-              notificationSettings.connectorAlerts ? 'bg-primary-600' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full ${notificationSettings.connectorAlerts ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                notificationSettings.connectorAlerts ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${notificationSettings.connectorAlerts ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>
       </div>
-      
+
       <div className="mt-8">
         <Button type="submit" className="flex items-center">
           <Save className="h-4 w-4 mr-2" />
@@ -444,18 +436,16 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => handleSecurityChange('twoFactorAuth', !securitySettings.twoFactorAuth)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-              securitySettings.twoFactorAuth ? 'bg-primary-600' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full ${securitySettings.twoFactorAuth ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                securitySettings.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${securitySettings.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-gray-900">Login Alerts</h3>
@@ -464,18 +454,16 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => handleSecurityChange('loginAlerts', !securitySettings.loginAlerts)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-              securitySettings.loginAlerts ? 'bg-primary-600' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full ${securitySettings.loginAlerts ? 'bg-primary-600' : 'bg-gray-200'
+              }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                securitySettings.loginAlerts ? 'translate-x-6' : 'translate-x-1'
-              }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${securitySettings.loginAlerts ? 'translate-x-6' : 'translate-x-1'
+                }`}
             />
           </button>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Session Timeout
@@ -496,7 +484,7 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
-      
+
       <div className="mt-8">
         <Button type="submit" className="flex items-center">
           <Shield className="h-4 w-4 mr-2" />
@@ -555,11 +543,10 @@ export default function SettingsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        activeTab === tab.id
+                      className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id
                           ? 'bg-primary-50 text-primary-700'
                           : 'text-gray-700 hover:bg-gray-100'
-                      }`}
+                        }`}
                     >
                       <tab.icon className="mr-3 h-5 w-5" />
                       {tab.label}

@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,13 +11,15 @@ import { ExecutionPanel } from '@/components/pipeline-builder/ExecutionPanel';
 import { TemplateBrowserModal } from '@/components/pipeline-builder/TemplateBrowserModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Node, Edge, applyNodeChanges, applyEdgeChanges } from 'reactflow';
+import { Node, Edge, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange } from 'reactflow';
 import { pipelineBuilderService } from '@/services/pipelineBuilderService';
 import useToast from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { Save, X, Edit2, ArrowLeft, Play, FileText } from 'lucide-react';
 
-export default function PipelineBuilderPage() {
+import { Suspense } from 'react';
+
+const PipelineBuilderContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toasts, error, success, warning } = useToast();
@@ -94,10 +97,10 @@ export default function PipelineBuilderPage() {
   );
 
   // React Flow expects onNodesChange/onEdgesChange handlers
-  const handleNodesChange = useCallback((changes) => {
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, []);
-  const handleEdgesChange = useCallback((changes) => {
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges((eds) => applyEdgeChanges(changes, eds));
   }, []);
 
@@ -334,5 +337,22 @@ export default function PipelineBuilderPage() {
         onSelectTemplate={handleSelectTemplate}
       />
     </DashboardLayout>
+  );
+};
+
+export default function PipelineBuilderPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading pipeline builder...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    }>
+      <PipelineBuilderContent />
+    </Suspense>
   );
 }

@@ -40,8 +40,8 @@ services:
   # Backend Test Server
   backend-test:
     build:
-      context: .
-      dockerfile: backend/Dockerfile.test
+      context: ./backend
+      dockerfile: Dockerfile.test
     container_name: dataaggregator-backend-test
     ports:
       - "8001:8001"

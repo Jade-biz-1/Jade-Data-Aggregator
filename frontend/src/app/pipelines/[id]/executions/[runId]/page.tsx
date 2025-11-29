@@ -101,8 +101,8 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
       setIsLoading(true);
 
       const [executionRes, logsRes] = await Promise.all([
-        apiClient.get(`/pipelines/${pipelineId}/runs/${runId}`),
-        apiClient.get(`/pipelines/${pipelineId}/runs/${runId}/logs`)
+        apiClient.fetch<any>(`/pipelines/${pipelineId}/runs/${runId}`),
+        apiClient.fetch<any>(`/pipelines/${pipelineId}/runs/${runId}/logs`)
       ]);
 
       setExecution(executionRes.data);
@@ -124,7 +124,7 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
     if (!confirm('Are you sure you want to retry this execution?')) return;
 
     try {
-      await apiClient.post(`/pipelines/${pipelineId}/runs/${runId}/retry`);
+      await apiClient.post<any>(`/pipelines/${pipelineId}/runs/${runId}/retry`);
       success('Execution retry initiated');
       router.push(`/pipelines/${pipelineId}/executions`);
     } catch (err: any) {
@@ -136,7 +136,7 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
     if (!confirm('Are you sure you want to cancel this execution?')) return;
 
     try {
-      await apiClient.post(`/pipelines/${pipelineId}/runs/${runId}/cancel`);
+      await apiClient.post<any>(`/pipelines/${pipelineId}/runs/${runId}/cancel`);
       success('Execution cancelled');
       fetchData();
     } catch (err: any) {
@@ -146,7 +146,7 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
 
   const handleExportLogs = async () => {
     try {
-      const response = await apiClient.get(`/pipelines/${pipelineId}/runs/${runId}/logs/export`, {
+      const response = await apiClient.fetch<any>(`/pipelines/${pipelineId}/runs/${runId}/logs/export`, {
         params: { format: 'txt' },
         responseType: 'blob'
       });

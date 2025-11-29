@@ -28,7 +28,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --with dev
 
 # Copy project
-COPY . /app/
+COPY . /app/backend/
 
 # Set Python path
 ENV PYTHONPATH=/app

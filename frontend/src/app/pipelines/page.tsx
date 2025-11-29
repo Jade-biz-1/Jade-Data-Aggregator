@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout-enhanced';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,7 @@ interface PipelineDisplay extends Pipeline {
   recordsProcessed?: number;
   source?: string;
   destination?: string;
+  pipeline_type?: string;
 }
 
 export default function PipelinesPage() {
@@ -50,8 +51,8 @@ export default function PipelinesPage() {
         setPipelines(data.map(p => ({
           ...p,
           status: p.is_active ? 'active' : 'paused',
-          source: p.source_config?.type || 'Unknown',
-          destination: p.destination_config?.type || 'Unknown',
+          source: String(p.source_config?.type || 'Unknown'),
+          destination: String(p.destination_config?.type || 'Unknown'),
         })));
       } catch (err: any) {
         error(err.message || 'Failed to load pipelines', 'Error');
@@ -101,7 +102,7 @@ export default function PipelinesPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const badges: Record<string, { color: string; text: string; icon: JSX.Element }> = {
+    const badges: Record<string, { color: string; text: string; icon: ReactNode }> = {
       running: {
         color: 'bg-blue-100 text-blue-800',
         text: 'Running',
