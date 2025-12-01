@@ -262,6 +262,7 @@ $RECYCLE.BIN/
 *.db
 *.sqlite
 *.sqlite3
+backend/platform/backups/
 
 # Log files
 *.log
