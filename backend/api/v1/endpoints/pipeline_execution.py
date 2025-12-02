@@ -12,6 +12,7 @@ from backend.core.database import get_db
 from backend.core.rbac import require_viewer, require_executor
 from backend.services.pipeline_executor import PipelineExecutor, PipelineExecutionError
 from backend.crud.pipeline_run import pipeline_run as crud_pipeline_run
+from backend.utils.error_handling import safe_error_response
 
 
 router = APIRouter()

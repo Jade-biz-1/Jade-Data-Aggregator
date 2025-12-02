@@ -184,7 +184,7 @@ export class TutorialAPIClient {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
       return {
-        message: axiosError.response?.data?.detail || axiosError.message || 'An error occurred',
+        message: (axiosError.response?.data as any)?.detail || axiosError.message || 'An error occurred',
         status: axiosError.response?.status,
         details: axiosError.response?.data,
       };

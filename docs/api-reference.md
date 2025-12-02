@@ -140,6 +140,26 @@ All API responses follow this structure:
   - `400`: Current password is incorrect
   - `422`: New password doesn't meet requirements (min 8 chars, letters + numbers)
 
+#### POST `/auth/2fa/setup` ✨ NEW (Phase 9B)
+- **Description**: Setup Two-Factor Authentication for the current user
+- **Requires Authentication**: Yes
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "otp_secret": "...",
+      "otp_auth_url": "otpauth://totp/..."
+    }
+  }
+  ```
+
+#### POST `/auth/2fa/verify` ✨ NEW (Phase 9B)
+- **Description**: Verify and enable 2FA with an OTP code
+
+#### POST `/auth/2fa/disable` ✨ NEW (Phase 9B)
+- **Description**: Disable 2FA for the current user
+
 ---
 
 ### 2. Users (`/users`)
@@ -221,9 +241,24 @@ All API responses follow this structure:
   - User must change password on next login
   - Activity is logged for audit trail
 
+#### GET `/users/me/api-keys` ✨ NEW (Phase 9C)
+- **Description**: Get all API keys for the current user
+
+#### POST `/users/me/api-keys` ✨ NEW (Phase 9C)
+- **Description**: Create a new API key
+- **Request Body**: `{ "name": "My Key", "permissions": ["read"] }`
+
+#### DELETE `/users/me/api-keys/{key_id}` ✨ NEW (Phase 9C)
+- **Description**: Revoke an API key
+
 ---
 
-### 3. Pipelines (`/pipelines`)
+### 3. Webhooks (`/webhooks`) ✨ NEW (Phase 9C)
+
+
+---
+
+### 4. Pipelines (`/pipelines`)
 
 #### GET `/pipelines`
 - **Description**: List all pipelines
@@ -263,7 +298,7 @@ All API responses follow this structure:
 
 ---
 
-### 4. Pipeline Builder (`/pipeline-builder`)
+### 5. Pipeline Builder (`/pipeline-builder`)
 
 #### POST `/pipeline-builder/validate`
 - **Description**: Validate pipeline definition
@@ -278,7 +313,7 @@ All API responses follow this structure:
 
 ---
 
-### 5. Pipeline Templates (`/pipeline-templates`)
+### 6. Pipeline Templates (`/pipeline-templates`)
 
 #### GET `/pipeline-templates`
 - **Description**: List all templates
@@ -304,7 +339,7 @@ All API responses follow this structure:
 
 ---
 
-### 6. Pipeline Versions (`/pipeline-versions`)
+### 7. Pipeline Versions (`/pipeline-versions`)
 
 #### GET `/pipeline-versions/pipelines/{pipeline_id}/versions`
 - **Description**: List all versions for a pipeline
@@ -330,7 +365,7 @@ All API responses follow this structure:
 
 ---
 
-### 7. Connectors (`/connectors`)
+### 8. Connectors (`/connectors`)
 
 #### GET `/connectors`
 - **Description**: List all connectors
@@ -366,7 +401,7 @@ All API responses follow this structure:
 
 ---
 
-### 8. Transformations (`/transformations`)
+### 9. Transformations (`/transformations`)
 
 #### GET `/transformations`
 - **Description**: List all transformations
@@ -385,7 +420,7 @@ All API responses follow this structure:
 
 ---
 
-### 9. Transformation Functions (`/transformation-functions`)
+### 10. Transformation Functions (`/transformation-functions`)
 
 #### GET `/transformation-functions`
 - **Description**: List all transformation functions
@@ -418,7 +453,7 @@ All API responses follow this structure:
 
 ---
 
-### 10. Monitoring (`/monitoring`)
+### 11. Monitoring (`/monitoring`)
 
 #### GET `/monitoring/stats`
 - **Description**: Get overall statistics
@@ -434,7 +469,7 @@ All API responses follow this structure:
 
 ---
 
-### 11. Analytics (`/analytics`)
+### 12. Analytics (`/analytics`)
 
 #### GET `/analytics/data`
 - **Description**: Get analytics data
@@ -451,7 +486,7 @@ All API responses follow this structure:
 
 ---
 
-### 12. Advanced Analytics (`/analytics/advanced`)
+### 13. Advanced Analytics (`/analytics/advanced`)
 
 #### POST `/analytics/advanced/aggregate`
 - **Description**: Advanced data aggregation
@@ -465,7 +500,7 @@ All API responses follow this structure:
 
 ---
 
-### 13. Schema (`/schema`)
+### 14. Schema (`/schema`)
 
 #### POST `/schema/introspect`
 - **Description**: Introspect data source schema
@@ -491,7 +526,7 @@ All API responses follow this structure:
 
 ---
 
-### 14. Configuration (`/configuration`)
+### 15. Configuration (`/configuration`)
 
 #### GET `/configuration/schemas`
 - **Description**: Get all configuration schemas
@@ -517,7 +552,7 @@ All API responses follow this structure:
 
 ---
 
-### 15. Dashboard (`/dashboard`)
+### 16. Dashboard (`/dashboard`)
 
 #### GET `/dashboard/stats`
 - **Description**: Get dashboard statistics
@@ -530,7 +565,7 @@ All API responses follow this structure:
 
 ---
 
-### 16. Logs (`/logs`)
+### 17. Logs (`/logs`)
 
 #### POST `/logs`
 - **Description**: Create log entry
@@ -564,7 +599,7 @@ All API responses follow this structure:
 
 ---
 
-### 17. Alerts (`/alerts`)
+### 18. Alerts (`/alerts`)
 
 #### POST `/alerts/rules`
 - **Description**: Create alert rule
@@ -599,7 +634,7 @@ All API responses follow this structure:
 
 ---
 
-### 18. Search (`/search`)
+### 19. Search (`/search`)
 
 #### GET `/search`
 - **Description**: Global search across all entities
@@ -623,7 +658,7 @@ All API responses follow this structure:
 
 ---
 
-### 19. Health (`/health`)
+### 20. Health (`/health`)
 
 #### GET `/health`
 - **Description**: Comprehensive health check
@@ -652,7 +687,7 @@ All API responses follow this structure:
 
 ---
 
-### 20. WebSocket (`/websocket`)
+### 21. WebSocket (`/websocket`)
 
 #### WS `/websocket/pipeline-status`
 - **Description**: WebSocket connection for real-time pipeline status
@@ -664,7 +699,7 @@ All API responses follow this structure:
 
 ---
 
-### 21. Preferences (`/preferences`)
+### 22. Preferences (`/preferences`)
 
 #### GET `/preferences`
 - **Description**: Get user preferences
@@ -689,7 +724,7 @@ All API responses follow this structure:
 
 ---
 
-### 22. Dashboards (`/dashboards`)
+### 23. Dashboards (`/dashboards`)
 
 #### GET `/dashboards/layouts`
 - **Description**: Get all dashboard layouts
@@ -713,7 +748,7 @@ All API responses follow this structure:
 
 ---
 
-### 23. Admin Activity Logs (`/admin/activity-logs`) ✨ NEW
+### 24. Admin Activity Logs (`/admin/activity-logs`) ✨ NEW
 
 #### GET `/admin/activity-logs`
 - **Description**: Get activity logs with filtering (Admin only)
@@ -767,7 +802,7 @@ All API responses follow this structure:
 
 ---
 
-### 24. Role Management (`/roles`) ✨ PHASE 8
+### 25. Role Management (`/roles`) ✨ PHASE 8
 
 #### GET `/roles`
 - **Description**: Get all available roles
@@ -951,7 +986,7 @@ All API responses follow this structure:
 
 ---
 
-### 25. System Cleanup (`/admin/cleanup`) ✨ PHASE 8
+### 26. System Cleanup (`/admin/cleanup`) ✨ PHASE 8
 
 #### GET `/admin/cleanup/stats`
 - **Description**: Get system statistics for maintenance dashboard
@@ -1276,7 +1311,7 @@ All API responses follow this structure:
 
 ---
 
-### 26. System Settings (`/admin/settings`) ✨ PHASE 8
+### 27. System Settings (`/admin/settings`) ✨ PHASE 8
 
 #### GET `/admin/settings/dev-role-production`
 - **Description**: Get developer role production environment setting
@@ -1328,7 +1363,7 @@ All API responses follow this structure:
 
 ---
 
-### 27. Pipeline Execution (`/pipelines/{pipeline_id}/...`)
+### 28. Pipeline Execution (`/pipelines/{pipeline_id}/...`)
 
 Additional pipeline execution endpoints under the pipeline routes.
 

@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     UPLOAD_PATH: str = "uploads"  # Upload files directory
     LOG_PATH: str = "logs"  # Log files directory
 
+    # Phase 9B: Two-Factor Authentication
+    OTP_SECRET_LENGTH: int = 32
+
+    # Phase 9B: Account Lockout
+    MAX_LOGIN_ATTEMPTS: int = 5
+    LOCKOUT_DURATION: int = 15  # In minutes
+
     class Config:
         case_sensitive = True
         env_file = ".env"

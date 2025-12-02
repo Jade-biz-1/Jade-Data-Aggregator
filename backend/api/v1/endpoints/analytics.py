@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, exc as sa_exc
 from sqlalchemy.future import select
 from sqlalchemy import func, and_, case
 from typing import Dict, List, Any, Optional
@@ -11,6 +11,7 @@ from backend.schemas.user import User
 from backend.core.database import get_db
 from backend.core.rbac import require_viewer, require_executive
 from backend.models.pipeline import Pipeline
+from backend.models.pipeline_run import PipelineRun
 from backend.models.connector import Connector
 from backend.models.transformation import Transformation
 
@@ -26,27 +27,28 @@ async def get_analytics_data(
     Get overall analytics data
     """
     # Get pipeline counts
-    total_pipelines = await db.execute(select(func.count(Pipeline.id)))
-    total_count = total_pipelines.scalar() or 0
+    total_pipelines_result = await db.execute(select(func.count(Pipeline.id)))
+    total_count = total_pipelines_result.scalar_one_or_none() or 0
 
-    active_pipelines = await db.execute(
+    active_pipelines_result = await db.execute(
         select(func.count(Pipeline.id)).filter(Pipeline.is_active == True)
     )
-    active_count = active_pipelines.scalar() or 0
+    active_count = active_pipelines_result.scalar_one_or_none() or 0
 
     # Get connector and transformation counts
     connectors_result = await db.execute(select(func.count(Connector.id)))
-    connectors_count = connectors_result.scalar() or 0
+    connectors_count = connectors_result.scalar_one_or_none() or 0
 
     transformations_result = await db.execute(select(func.count(Transformation.id)))
-    transformations_count = transformations_result.scalar() or 0
+    transformations_count = transformations_result.scalar_one_or_none() or 0
 
     # Get execution metrics from PipelineRun
-    from backend.models.pipeline_run import PipelineRun
     
     # Total processed records
-    total_processed_result = await db.execute(select(func.sum(PipelineRun.records_processed)))
-    total_processed = total_processed_result.scalar() or 0
+    total_processed_result = await db.execute(
+        select(func.sum(PipelineRun.records_processed))
+    )
+    total_processed = total_processed_result.scalar_one_or_none() or 0
     
     # Average processing time (completed runs only)
     # Note: This requires calculating duration from start/end times
@@ -55,12 +57,12 @@ async def get_analytics_data(
     
     # Success rate
     total_runs_result = await db.execute(select(func.count(PipelineRun.id)))
-    total_runs = total_runs_result.scalar() or 0
+    total_runs = total_runs_result.scalar_one_or_none() or 0
     
     successful_runs_result = await db.execute(
         select(func.count(PipelineRun.id)).filter(PipelineRun.status == 'completed')
     )
-    successful_runs = successful_runs_result.scalar() or 0
+    successful_runs = successful_runs_result.scalar_one_or_none() or 0
     
     success_rate = (successful_runs / total_runs * 100) if total_runs > 0 else 0
     
@@ -90,7 +92,6 @@ async def get_time_series_data(
     """
     Get time series data for charts
     """
-    from backend.models.pipeline_run import PipelineRun
     
     start_date = datetime.now() - timedelta(days=days)
     
@@ -130,7 +131,6 @@ async def get_top_pipelines(
     """
     Get top performing pipelines
     """
-    from backend.models.pipeline_run import PipelineRun
     
     # Join Pipeline and PipelineRun to get aggregated stats
     query = (
@@ -171,12 +171,12 @@ async def get_pipeline_trends(
     """
     # Get current counts
     total_result = await db.execute(select(func.count(Pipeline.id)))
-    current_total = total_result.scalar() or 0
+    current_total = total_result.scalar_one_or_none() or 0
 
     active_result = await db.execute(
         select(func.count(Pipeline.id)).filter(Pipeline.is_active == True)
     )
-    current_active = active_result.scalar() or 0
+    current_active = active_result.scalar_one_or_none() or 0
 
     # Mock historical data for trends
     # In a real implementation, this would come from historical pipeline metrics
@@ -222,13 +222,13 @@ async def get_aggregated_analytics(
     start_date = datetime.now() - delta
 
     # Get pipeline stats
-    total_pipelines = await db.execute(select(func.count(Pipeline.id)))
-    total_count = total_pipelines.scalar() or 0
+    total_pipelines_result = await db.execute(select(func.count(Pipeline.id)))
+    total_count = total_pipelines_result.scalar_one_or_none() or 0
 
-    active_pipelines = await db.execute(
+    active_pipelines_result = await db.execute(
         select(func.count(Pipeline.id)).filter(Pipeline.is_active == True)
     )
-    active_count = active_pipelines.scalar() or 0
+    active_count = active_pipelines_result.scalar_one_or_none() or 0
 
     # Get connector stats by type
     connectors = await db.execute(
@@ -286,7 +286,7 @@ async def get_performance_metrics(
     if pipeline_id:
         # Get specific pipeline metrics
         pipeline = await db.execute(
-            select(Pipeline).filter(Pipeline.id == pipeline_id)
+            select(Pipeline).where(Pipeline.id == pipeline_id)
         )
         pipeline_obj = pipeline.scalar_one_or_none()
 

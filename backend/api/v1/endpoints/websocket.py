@@ -34,7 +34,7 @@ async def get_current_user_ws(
         payload = decode_token(token)
         user_id = payload.get("sub")
         email = payload.get("email")
-
+ 
         if not user_id or not email:
             await websocket.close(code=1008, reason="Invalid token")
             return None

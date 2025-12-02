@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+import pyotp
+import base64
 
 from backend.core.config import settings
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -21,7 +24,11 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    subject: Union[str, Any] = None, expires_delta: Optional[timedelta] = None, role: Optional[str] = None, data: Optional[dict] = None
+    subject: Union[str, Any] = None,
+    expires_delta: Optional[timedelta] = None,
+    role: Optional[str] = None,
+    data: Optional[dict] = None,
+    is_2fa_authenticated: bool = False,
 ) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -36,12 +43,16 @@ def create_access_token(
         to_encode = data.copy()
         to_encode["exp"] = expire
         if role and "role" not in to_encode:
+
             to_encode["role"] = role
     else:
         # Old pattern: subject parameter
         to_encode = {"exp": expire, "sub": str(subject)}
         if role:
             to_encode["role"] = role
+
+    if is_2fa_authenticated:
+        to_encode["is_2fa_authenticated"] = True
 
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
@@ -67,7 +78,9 @@ def decode_token(token: str) -> dict:
         )
 
 
-async def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
+async def get_current_user(
+    token: HTTPAuthorizationCredentials = Depends(security),
+):
     from backend import crud
     from backend.core.database import get_db
     from backend.schemas.user import User
@@ -99,8 +112,26 @@ async def get_current_user(token: HTTPAuthorizationCredentials = Depends(securit
         break
 
 
-async def get_current_active_user(current_user = Depends(get_current_user)):
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    from backend.schemas.user import User
     return current_user
+
+
+# --- 2FA Functions (Phase 9B) ---
+
+
+def generate_otp_secret() -> str:
+    """Generate a new OTP secret key."""
+    return base64.b32encode(pyotp.random_bytes(20)).decode("utf-8")
+
+
+def generate_otp_uri(email: str, secret: str, issuer_name: str) -> str:
+    """Generate a provisioning URI for OTP apps."""
+    return pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name=issuer_name)
+
+
+def verify_otp(secret: str, code: str) -> bool:
+    """Verify an OTP code against the secret."""
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code)

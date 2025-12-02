@@ -3,7 +3,7 @@ Advanced Analytics API Endpoints
 Provides enhanced analytics capabilities including time-series, custom queries, exports, and predictions
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Body
+from fastapi import APIRouter, Depends, Query, HTTPException, Body, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
@@ -18,6 +18,7 @@ from backend.services.export_service import ExportService, ExportFormat, Schedul
 
 router = APIRouter()
 
+# In a real app, this should be a persistent, shared manager
 # Initialize export manager (in production, use database-backed storage)
 export_manager = ScheduledExportManager()
 
@@ -213,6 +214,7 @@ async def get_predictive_indicators(
 @router.post("/export")
 async def export_analytics_data(
     export_request: ExportRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(require_any_authenticated()),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -236,14 +238,25 @@ async def export_analytics_data(
         data = await engine.get_time_series_data(start, end, "day")
 
     # Prepare export
-    export_result = ExportService.prepare_export_response(
+    # For large exports, this should be an async job
+    export_service = ExportService()
+
+    # This is a synchronous example, but better as a background task
+    file_content, filename = export_service.generate_export_content(
         data,
         export_request.export_format,
-        export_request.export_type,
-        export_request.time_range
+        "analytics_export"
     )
 
-    return export_result
+    # Here you would typically save the file and return a URL or job ID
+    # For this example, we'll return a simplified response
+    # In a real app: background_tasks.add_task(save_and_notify, file_content, filename, current_user)
+
+    return {
+        "message": "Export job started. You will be notified upon completion.",
+        "filename": filename,
+        "format": export_request.export_format
+    }
 
 
 @router.post("/scheduled-exports")

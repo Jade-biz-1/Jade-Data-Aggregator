@@ -26,7 +26,7 @@ from backend.schemas.auth import (
     RefreshResponse,
     TokenRefresh,
 )
-from backend.schemas.token import Token, TokenData
+from backend.schemas.auth import Token, TokenData
 from backend.schemas.user import User, UserCreate
 from backend.services.activity_log_service import (
     log_failed_login,
@@ -34,7 +34,7 @@ from backend.services.activity_log_service import (
     log_logout,
     log_password_change,
 )
-from backend.services.auth_service import auth_service
+from backend.services.auth_service import AuthService
 
 router = APIRouter()
 
@@ -49,6 +49,8 @@ async def login(
     """
     OAuth2 compatible token login, get an access token for future requests
     """
+    auth_service = AuthService(db)
+
     # Fetch user from the database
     user = await crud.user.get_by_username(db, username=username)
     if not user or not security.verify_password(password, user.hashed_password):
@@ -137,11 +139,13 @@ async def request_password_reset(
     db: AsyncSession = Depends(get_db)
 ):
     """Request password reset email."""
+    auth_service = AuthService(db)
     try:
+        # Re-instantiate service for background tasks if needed
         result = await auth_service.request_password_reset(request, db)
-        return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    return result
 
 
 @router.post("/password-reset/confirm")
@@ -151,6 +155,7 @@ async def confirm_password_reset(
 ):
     """Confirm password reset with token."""
     try:
+        auth_service = AuthService(db)
         result = await auth_service.confirm_password_reset(request, db)
         return result
     except ValueError as e:
@@ -166,6 +171,7 @@ async def request_email_verification(
     db: AsyncSession = Depends(get_db)
 ):
     """Request email verification."""
+    auth_service = AuthService(db)
     try:
         result = await auth_service.request_email_verification(request, db)
         return result
@@ -180,6 +186,7 @@ async def confirm_email_verification(
 ):
     """Confirm email verification."""
     try:
+        auth_service = AuthService(db)
         result = await auth_service.confirm_email_verification(request, db)
         return result
     except ValueError as e:
@@ -196,6 +203,7 @@ async def login_with_refresh(
 ):
     """Login with username/password and get access + refresh tokens."""
     try:
+        auth_service = AuthService(db)
         result = await auth_service.login_with_refresh_token(username, password, db)
         return result
     except ValueError as e:
@@ -211,6 +219,7 @@ async def refresh_token(
 ):
     """Refresh access token using refresh token."""
     try:
+        auth_service = AuthService(db)
         result = await auth_service.refresh_access_token(request, db)
         return result
     except ValueError as e:
@@ -226,6 +235,7 @@ async def logout(
 ):
     """Logout and revoke refresh token."""
     try:
+        auth_service = AuthService(db)
         result = await auth_service.revoke_refresh_token(refresh_token, db)
         return result
     except Exception as e:
@@ -240,6 +250,7 @@ async def cleanup_expired_tokens(
     """Admin endpoint to cleanup expired tokens."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
+    auth_service = AuthService(db)
 
     try:
         count = await auth_service.cleanup_expired_tokens(db)

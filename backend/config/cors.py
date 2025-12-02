@@ -22,15 +22,16 @@ class CORSConfig:
         if environment == 'production':
             # Production: Only allow specific domains
             return [
-                'https://yourdomain.com',
-                'https://www.yourdomain.com',
-                'https://api.yourdomain.com',
+                'https://app.dataaggregator.com',
+                'https://www.dataaggregator.com',
+                'https://api.dataaggregator.com',
             ]
         elif environment == 'staging':
             # Staging: Allow staging domains
             return [
-                'https://staging.yourdomain.com',
-                'https://staging-api.yourdomain.com',
+                'https://staging.dataaggregator.com',
+                'https://staging-api.dataaggregator.com',
+                'http://localhost:3000', # Allow local frontend for staging API
             ]
         else:
             # Development: Allow localhost on common ports

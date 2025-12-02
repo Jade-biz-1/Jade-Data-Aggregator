@@ -297,6 +297,34 @@ The architecture encompasses all components required for data ingestion, process
 - State: File metadata and processing status
 - Communication: REST APIs, background task processing
 
+#### 3.3.7 API Key Management Service
+```
+┌─────────────────────────────────────┐
+│      API Key Management Service     │
+├─────────────────────────────────────┤
+│ • API Key Generation & Storage      │
+│ • Permission Scoping               │
+│ • Usage Tracking                   │
+│ • Revocation                       │
+└─────────────────────────────────────┘
+```
+- Technologies: FastAPI, SQLAlchemy
+- State: API keys stored securely in database
+- Communication: REST APIs for key management
+
+#### 3.3.8 Webhook Service
+```
+┌─────────────────────────────────────┐
+│          Webhook Service            │
+├─────────────────────────────────────┤
+│ • Webhook Subscription Management   │
+│ • Event Triggering                 │
+│ • Secure Delivery with Signatures  │
+│ • Retry Logic                      │
+└─────────────────────────────────────┘
+```
+- Technologies: FastAPI, httpx, Celery/Redis for async delivery
+
 ### 3.4 Enhanced Data Layer
 
 #### 3.4.1 Event Store

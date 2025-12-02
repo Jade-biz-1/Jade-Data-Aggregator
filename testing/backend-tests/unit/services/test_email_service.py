@@ -253,10 +253,11 @@ class TestPasswordResetEmail:
             assert result is True
             mock_send.assert_called_once()
 
-            # Verify call arguments
+            # Verify call arguments (positional)
             call_args = mock_send.call_args
-            assert call_args[1]['to_email'] == "user@example.com"
-            assert "Reset Your Password" in call_args[1]['subject']
+            args = call_args[0]
+            assert args[0] == "user@example.com"
+            assert "Reset Your Password" in args[1]
 
     @pytest.mark.asyncio
     async def test_password_reset_email_contains_token_in_url(self, email_service_instance):
@@ -274,7 +275,7 @@ class TestPasswordResetEmail:
 
             # Check that HTML content contains the token
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
+            html_content = call_args[0][2]
 
             assert reset_token in html_content
             assert f"token={reset_token}" in html_content
@@ -294,7 +295,7 @@ class TestPasswordResetEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
+            html_content = call_args[0][2]
 
             assert username in html_content
 
@@ -311,7 +312,7 @@ class TestPasswordResetEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
+            html_content = call_args[0][2]
 
             # Verify HTML structure
             assert "<html>" in html_content
@@ -333,7 +334,7 @@ class TestPasswordResetEmail:
             )
 
             call_args = mock_send.call_args
-            text_content = call_args[1]['text_content']
+            text_content = call_args[0][3]
 
             # Verify text content exists and contains key information
             assert text_content is not None
@@ -353,8 +354,8 @@ class TestPasswordResetEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
-            text_content = call_args[1]['text_content']
+            html_content = call_args[0][2]
+            text_content = call_args[0][3]
 
             # Should mention expiration
             assert "1 hour" in html_content or "expire" in html_content.lower()
@@ -373,7 +374,7 @@ class TestPasswordResetEmail:
             )
 
             call_args = mock_send.call_args
-            subject = call_args[1]['subject']
+            subject = call_args[0][1]
 
             assert "Reset" in subject or "Password" in subject
 
@@ -406,7 +407,7 @@ class TestPasswordResetEmail:
                 )
 
                 call_args = mock_send.call_args
-                html_content = call_args[1]['html_content']
+                html_content = call_args[0][2]
 
                 # URL should use HTTPS and include frontend URL
                 assert "https://app.example.com/reset-password?token=token123" in html_content
@@ -450,7 +451,7 @@ class TestEmailVerificationEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
+            html_content = call_args[0][2]
 
             assert verification_token in html_content
             assert f"token={verification_token}" in html_content
@@ -470,7 +471,7 @@ class TestEmailVerificationEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
+            html_content = call_args[0][2]
 
             assert username in html_content
 
@@ -487,7 +488,7 @@ class TestEmailVerificationEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
+            html_content = call_args[0][2]
 
             # Verify HTML structure
             assert "<html>" in html_content
@@ -509,7 +510,7 @@ class TestEmailVerificationEmail:
             )
 
             call_args = mock_send.call_args
-            text_content = call_args[1]['text_content']
+            text_content = call_args[0][3]
 
             # Verify text content exists and contains key information
             assert text_content is not None
@@ -529,8 +530,8 @@ class TestEmailVerificationEmail:
             )
 
             call_args = mock_send.call_args
-            html_content = call_args[1]['html_content']
-            text_content = call_args[1]['text_content']
+            html_content = call_args[0][2]
+            text_content = call_args[0][3]
 
             # Should mention 24 hour expiration
             assert "24 hours" in html_content or "24 hour" in html_content
@@ -549,7 +550,7 @@ class TestEmailVerificationEmail:
             )
 
             call_args = mock_send.call_args
-            subject = call_args[1]['subject']
+            subject = call_args[0][1]
 
             assert "Verify" in subject or "Email" in subject
 
@@ -582,7 +583,7 @@ class TestEmailVerificationEmail:
                 )
 
                 call_args = mock_send.call_args
-                html_content = call_args[1]['html_content']
+                html_content = call_args[0][2]
 
                 # URL should use HTTPS and include frontend URL
                 assert "https://app.example.com/verify-email?token=verify789" in html_content

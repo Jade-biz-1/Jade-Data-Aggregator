@@ -1,4 +1,5 @@
 // Learn more: https://github.com/testing-library/jest-dom
+import 'whatwg-fetch'; // Polyfill for fetch API
 import '@testing-library/jest-dom'
 
 // Mock Next.js router

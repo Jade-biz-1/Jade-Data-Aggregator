@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: "standalone",
 
   // Environment variables
   env: {
@@ -9,7 +9,7 @@ const nextConfig = {
 
   // T036: Bundle splitting and optimization
   webpack: (config, { isServer }) => {
-    // Preserve existing optimization settings and only augment them
+    // Preserve existing optimization settings and only augment them.
     if (config.optimization.splitChunks) {
       config.optimization.splitChunks.cacheGroups = {
         ...config.optimization.splitChunks.cacheGroups,
@@ -76,7 +76,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/_next/static/:path*',
+        source: '/_next/static/:path*', 
         headers: [
           {
             key: 'Cache-Control',

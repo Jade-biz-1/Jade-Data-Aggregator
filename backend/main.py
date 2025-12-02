@@ -11,6 +11,8 @@ from backend.core.database import engine, Base, get_db
 from backend.middleware.session_timeout import SessionTimeoutMiddleware
 from backend.middleware.security_headers import add_security_headers
 from backend.middleware.rate_limiting import rate_limit_middleware
+from backend.middleware.admin_protection import apply_admin_protection
+from backend.middleware.dev_role_protection import apply_dev_role_protection
 from backend.middleware.input_validation import validate_request_data
 from backend.core.init_db import init_db
 # Import all models to register them with SQLAlchemy
@@ -59,6 +61,12 @@ def create_app():
 
     # 4. Session Timeout Middleware (already active)
     app.add_middleware(SessionTimeoutMiddleware, timeout_minutes=60)
+
+    # 5. Admin User Protection Middleware (Phase 8)
+    app.add_middleware(BaseHTTPMiddleware, dispatch=apply_admin_protection)
+
+    # 6. Developer Role in Production Protection Middleware (Phase 8)
+    app.add_middleware(BaseHTTPMiddleware, dispatch=apply_dev_role_protection)
 
     # Set all CORS enabled origins
     if settings.cors_origins_list:

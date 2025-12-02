@@ -94,11 +94,15 @@ services:
       # Production Safeguard - Prevents Developer role in production
       # Keep as 'false' in production environments
       - ALLOW_DEV_ROLE_IN_PRODUCTION=false
-
+ 
       # File Storage Paths (Phase 9: Service Decoupling)
       - TEMP_FILES_PATH=/app/temp
       - UPLOAD_PATH=/app/uploads
       - LOG_PATH=/app/logs
+
+      # Phase 9B: Email Service Configuration
+      - EMAIL_HOST=mailhog
+      - EMAIL_PORT=1025
     command: python -m uvicorn backend.main:app --host 0.0.0.0 --port 8001 --reload
 
   frontend:

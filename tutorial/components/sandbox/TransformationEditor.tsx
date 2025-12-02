@@ -285,7 +285,7 @@ export default function TransformationEditor({
                     </div>
                   </div>
                 ) : (
-                  <Alert type="error" className="flex items-start gap-2">
+                  <Alert variant="danger" className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <div>
                       <div className="font-medium">Transformation failed</div>

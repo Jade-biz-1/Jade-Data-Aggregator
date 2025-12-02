@@ -16,7 +16,7 @@ from backend.core.security import (
     get_password_hash,
     verify_password,
 )
-from backend.models.auth_token import AuthToken
+from backend.models.auth_token import AuthToken, AuthToken as AuthTokenModel
 from backend.models.user import User
 from backend.schemas.auth import (
     EmailVerificationConfirm,
@@ -32,8 +32,8 @@ from backend.services.email_service import email_service
 
 class AuthService:
     """Enhanced authentication service."""
-
-    def __init__(self):
+    def __init__(self, db: AsyncSession):
+        self.db = db
         self.secret_key = settings.SECRET_KEY
         self.algorithm = "HS256"
 
@@ -120,7 +120,7 @@ class AuthService:
         if not user:
             return {"message": "If the email exists, a verification link has been sent"}
 
-        if user.is_email_verified:
+        if user.is_verified:
             return {"message": "Email is already verified"}
 
         # Generate verification token
@@ -171,7 +171,7 @@ class AuthService:
             raise ValueError("User not found")
 
         # Mark email as verified
-        user.is_email_verified = True
+        user.is_verified = True
 
         # Deactivate token
         auth_token.is_active = False
@@ -185,11 +185,11 @@ class AuthService:
         self,
         username: str,
         password: str,
-        db: AsyncSession
+        db: AsyncSession,
     ) -> LoginResponse:
         """Login and return both access and refresh tokens."""
         # Authenticate user
-        user = await crud.user.get_by_username(db, username=username)
+        user = await self.authenticate_user(username, password)
         if not user or not verify_password(password, user.hashed_password):
             raise ValueError("Invalid credentials")
 
@@ -213,7 +213,7 @@ class AuthService:
             expires_at=expires_at
         )
         db.add(auth_token)
-        await db.commit()
+        await self.db.commit()
 
         return LoginResponse(
             access_token=access_token,
@@ -224,7 +224,7 @@ class AuthService:
                 "username": user.username,
                 "email": user.email,
                 "role": user.role,
-                "is_email_verified": user.is_email_verified
+                "is_email_verified": user.is_verified,
             }
         )
 
@@ -308,4 +308,4 @@ class AuthService:
         return hashlib.sha256(random_bytes).hexdigest()
 
 
-auth_service = AuthService()
+auth_service = AuthService(db=None) # type: ignore
