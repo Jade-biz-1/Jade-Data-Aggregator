@@ -8,7 +8,7 @@ Data Aggregator Platform
 
 ## 🎯 Purpose
 
-This guide explains how to execute, monitor, and extend the automated test suites that protect the Data Aggregator Platform. It complements the broader strategy laid out in `docs/AUTOMATED_TEST_SUITE_PLAN.md` and the implementation roadmap in `docs/TESTING_IMPLEMENTATION_TASKS.md`.
+This guide explains how to execute, monitor, and extend the automated test suites that protect the Data Aggregator Platform. It complements the broader strategy laid out in `docs/AUTOMATED_TEST_SUITE_PLAN.md` and the implementation roadmap in `TasksTracking/testing-implementation-tasks.md`.
 
 ---
 
@@ -107,7 +107,7 @@ Run frontend tests with `npm run test:unit` from the `testing/frontend-tests` di
 ## 📚 Related References
 
 - `docs/AUTOMATED_TEST_SUITE_PLAN.md`
-- `docs/TESTING_IMPLEMENTATION_TASKS.md`
+- `TasksTracking/testing-implementation-tasks.md`
 - `docs/troubleshooting.md`
 - `testing/README.md`
 

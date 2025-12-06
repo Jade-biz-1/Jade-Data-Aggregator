@@ -66,7 +66,7 @@ Detailed completion records for Phases 3-6:
 - **MERGED_CONTENT_NOTES.md** - Details about frontend documentation consolidation
   - Explains what was merged from frontend-implementation-tasks.md
   - Explains what was merged from frontend-advanced-features-implementation-plan.md
-  - Links to IMPLEMENTATION_TASKS.md for current roadmap
+  - Points to the roadmap index (`IMPLEMENTATION_TASKS.md`) for current state
 
 ---
 
@@ -84,7 +84,9 @@ These documents serve as:
 ## Active Documentation
 
 For current implementation plans and active development, see:
-- **[IMPLEMENTATION_TASKS.md](../../IMPLEMENTATION_TASKS.md)** - Complete 72-week roadmap
+
+- **[IMPLEMENTATION_TASKS.md](../../IMPLEMENTATION_TASKS.md)** - Roadmap index linking to the canonical trackers in `TasksTracking/`
+- **[TasksTracking/](../../TasksTracking/)** - Phase-by-phase action plans and backlog
 - **[docs/DOCUMENTATION_STATUS.md](../DOCUMENTATION_STATUS.md)** - Documentation tracking
 
 ---
