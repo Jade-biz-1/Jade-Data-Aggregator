@@ -17,7 +17,9 @@
 - **Test Coverage**: High (Backend > 85%, Frontend Critical > 98%)
 
 ## 📂 Key Documentation
-- **`IMPLEMENTATION_TASKS.md`**: **CRITICAL**. The main source of truth for task tracking. **Update this file after every task completion.**
+
+- **`IMPLEMENTATION_TASKS.md`**: **CRITICAL**. High-level roadmap index pointing to the canonical tracker in `TasksTracking/`.
+- **`TasksTracking/`**: Phase-by-phase task breakdowns and current backlog (update these markdown files as work progresses).
 - **`README.md`**: General project documentation and setup instructions.
 - **`docs/prd.md`**: Product Requirements Document.
 - **`docs/UserGuide.md`**: Comprehensive user guide.
@@ -28,19 +30,21 @@
 - **`tutorial/`**: Tutorial application code and documentation for user tutorials.
 
 ## 📝 Workflow Rules
+
 1. **Bootstrap**: Read this file (`BOOTSTRAP.md`) at the start of every session.
 2. **Task Tracking**:
-   - Use `IMPLEMENTATION_TASKS.md` to identify next steps.
-   - Update `IMPLEMENTATION_TASKS.md` status immediately after completing a task.
+   - Use `TasksTracking/overview.md` and the phase files to identify next steps.
+   - Update the relevant `TasksTracking/phase-*.md` file immediately after completing a task.
    - **Concise Summaries**: If specs are clear, just mark the task status. Avoid exhaustive summaries unless necessary.
 3. **Task Boundary**: Use `task_boundary` tool to track progress in the UI.
 4. **Artifacts**: Maintain `task.md` for session-level tracking.
 
 ## ⏭️ Immediate Next Steps
+
 1. **Complete Phase 10**: Finish the remaining 5% of the Tutorial Application.
-   - Check `IMPLEMENTATION_TASKS.md` for specific pending items in Phase 10.
+   - Check `TasksTracking/phase-10-tutorial-application.md` for specific pending items in Phase 10.
 2. **Verify Production Readiness**: Ensure all "Pending" items in previous phases are truly resolved or explicitly deferred.
 3. **Maintenance**: Monitor for any new issues or feature requests.
 
 ---
-*Last Updated: November 29, 2025*
+**Last Updated:** November 29, 2025

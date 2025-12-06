@@ -402,7 +402,7 @@ Mid to large enterprises with multiple data sources requiring integration and st
 
 ## 8. Product Roadmap
 
-**Note**: Roadmap updated to reflect actual implementation timeline (week-based). See IMPLEMENTATION_TASKS.md for detailed status.
+**Note**: Roadmap updated to reflect actual implementation timeline (week-based). See `IMPLEMENTATION_TASKS.md` and the `TasksTracking/` directory for detailed status.
 
 ### 8.1 Phase 1: Foundation (Weeks 1-8) - ✅ COMPLETED
 - Basic REST API and database connectors

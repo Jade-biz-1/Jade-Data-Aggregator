@@ -29,7 +29,8 @@
 │   ├── migrations/          # SQL migration scripts
 │   ├── monitoring/          # Standalone Prometheus/Grafana stack
 │   └── terraform/           # Infrastructure as Code (AWS)
-├── IMPLEMENTATION_TASKS.md  # Master roadmap (Phases 1-10)
+├── IMPLEMENTATION_TASKS.md  # Master roadmap index (links to phase tracker)
+├── TasksTracking/           # Phase-specific task files and current backlog
 ├── CHANGELOG.md             # Chronological change log
 ├── PROJECT_COMPLETION_SUMMARY.md, PHASE_*.md, etc. # Progress write-ups
 └── docker-compose*.yml, Dockerfile(s), pyproject.toml, package.json, README.md
@@ -81,7 +82,7 @@ _Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + 
 ### 3.5 Testing
 
 - Pytest suite (~220 backend tests + 54 E2E) covering endpoints, services, models, pipeline execution, auth.
-- Coverage target 80% (Implementation doc). Additional frontend unit tests, load/security automation recommended in upcoming work.
+- Coverage target 80% (per implementation roadmap). Additional frontend unit tests, load/security automation recommended in upcoming work.
 
 ## 4. Frontend (Next.js 15.5.4, React 19)
 
@@ -109,7 +110,7 @@ _Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + 
 
 ### 4.3 Testing & Tooling
 
-- Jest/React Testing Library groundwork, Playwright for E2E (Implementation tasks). Need to confirm actual coverage; Implementation doc states backend tests verified Oct 24, E2E ready but check repo for test files.
+- Jest/React Testing Library groundwork, Playwright for E2E (roadmap tasks). Need to confirm actual coverage; roadmap notes backend tests verified Oct 24, E2E ready but check repo for test files.
 - Linting via ESLint, formatting via Prettier. Tailwind classes enforced.
 - Vite? (No; Next.js dev server). Observed warnings: Next dev chooses port 3001 when 3000 busy; multi-lockfile warning due to workspace root detection.
 
@@ -118,23 +119,23 @@ _Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + 
 - **Docker Compose**: Primary local stack in `docker-compose.yml` exposing PostgreSQL, Redis, Kafka, Zookeeper, backend (FastAPI with autoreload), frontend. Frontend container now targets backend via `localhost:8001` for local development (`NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1`).
 - **Monitoring Stack**: `platform/monitoring/` contains Prometheus, Grafana, Loki, Alertmanager definitions. Additional Compose file `platform/infrastructure/docker-compose.monitoring.yml` for observability.
 - **Terraform**: Provisioning for AWS VPC, ECS, RDS, MSK, ElastiCache, ALB. Deploy instructions in `DEPLOYMENT_GUIDE_COMPLETE.md`, `docs/deployment-guide.md`, `platform/infrastructure/README.md`.
-- **CI/CD**: GitHub Actions workflows (not inspected here) for lint/test/build/deploy (Implementation doc T019/T020). Docker multi-stage builds in root `Dockerfile` and frontend-specific Dockerfiles.
+- **CI/CD**: GitHub Actions workflows (not inspected here) for lint/test/build/deploy (roadmap item T019/T020). Docker multi-stage builds in root `Dockerfile` and frontend-specific Dockerfiles.
 - **Backups**: `platform/backups/database/`, `backend/core/init_db.py` handles default admin + dev accounts with toggles (`CREATE_DEV_USER`, `ALLOW_DEV_ROLE_IN_PRODUCTION`, `AUTO_INIT_DB`). Cleanup includes DB backup reminders.
 
 ## 6. Documentation & Knowledge Base
 
 - **Primary Docs** (`docs/`): architecture diagrams, PRD, use cases, runbook, security guide, deployment instructions per cloud, troubleshooting, testing plans, monitoring, API reference.
 - **Phase Summaries**: `PHASE_3_COMPLETION_SUMMARY.md`, `PHASE_8_COMPLETION_SUMMARY.md`, etc. Provide granular records of deliverables.
-- **Tutorial Materials**: `tutorial/` contains onboarding modules (Phase 10) — currently 95% complete per Implementation doc.
+- **Tutorial Materials**: `tutorial/` contains onboarding modules (Phase 10) — currently 95% complete per implementation roadmap.
 - **Operational Logs**: `DAILY_PROGRESS_*.md`, `VERIFICATION_COMPLETE_OCT_24.md`, etc. track day-by-day progress.
-- **Master Roadmap**: `IMPLEMENTATION_TASKS.md` (2,600+ lines) enumerates Phases 1-10, status, risk, resource plans, verification notes (updated Nov 2, 2025). Serves as canonical progress tracker.
+- **Master Roadmap**: `IMPLEMENTATION_TASKS.md` now serves as the high-level index; see `TasksTracking/` for phase status, risks, resources, and verification notes (updated Nov 2025).
 
 ## 7. Current Status Snapshot (per 2025-11-06)
 
 - **Backend**: 100% feature-complete, security audited, cleanup services refactored to SQLAlchemy, session-info endpoint stabilized (enum conversion fix). Tests: 220 backend + 54 E2E verified (Oct 24).
 - **Frontend**: All 26 routes implemented, RBAC gating fixed (`usePermissions` now reads token from cookie; note: still performs 3 fetches per load — optimization pending). Monitoring UI, file manager, preferences, dashboard customization, search implemented.
 - **Docs**: ~95% coverage. Critical docs exist but confirm currency (especially after recent API additions).
-- **Open Items** (from Implementation roadmap & recent findings):
+- **Open Items** (from TasksTracking backlog & recent findings):
   1. Replace `usePermissions` triple-fetch with consolidated `/users/me/session-info` call (frontend refactor pending; backend endpoint already exists).
   2. Swap native `alert`/`confirm` inside admin maintenance UI for design-system modals; reroute manual `fetch` to centralized `apiClient` for consistency.
   3. Add unit/E2E tests for cleanup endpoints, maintenance UI interactions, permissions SSO flows per Gemini recommendations.
@@ -169,11 +170,11 @@ _Notable supporting folders_: `tutorial/` (learning app), `testing/` (backend + 
 - **docs/deployment-guide.md** & `DEPLOYMENT_GUIDE_COMPLETE.md`: Cloud deployment procedures (AWS; includes Terraform, ECS, CI/CD steps).
 - **docs/runbook.md**: Operational playbook with incident response, maintenance, troubleshooting.
 - **docs/troubleshooting.md**: Known issues, resolutions, support contacts.
-- **IMPLEMENTATION_TASKS.md**: Phased roadmap (10 phases), completion metrics, risk register, verification notes through Oct-Nov 2025.
+- **IMPLEMENTATION_TASKS.md** & `TasksTracking/`: Phased roadmap index plus detailed completion metrics, risk register, and verification notes through Oct-Nov 2025.
 - **PHASE_*_COMPLETION_SUMMARY.md** files: Snapshot reports for completed phases.
 - **VERIFICATION_COMPLETE_OCT_24.md**: Testing verification record (220 backend + 54 E2E tests confirmed).
 - **tutorial/**: Phase 10 tutorial modules, onboarding instructions, specification.
 
 ---
 
-_This understanding document should be kept current whenever substantial architectural, operational, or documentation changes occur. Cross-reference with `CHANGELOG.md` and `IMPLEMENTATION_TASKS.md` when planning new work._
+_This understanding document should be kept current whenever substantial architectural, operational, or documentation changes occur. Cross-reference with `CHANGELOG.md`, `IMPLEMENTATION_TASKS.md`, and `TasksTracking/` when planning new work._

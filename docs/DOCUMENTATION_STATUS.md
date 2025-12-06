@@ -8,7 +8,7 @@
 
 ### Core Documentation
 1. **✅ README.md** - Main project overview and quick start guide
-2. **✅ IMPLEMENTATION_TASKS.md** - Comprehensive implementation roadmap
+2. **✅ IMPLEMENTATION_TASKS.md** - Executive roadmap index pointing to `TasksTracking/`
 3. **✅ COMPREHENSIVE_ANALYSIS_AND_GAPS.md** - Gap analysis and completion status
 4. **✅ docs/prd.md** - Product Requirements Document
 5. **✅ docs/architecture.md** - System Architecture Document
