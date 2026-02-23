@@ -26,7 +26,7 @@ from backend.schemas.auth import (
     RefreshResponse,
     TokenRefresh,
 )
-from backend.schemas.auth import Token, TokenData
+from backend.schemas.token import Token, TokenData
 from backend.schemas.user import User, UserCreate
 from backend.services.activity_log_service import (
     log_failed_login,

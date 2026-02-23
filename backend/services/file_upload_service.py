@@ -101,9 +101,11 @@ class FileUploadService:
         Returns:
             FileUpload record
         """
-        # Generate unique filename
+        # Generate unique, sanitized filename
+        safe_name = Path(filename).name  # strip any path components
+        safe_name = safe_name.replace("..", "_")
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        unique_filename = f"{timestamp}_{filename}"
+        unique_filename = f"{timestamp}_{safe_name}"
 
         # Determine file path
         file_path = os.path.join(self.UPLOAD_DIR, unique_filename)

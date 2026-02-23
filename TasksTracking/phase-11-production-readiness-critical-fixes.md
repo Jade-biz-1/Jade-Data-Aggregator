@@ -15,9 +15,9 @@ Execute mandatory security, testing, documentation, and infrastructure work iden
 
 ## Sub-Phase 11A: Critical Security Fixes (Week 93)
 
-- [ ] **SEC-001**: Wire security headers, rate limiting, and input validation middleware; add regression tests
-- [ ] **SEC-002**: Introduce centralized error handler with correlation IDs and scrubbed responses across 15+ files
-- [ ] **SEC-003**: Enforce strong `SECRET_KEY` configuration and rotation guidance
+- [x] **SEC-001**: Wire security headers, rate limiting, and input validation middleware; add regression tests
+- [x] **SEC-002**: Introduce centralized error handler with correlation IDs and scrubbed responses across 15+ files
+- [x] **SEC-003**: Enforce strong `SECRET_KEY` configuration and rotation guidance
 
 ## Sub-Phase 11B: Test Coverage Expansion (Weeks 94-99)
 

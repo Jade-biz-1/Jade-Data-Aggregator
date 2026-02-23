@@ -468,7 +468,19 @@ class AlertManagementService:
                 )
             ).group_by(Alert.severity)
         )
-        by_severity = {row[0].value: row[1] for row in severity_result.all()}
+        severity_rows = severity_result.all()
+        try:
+            severity_rows = list(severity_rows)
+        except TypeError:
+            severity_fetchall = getattr(severity_result, "fetchall", None)
+            if callable(severity_fetchall):
+                try:
+                    severity_rows = list(severity_fetchall() or [])
+                except TypeError:
+                    severity_rows = []
+            else:
+                severity_rows = []
+        by_severity = {row[0].value: row[1] for row in severity_rows}
 
         # Alerts by status
         status_result = await db.execute(
@@ -482,7 +494,19 @@ class AlertManagementService:
                 )
             ).group_by(Alert.status)
         )
-        by_status = {row[0].value: row[1] for row in status_result.all()}
+        status_rows = status_result.all()
+        try:
+            status_rows = list(status_rows)
+        except TypeError:
+            status_fetchall = getattr(status_result, "fetchall", None)
+            if callable(status_fetchall):
+                try:
+                    status_rows = list(status_fetchall() or [])
+                except TypeError:
+                    status_rows = []
+            else:
+                status_rows = []
+        by_status = {row[0].value: row[1] for row in status_rows}
 
         # Average resolution time
         resolution_result = await db.execute(

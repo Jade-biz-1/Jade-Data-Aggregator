@@ -4,10 +4,13 @@ Implements request rate limiting using Redis
 """
 
 from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
 from typing import Callable
 import time
 from redis import Redis
 from functools import wraps
+
+from backend.core.config import settings
 
 
 class RateLimiter:
@@ -95,10 +98,11 @@ async def rate_limit_middleware(request: Request, call_next):
     rate_limiter = RateLimiter(redis_client)
 
     # Different rate limits for different endpoints
+    api_prefix = settings.API_V1_STR.rstrip("/")
     rate_limits = {
-        '/api/auth/login': (5, 60),  # 5 requests per minute
-        '/api/auth/register': (3, 60),  # 3 requests per minute
-        '/api/': (100, 60),  # 100 requests per minute for API endpoints
+        f"{api_prefix}/auth/login": (5, 60),  # 5 requests per minute
+        f"{api_prefix}/auth/register": (3, 60),  # 3 requests per minute
+        f"{api_prefix}/": (100, 60),  # 100 requests per minute for API endpoints
     }
 
     # Get client identifier (IP address or user ID)
@@ -124,9 +128,9 @@ async def rate_limit_middleware(request: Request, call_next):
     )
 
     if not is_allowed:
-        raise HTTPException(
+        return JSONResponse(
             status_code=429,
-            detail="Too many requests. Please try again later.",
+            content={"detail": "Too many requests. Please try again later."},
             headers={
                 'X-RateLimit-Limit': str(info['limit']),
                 'X-RateLimit-Remaining': str(info['remaining']),

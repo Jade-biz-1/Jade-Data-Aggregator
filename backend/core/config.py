@@ -4,6 +4,7 @@ from pathlib import Path
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 import json
+import os
 import sys
 
 
@@ -66,6 +67,21 @@ class Settings(BaseSettings):
         Phase 11A - SEC-003: Enforce SECRET_KEY in production
         """
         if self.ENVIRONMENT.lower() == "production":
+            if not os.getenv("SECRET_KEY"):
+                print("\n" + "="*80)
+                print("🔴 CRITICAL SECURITY ERROR: Production Configuration Invalid")
+                print("="*80)
+                print("\nSECRET_KEY must be explicitly set in production.")
+                print("Avoid auto-generated keys to prevent token invalidation on restart.")
+                print("\nTo generate a secure SECRET_KEY, run:")
+                print("  python -c 'import secrets; print(secrets.token_urlsafe(32))'")
+                print("\nThen set it in your .env file:")
+                print("  SECRET_KEY=<your-generated-key>")
+                print("\n" + "="*80)
+                print("❌ Application startup BLOCKED for security reasons")
+                print("="*80 + "\n")
+                sys.exit(1)
+
             # Check SECRET_KEY length
             if len(self.SECRET_KEY) < 32:
                 print("\n" + "="*80)

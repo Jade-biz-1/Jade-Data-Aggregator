@@ -788,13 +788,15 @@ def anonymize_user_data(user: User) -> dict:
 ### For Administrators
 
 1. **Rotate secrets** every 90 days
-2. **Review user permissions** quarterly
-3. **Monitor security alerts**
-4. **Apply security patches** promptly
-5. **Conduct security audits** annually
-6. **Backup data** regularly
-7. **Test disaster recovery** plan
-8. **Train users** on security
+2. **Set `SECRET_KEY` explicitly in production** (minimum 32 characters)
+3. **Rotate `SECRET_KEY` during maintenance windows** and force re-login
+4. **Review user permissions** quarterly
+5. **Monitor security alerts**
+6. **Apply security patches** promptly
+7. **Conduct security audits** annually
+8. **Backup data** regularly
+9. **Test disaster recovery** plan
+10. **Train users** on security
 
 ---
 

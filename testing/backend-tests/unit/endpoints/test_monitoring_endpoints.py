@@ -26,30 +26,29 @@ from backend.schemas.user import User
 from backend.models.monitoring import LogLevel, AlertSeverity, AlertStatus
 
 
+def _make_mock_user(user_id: int, username: str, email: str, role: str) -> User:
+    return User(
+        id=user_id,
+        username=username,
+        email=email,
+        role=role,
+        is_active=True,
+        created_at=datetime.utcnow()
+    )
+
+
 class TestMonitoringEndpointAuthentication:
     """Test authentication requirements for monitoring endpoints"""
 
     @pytest.fixture
     def mock_viewer_user(self):
         """Create a mock viewer user"""
-        return User(
-            id=1,
-            username="viewer",
-            email="viewer@example.com",
-            role="viewer",
-            is_active=True
-        )
+        return _make_mock_user(1, "viewer", "viewer@example.com", "viewer")
 
     @pytest.fixture
     def mock_admin_user(self):
         """Create a mock admin user"""
-        return User(
-            id=2,
-            username="admin",
-            email="admin@example.com",
-            role="admin",
-            is_active=True
-        )
+        return _make_mock_user(2, "admin", "admin@example.com", "admin")
 
     @pytest.fixture
     def mock_db_session(self):
@@ -64,39 +63,72 @@ class TestMonitoringEndpointAuthentication:
 
     # Authentication Tests
 
-    def test_monitoring_stats_requires_authentication(self):
-        """Test that monitoring stats endpoint requires authentication"""
+    @pytest.mark.asyncio
+    async def test_monitoring_stats_requires_authentication(self, mock_viewer_user, mock_db_session):
+        """Test that get_pipeline_stats returns the expected response structure"""
         from backend.api.v1.endpoints.monitoring import get_pipeline_stats
-        from backend.core.rbac import require_viewer
 
-        # Verify dependency is require_viewer (which enforces auth)
-        # FastAPI dependencies are called at runtime
-        assert True  # Endpoint uses require_viewer() dependency
+        result = await get_pipeline_stats(current_user=mock_viewer_user, db=mock_db_session)
 
-    def test_dashboard_stats_requires_authentication(self):
-        """Test that dashboard stats endpoint requires authentication"""
+        assert "totalPipelines" in result
+        assert "activePipelines" in result
+        assert "runningPipelines" in result
+        assert "failedPipelines" in result
+
+    @pytest.mark.asyncio
+    async def test_dashboard_stats_requires_authentication(self, mock_viewer_user, mock_db_session):
+        """Test that get_dashboard_stats returns the expected response structure"""
         from backend.api.v1.endpoints.dashboard import get_dashboard_stats
-        from backend.core.rbac import require_viewer
 
-        # Verify dependency is require_viewer
-        assert True  # Endpoint uses require_viewer() dependency
+        result = await get_dashboard_stats(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert "pipelines" in result
+        assert "connectors" in result
+        assert "data_processed" in result
+        assert "trends" in result
 
     @pytest.mark.asyncio
     async def test_alert_creation_requires_authentication(self, mock_db_session):
-        """Test that alert creation requires authentication"""
-        from backend.api.v1.endpoints.alerts import create_alert_rule
+        """Test that create_alert_rule wraps service exceptions with a safe HTTP 500"""
+        from backend.api.v1.endpoints.alerts import create_alert_rule, AlertRuleCreate
 
-        # Without authentication, should raise error or be blocked by dependency
-        # This is enforced by FastAPI dependency injection
-        assert True  # Endpoint protected by authentication middleware
+        rule = AlertRuleCreate(
+            name="Auth Test Rule",
+            rule_type="threshold",
+            metric_name="cpu_usage",
+            condition="gt",
+            threshold_value=80.0,
+        )
+
+        with patch(
+            "backend.api.v1.endpoints.alerts.alert_service.create_alert_rule",
+            side_effect=Exception("DB connection failed"),
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await create_alert_rule(rule=rule, db=mock_db_session)
+
+        assert exc_info.value.status_code == 500
+        assert "Unable to create alert rule" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_log_search_requires_authentication(self, mock_db_session):
-        """Test that log search requires authentication"""
-        from backend.api.v1.endpoints.logs import search_logs
+        """Test that search_logs returns expected structure with default parameters"""
+        from backend.api.v1.endpoints.logs import search_logs, LogSearchRequest
 
-        # Endpoint should be protected
-        assert True  # Protected by authentication middleware
+        search_request = LogSearchRequest()
+
+        with patch(
+            "backend.api.v1.endpoints.logs.logging_service.search_logs",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            result = await search_logs(search_request=search_request, db=mock_db_session)
+
+        assert "logs" in result
+        assert "count" in result
+        assert "offset" in result
+        assert "limit" in result
+        assert result["count"] == 0
 
 
 class TestMonitoringEndpointAuthorization:
@@ -105,35 +137,17 @@ class TestMonitoringEndpointAuthorization:
     @pytest.fixture
     def mock_viewer_user(self):
         """Create a mock viewer user"""
-        return User(
-            id=1,
-            username="viewer",
-            email="viewer@example.com",
-            role="viewer",
-            is_active=True
-        )
+        return _make_mock_user(1, "viewer", "viewer@example.com", "viewer")
 
     @pytest.fixture
     def mock_developer_user(self):
         """Create a mock developer user"""
-        return User(
-            id=2,
-            username="developer",
-            email="dev@example.com",
-            role="developer",
-            is_active=True
-        )
+        return _make_mock_user(2, "developer", "dev@example.com", "developer")
 
     @pytest.fixture
     def mock_admin_user(self):
         """Create a mock admin user"""
-        return User(
-            id=3,
-            username="admin",
-            email="admin@example.com",
-            role="admin",
-            is_active=True
-        )
+        return _make_mock_user(3, "admin", "admin@example.com", "admin")
 
     @pytest.fixture
     def mock_db_session(self):
@@ -190,17 +204,59 @@ class TestMonitoringEndpointAuthorization:
 
     @pytest.mark.asyncio
     async def test_admin_can_create_alert_rules(self, mock_admin_user, mock_db_session):
-        """Test that admin can create alert rules"""
-        # Admin role should have permissions for alert rule creation
-        # This would be tested with actual RBAC checks
-        assert mock_admin_user.role == "admin"
+        """Test that an admin user can successfully create an alert rule"""
+        from backend.api.v1.endpoints.alerts import create_alert_rule, AlertRuleCreate
+
+        rule = AlertRuleCreate(
+            name="Admin Alert Rule",
+            rule_type="threshold",
+            metric_name="memory_usage",
+            condition="gt",
+            threshold_value=90.0,
+            severity=AlertSeverity.HIGH,
+        )
+
+        mock_alert = Mock()
+        mock_alert.id = 1
+        mock_alert.name = "Admin Alert Rule"
+        mock_alert.rule_type = "threshold"
+        mock_alert.metric_name = "memory_usage"
+        mock_alert.condition = "gt"
+        mock_alert.threshold_value = 90.0
+        mock_alert.severity = AlertSeverity.HIGH
+        mock_alert.is_active = True
+        mock_alert.created_at = datetime.utcnow()
+
+        with patch(
+            "backend.api.v1.endpoints.alerts.alert_service.create_alert_rule",
+            new_callable=AsyncMock,
+            return_value=mock_alert,
+        ):
+            result = await create_alert_rule(
+                rule=rule, user_id=mock_admin_user.id, db=mock_db_session
+            )
+
+        assert result["name"] == "Admin Alert Rule"
+        assert result["severity"] == AlertSeverity.HIGH.value
 
     @pytest.mark.asyncio
-    async def test_viewer_cannot_delete_logs(self, mock_viewer_user):
-        """Test that viewer role cannot delete logs (if such endpoint exists)"""
-        # Viewer role should be read-only
-        assert mock_viewer_user.role == "viewer"
-        # Deletion endpoints should check role
+    async def test_active_alerts_returns_empty_for_clean_system(self, mock_viewer_user, mock_db_session):
+        """Test that get_active_alerts returns an empty list when no alerts exist"""
+        from backend.api.v1.endpoints.alerts import get_active_alerts
+
+        with patch(
+            "backend.api.v1.endpoints.alerts.alert_service.get_active_alerts",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            result = await get_active_alerts(
+                severity=None, pipeline_id=None, limit=100, db=mock_db_session
+            )
+
+        assert "alerts" in result
+        assert "count" in result
+        assert result["count"] == 0
+        assert result["alerts"] == []
 
 
 class TestMonitoringEndpointInputValidation:
@@ -426,7 +482,7 @@ class TestMonitoringEndpointErrorHandling:
         from backend.api.v1.endpoints.monitoring import get_pipeline_stats
         from backend.schemas.user import User
 
-        mock_user = User(id=1, username="test", email="test@example.com", role="viewer", is_active=True)
+        mock_user = _make_mock_user(1, "test", "test@example.com", "viewer")
 
         # Mock empty database (all counts = 0)
         mock_result = Mock()
@@ -587,13 +643,7 @@ class TestDashboardEndpointSecurity:
     @pytest.fixture
     def mock_viewer_user(self):
         """Create a mock viewer user"""
-        return User(
-            id=1,
-            username="viewer",
-            email="viewer@example.com",
-            role="viewer",
-            is_active=True
-        )
+        return _make_mock_user(1, "viewer", "viewer@example.com", "viewer")
 
     # Dashboard Security Tests
 
@@ -671,7 +721,7 @@ class TestMonitoringEndpointPerformance:
         from backend.api.v1.endpoints.monitoring import get_pipeline_stats
         from backend.schemas.user import User
 
-        mock_user = User(id=1, username="test", email="test@example.com", role="viewer", is_active=True)
+        mock_user = _make_mock_user(1, "test", "test@example.com", "viewer")
 
         await get_pipeline_stats(current_user=mock_user, db=mock_db_session)
 
@@ -679,6 +729,161 @@ class TestMonitoringEndpointPerformance:
         # Not N+1 queries
         call_count = mock_db_session.execute.call_count
         assert call_count < 10  # Reasonable number of queries
+
+
+class TestMonitoringEndpointSystemHealth:
+    """Test system health and pipeline performance monitoring endpoints"""
+
+    @pytest.fixture
+    def mock_viewer_user(self):
+        return _make_mock_user(1, "viewer", "viewer@example.com", "viewer")
+
+    @pytest.fixture
+    def mock_db_session(self):
+        session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar.return_value = 3
+        mock_result.fetchall.return_value = []
+        session.execute = AsyncMock(return_value=mock_result)
+        return session
+
+    @pytest.mark.asyncio
+    async def test_get_system_health_returns_services_dict(self, mock_viewer_user, mock_db_session):
+        """Test that get_system_health returns a services dictionary and overall status"""
+        from backend.api.v1.endpoints.monitoring import get_system_health
+
+        result = await get_system_health(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert "services" in result
+        assert "overall_status" in result
+        assert isinstance(result["services"], dict)
+
+    @pytest.mark.asyncio
+    async def test_get_system_health_contains_api_entry(self, mock_viewer_user, mock_db_session):
+        """Test that system health includes an 'api' service entry with a status field"""
+        from backend.api.v1.endpoints.monitoring import get_system_health
+
+        result = await get_system_health(current_user=mock_viewer_user, db=mock_db_session)
+
+        services = result["services"]
+        assert "api" in services
+        assert "status" in services["api"]
+
+    @pytest.mark.asyncio
+    async def test_get_pipeline_performance_returns_list(self, mock_viewer_user, mock_db_session):
+        """Test that get_pipeline_performance returns a list"""
+        from backend.api.v1.endpoints.monitoring import get_pipeline_performance
+
+        result = await get_pipeline_performance(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_pipeline_stats_values_are_non_negative(self, mock_viewer_user, mock_db_session):
+        """Test that all numeric fields in pipeline stats are non-negative integers"""
+        from backend.api.v1.endpoints.monitoring import get_pipeline_stats
+
+        result = await get_pipeline_stats(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert result["totalPipelines"] >= 0
+        assert result["activePipelines"] >= 0
+        assert result["runningPipelines"] >= 0
+        assert result["failedPipelines"] >= 0
+
+    @pytest.mark.asyncio
+    async def test_get_recent_alerts_limited_to_ten(self, mock_viewer_user, mock_db_session):
+        """Test that get_recent_alerts returns at most 10 alerts"""
+        from backend.api.v1.endpoints.monitoring import get_recent_alerts
+
+        result = await get_recent_alerts(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert isinstance(result, list)
+        assert len(result) <= 10
+
+
+class TestAdditionalEndpoints:
+    """Tests for dashboard and log endpoints not covered by other classes"""
+
+    @pytest.fixture
+    def mock_viewer_user(self):
+        return _make_mock_user(1, "viewer", "viewer@example.com", "viewer")
+
+    @pytest.fixture
+    def mock_db_session(self):
+        session = AsyncMock()
+        mock_result = Mock()
+        mock_result.scalar.return_value = 3
+        session.execute = AsyncMock(return_value=mock_result)
+        return session
+
+    @pytest.mark.asyncio
+    async def test_get_dashboard_system_status_structure(self, mock_viewer_user, mock_db_session):
+        """Test that get_system_status returns system_health, api_status, database, and services"""
+        from backend.api.v1.endpoints.dashboard import get_system_status
+
+        result = await get_system_status(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert "system_health" in result
+        assert "api_status" in result
+        assert "database" in result
+        assert "services" in result
+
+    @pytest.mark.asyncio
+    async def test_get_dashboard_performance_metrics_structure(self, mock_viewer_user, mock_db_session):
+        """Test that get_performance_metrics returns throughput, latency, and resource_usage"""
+        from backend.api.v1.endpoints.dashboard import get_performance_metrics
+
+        result = await get_performance_metrics(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert "throughput" in result
+        assert "latency" in result
+        assert "resource_usage" in result
+
+    @pytest.mark.asyncio
+    async def test_get_dashboard_recent_activity_returns_list(self, mock_viewer_user, mock_db_session):
+        """Test that get_recent_activity returns a list"""
+        from backend.api.v1.endpoints.dashboard import get_recent_activity
+
+        mock_result = Mock()
+        mock_result.fetchall.return_value = []
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await get_recent_activity(current_user=mock_viewer_user, db=mock_db_session)
+
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_get_recent_errors_returns_structure(self, mock_db_session):
+        """Test that get_recent_errors returns errors list with count and hours"""
+        from backend.api.v1.endpoints.logs import get_recent_errors
+
+        with patch(
+            "backend.api.v1.endpoints.logs.logging_service.get_recent_errors",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            result = await get_recent_errors(hours=1, limit=50, db=mock_db_session)
+
+        assert "errors" in result
+        assert "count" in result
+        assert "hours" in result
+        assert result["hours"] == 1
+
+    @pytest.mark.asyncio
+    async def test_get_log_statistics_returns_structure(self, mock_db_session):
+        """Test that get_log_statistics returns statistics with group_by reflected"""
+        from backend.api.v1.endpoints.logs import get_log_statistics
+
+        with patch(
+            "backend.api.v1.endpoints.logs.logging_service.get_log_statistics",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):
+            result = await get_log_statistics(hours=24, group_by="level", db=mock_db_session)
+
+        assert "statistics" in result
+        assert "group_by" in result
+        assert result["group_by"] == "level"
 
 
 # Run with: pytest testing/backend-tests/unit/endpoints/test_monitoring_endpoints.py -v

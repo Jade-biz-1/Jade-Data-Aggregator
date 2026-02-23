@@ -222,3 +222,11 @@ def check_can_assign_role(current_user: User, target_username: str, new_role: Us
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot change the role of the default admin user account."
         )
+
+
+async def apply_admin_protection(request, call_next):
+    """
+    Placeholder middleware hook for admin protection.
+    Enforcement happens within user management endpoints.
+    """
+    return await call_next(request)

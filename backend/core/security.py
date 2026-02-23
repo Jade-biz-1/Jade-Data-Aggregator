@@ -9,6 +9,7 @@ import pyotp
 import base64
 
 from backend.core.config import settings
+from backend.schemas.user import User
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

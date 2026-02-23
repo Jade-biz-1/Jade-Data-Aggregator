@@ -6,7 +6,16 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import ValidationError
 import logging
 
-from backend.core.config import get_settings
+from backend.core.config import settings
+from backend.core.error_handler import (
+    safe_error_response,
+    database_error,
+    validation_error,
+    not_found_error,
+    permission_denied_error,
+    external_service_error,
+    file_operation_error,
+)
 
 # --- Logger Setup ---
 logger = logging.getLogger(__name__)
@@ -74,7 +83,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception for request {request.method} {request.url}: {exc}", exc_info=True)
     
     # In production, do not expose internal error details
-    if get_settings().environment == "production":
+    if settings.ENVIRONMENT.lower() == "production":
         detail = "An internal server error occurred."
     else:
         detail = f"An internal server error occurred: {str(exc)}"

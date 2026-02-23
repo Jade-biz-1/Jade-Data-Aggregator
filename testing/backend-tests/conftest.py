@@ -1,8 +1,11 @@
 import pytest
+import pytest_asyncio
 import asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 
 from backend.main import app
 from backend.core.database import get_db, Base
@@ -10,11 +13,16 @@ from backend.core.config import settings
 from backend.models import user, pipeline, connector, transformation
 
 
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(_type, _compiler, **_kwargs):
+    return "JSON"
+
+
 # Test database URL - using in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
@@ -22,7 +30,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_engine():
     """Create a test database engine."""
     engine = create_async_engine(
@@ -43,7 +51,7 @@ async def test_engine():
     await engine.dispose()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_session(test_engine):
     """Create a test database session."""
     async_session_maker = async_sessionmaker(
@@ -54,7 +62,7 @@ async def test_session(test_engine):
         yield session
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_client(test_session):
     """Create a test client with dependency overrides."""
 
@@ -63,13 +71,14 @@ async def test_client(test_session):
 
     app.dependency_overrides[get_db] = get_test_db
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
     app.dependency_overrides.clear()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_user_data():
     """Sample user data for tests."""
     return {
@@ -81,7 +90,7 @@ async def test_user_data():
     }
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_pipeline_data():
     """Sample pipeline data for tests."""
     return {
@@ -93,7 +102,7 @@ async def test_pipeline_data():
     }
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_connector_data():
     """Sample connector data for tests."""
     return {
@@ -104,7 +113,7 @@ async def test_connector_data():
     }
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_transformation_data():
     """Sample transformation data for tests."""
     return {

@@ -6,6 +6,7 @@ Real-time communication endpoints for pipeline status, metrics, and notification
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+from datetime import datetime
 import json
 import uuid
 import logging
@@ -40,11 +41,14 @@ async def get_current_user_ws(
             return None
 
         # Create user object from token payload
+        username = payload.get("username") or email.split("@")[0]
         user = User(
             id=int(user_id),
+            username=username,
             email=email,
             full_name=payload.get("full_name", ""),
-            role=payload.get("role", "viewer")
+            role=payload.get("role", "viewer"),
+            created_at=datetime.utcnow()
         )
 
         return user

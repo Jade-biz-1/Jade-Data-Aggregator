@@ -588,6 +588,28 @@ class TestEmailVerificationEmail:
                 # URL should use HTTPS and include frontend URL
                 assert "https://app.example.com/verify-email?token=verify789" in html_content
 
+    @pytest.mark.asyncio
+    async def test_send_email_uses_starttls_and_login(self):
+        """Ensure SMTP session starts TLS and authenticates when credentials are configured."""
+        service = EmailService()
+        service.smtp_username = "user@example.com"
+        service.smtp_password = "super-secret"
+
+        with patch("backend.services.email_service.smtplib.SMTP") as mock_smtp:
+            mock_server = MagicMock()
+            mock_smtp.return_value.__enter__.return_value = mock_server
+
+            result = await service.send_email(
+                to_email="recipient@example.com",
+                subject="Security Test",
+                html_content="<p>Test</p>",
+                text_content="Test"
+            )
+
+            assert result is True
+            mock_server.starttls.assert_called_once()
+            mock_server.login.assert_called_once_with("user@example.com", "super-secret")
+
 
 # Run with: pytest testing/backend-tests/unit/services/test_email_service.py -v
 # Run with coverage: pytest testing/backend-tests/unit/services/test_email_service.py -v --cov=backend.services.email_service --cov-report=term-missing

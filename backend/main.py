@@ -9,11 +9,13 @@ from backend.core.security import get_current_active_user
 from backend.schemas.user import User
 from backend.core.database import engine, Base, get_db
 from backend.middleware.session_timeout import SessionTimeoutMiddleware
+from backend.middleware.correlation_id import correlation_id_middleware
 from backend.middleware.security_headers import add_security_headers
 from backend.middleware.rate_limiting import rate_limit_middleware
 from backend.middleware.admin_protection import apply_admin_protection
 from backend.middleware.dev_role_protection import apply_dev_role_protection
 from backend.middleware.input_validation import validate_request_data
+from backend.core.error_handler import add_exception_handlers
 from backend.core.init_db import init_db
 # Import all models to register them with SQLAlchemy
 from backend import models
@@ -80,6 +82,9 @@ def create_app():
 
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
+    # Centralized error handling with correlation IDs
+    add_exception_handlers(app)
+
     @app.on_event("startup")
     async def startup_event():
         # Create database tables
@@ -113,6 +118,9 @@ def create_app():
             "redis": "connected" if app.state.redis else "disconnected",
             "security": "active"
         }
+
+    # Correlation ID middleware should be outermost to tag all responses
+    app.add_middleware(BaseHTTPMiddleware, dispatch=correlation_id_middleware)
 
     return app
 

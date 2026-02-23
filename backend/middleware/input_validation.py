@@ -203,6 +203,8 @@ async def validate_request_data(request: Request, call_next):
         return response
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         # Log the error but don't expose details
         print(f"Validation error: {str(e)}")

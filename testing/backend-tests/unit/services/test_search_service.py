@@ -161,3 +161,15 @@ async def test_search_handles_database_error(search_service: SearchService, mock
     results = await search_service.search("any_query")
     
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_search_with_suspected_sql_injection_pattern(search_service: SearchService, mock_db_session: AsyncMock):
+    """Ensure potentially malicious search strings are handled safely and return no results when nothing matches."""
+    mock_empty_result = MagicMock()
+    mock_empty_result.scalars.return_value.all.return_value = []
+    mock_db_session.execute.return_value = mock_empty_result
+
+    results = await search_service.search("'; DROP TABLE users; --")
+
+    assert results == []

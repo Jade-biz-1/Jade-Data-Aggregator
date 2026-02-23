@@ -680,6 +680,335 @@ class TestFileValidationService:
                 mock_validate.assert_called_once()
                 mock_scan.assert_not_called()  # Should not scan invalid files
 
+    @pytest.mark.asyncio
+    async def test_validate_file_reports_mime_detection_error(self, file_validation_service, mock_db_session):
+        """Ensure MIME detection failures are reported and validation fails securely."""
+        upload = FileUpload(
+            id=1,
+            filename="suspicious.bin",
+            original_filename="suspicious.bin",
+            file_path="/tmp/suspicious.bin",
+            file_type=FileType.OTHER,
+            file_size=0,
+            status=FileStatus.UPLOADED
+        )
+
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = upload
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(b"data")
+            upload.file_path = temp_file.name
+            upload.file_size = os.path.getsize(temp_file.name)
+
+        # Force MIME detection to fail
+        file_validation_service.magic = MagicMock()
+        file_validation_service.magic.from_file.side_effect = Exception("mime failure")
+
+        try:
+            result = await file_validation_service.validate_file(db=mock_db_session, file_id=1)
+
+            assert result["valid"] is False
+            assert any("mime failure" in err for err in result["errors"])
+        finally:
+            if os.path.exists(upload.file_path):
+                os.remove(upload.file_path)
+
+
+class TestFileUploadServiceAdditional:
+    """Additional security and edge-case tests for FileUploadService"""
+
+    @pytest.fixture
+    def file_upload_service(self):
+        return FileUploadService()
+
+    @pytest.fixture
+    def mock_db_session(self):
+        session = AsyncMock()
+        return session
+
+    # Relative Path Prefix Stripping
+
+    @pytest.mark.asyncio
+    async def test_relative_path_prefix_is_stripped_from_filename(self, file_upload_service, mock_db_session):
+        """Test that Path(filename).name strips relative path prefixes like ./etc/passwd"""
+        filename_with_relative_path = "./etc/passwd"
+        mock_db_session.add = Mock()
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        file_upload = await file_upload_service.create_upload(
+            db=mock_db_session,
+            filename=filename_with_relative_path,
+            file_size=100,
+            mime_type="text/plain",
+            user_id=1,
+        )
+
+        # Path("./etc/passwd").name == "passwd" — only the base name survives
+        assert file_upload_service.UPLOAD_DIR in file_upload.file_path
+        assert "/etc/" not in file_upload.file_path
+
+    # Long Filename
+
+    @pytest.mark.asyncio
+    async def test_long_filename_stored_within_upload_dir(self, file_upload_service, mock_db_session):
+        """Test that a very long filename is stored inside UPLOAD_DIR without escaping"""
+        long_filename = "a" * 200 + ".csv"
+        mock_db_session.add = Mock()
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        file_upload = await file_upload_service.create_upload(
+            db=mock_db_session,
+            filename=long_filename,
+            file_size=100,
+            mime_type="text/csv",
+            user_id=1,
+        )
+
+        assert file_upload_service.UPLOAD_DIR in file_upload.file_path
+        assert "../" not in file_upload.file_path
+
+    # Complete File Upload
+
+    @pytest.mark.asyncio
+    async def test_upload_complete_file_sets_status_and_hash(self, file_upload_service, mock_db_session):
+        """Test that upload_complete_file sets UPLOADED status and calculates SHA-256 hash"""
+        mock_db_session.add = Mock()
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_upload_service.UPLOAD_DIR = tmpdir
+            file_data = b"col1,col2\nval1,val2\n"
+
+            file_upload = await file_upload_service.upload_complete_file(
+                db=mock_db_session,
+                filename="data.csv",
+                file_data=file_data,
+                mime_type="text/csv",
+                user_id=1,
+            )
+
+        assert file_upload.status == FileStatus.UPLOADED
+        assert file_upload.upload_progress == 100
+        assert file_upload.file_hash is not None
+        assert len(file_upload.file_hash) == 64  # SHA-256 hex digest length
+
+    @pytest.mark.asyncio
+    async def test_upload_complete_file_empty_data_still_hashes(self, file_upload_service, mock_db_session):
+        """Test that upload_complete_file handles empty file data without error"""
+        mock_db_session.add = Mock()
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_upload_service.UPLOAD_DIR = tmpdir
+
+            file_upload = await file_upload_service.upload_complete_file(
+                db=mock_db_session,
+                filename="empty.csv",
+                file_data=b"",
+                mime_type="text/csv",
+                user_id=1,
+            )
+
+        assert file_upload.file_size == 0
+        assert file_upload.file_hash is not None  # SHA-256 of empty string is deterministic
+
+    # List File Uploads
+
+    @pytest.mark.asyncio
+    async def test_list_file_uploads_filters_by_user_id(self, file_upload_service, mock_db_session):
+        """Test that list_file_uploads filters results by user_id"""
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await file_upload_service.list_file_uploads(db=mock_db_session, user_id=42)
+
+        assert isinstance(result, list)
+        mock_db_session.execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_list_file_uploads_filters_by_status(self, file_upload_service, mock_db_session):
+        """Test that list_file_uploads filters results by status"""
+        mock_result = Mock()
+        mock_result.scalars.return_value.all.return_value = []
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await file_upload_service.list_file_uploads(
+            db=mock_db_session, status=FileStatus.UPLOADED
+        )
+
+        assert isinstance(result, list)
+        mock_db_session.execute.assert_called_once()
+
+    # Update Upload Status
+
+    @pytest.mark.asyncio
+    async def test_update_status_to_completed_sets_processed_at(self, file_upload_service, mock_db_session):
+        """Test that transitioning to COMPLETED sets the processed_at timestamp"""
+        upload = FileUpload(
+            id=1,
+            filename="test.csv",
+            file_path="/tmp/test.csv",
+            file_type=FileType.CSV,
+            file_size=100,
+            status=FileStatus.UPLOADED,
+        )
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = upload
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        result = await file_upload_service.update_upload_status(
+            db=mock_db_session, file_id=1, status=FileStatus.COMPLETED
+        )
+
+        assert result.status == FileStatus.COMPLETED
+        assert result.processed_at is not None
+
+    @pytest.mark.asyncio
+    async def test_update_status_to_failed_stores_error_message(self, file_upload_service, mock_db_session):
+        """Test that transitioning to FAILED stores the error message in validation_errors"""
+        upload = FileUpload(
+            id=1,
+            filename="test.csv",
+            file_path="/tmp/test.csv",
+            file_type=FileType.CSV,
+            file_size=100,
+            status=FileStatus.UPLOADED,
+        )
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = upload
+        mock_db_session.execute = AsyncMock(return_value=mock_result)
+        mock_db_session.commit = AsyncMock()
+        mock_db_session.refresh = AsyncMock()
+
+        error_msg = "Validation failed: invalid content"
+        result = await file_upload_service.update_upload_status(
+            db=mock_db_session,
+            file_id=1,
+            status=FileStatus.FAILED,
+            error_message=error_msg,
+        )
+
+        assert result.status == FileStatus.FAILED
+        assert result.validation_errors == {"error": error_msg}
+
+    # Get File Content
+
+    @pytest.mark.asyncio
+    async def test_get_file_content_reads_bytes(self, file_upload_service, mock_db_session):
+        """Test that get_file_content returns the full file bytes"""
+        file_data = b"hello,world\nfoo,bar\n"
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(file_data)
+            temp_path = temp_file.name
+
+        try:
+            upload = FileUpload(
+                id=1,
+                filename="test.csv",
+                file_path=temp_path,
+                file_type=FileType.CSV,
+                file_size=len(file_data),
+                status=FileStatus.UPLOADED,
+            )
+            mock_result = Mock()
+            mock_result.scalar_one_or_none.return_value = upload
+            mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+            content = await file_upload_service.get_file_content(db=mock_db_session, file_id=1)
+
+            assert content == file_data
+        finally:
+            os.remove(temp_path)
+
+    @pytest.mark.asyncio
+    async def test_get_file_content_with_offset_and_length(self, file_upload_service, mock_db_session):
+        """Test that get_file_content respects byte offset and length"""
+        file_data = b"HEADERDATA"
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(file_data)
+            temp_path = temp_file.name
+
+        try:
+            upload = FileUpload(
+                id=1,
+                filename="test.bin",
+                file_path=temp_path,
+                file_type=FileType.OTHER,
+                file_size=len(file_data),
+                status=FileStatus.UPLOADED,
+            )
+            mock_result = Mock()
+            mock_result.scalar_one_or_none.return_value = upload
+            mock_db_session.execute = AsyncMock(return_value=mock_result)
+
+            content = await file_upload_service.get_file_content(
+                db=mock_db_session, file_id=1, offset=6, length=4
+            )
+
+            assert content == b"DATA"
+        finally:
+            os.remove(temp_path)
+
+
+class TestFileValidationServiceAdditional:
+    """Additional Excel-specific validation tests for FileValidationService"""
+
+    @pytest.fixture
+    def file_validation_service(self):
+        return FileValidationService()
+
+    @pytest.mark.asyncio
+    async def test_excel_validation_no_sheets_returns_error(self, file_validation_service):
+        """Test that an Excel workbook with no sheets is rejected"""
+        upload = FileUpload(
+            id=1,
+            filename="empty.xlsx",
+            original_filename="empty.xlsx",
+            file_path="/tmp/empty.xlsx",
+            file_type=FileType.EXCEL,
+            file_size=100,
+            status=FileStatus.UPLOADED,
+        )
+        with patch("openpyxl.load_workbook") as mock_wb:
+            mock_workbook = Mock()
+            mock_workbook.sheetnames = []  # Simulate workbook with no sheets
+            mock_workbook.close = Mock()
+            mock_wb.return_value = mock_workbook
+
+            errors = await file_validation_service._validate_excel(upload)
+
+        assert len(errors) > 0
+        assert any("no sheets" in err.lower() for err in errors)
+
+    @pytest.mark.asyncio
+    async def test_excel_validation_corrupted_file_returns_error(self, file_validation_service):
+        """Test that a corrupted Excel file is rejected with an informative error"""
+        upload = FileUpload(
+            id=1,
+            filename="corrupt.xlsx",
+            original_filename="corrupt.xlsx",
+            file_path="/tmp/corrupt.xlsx",
+            file_type=FileType.EXCEL,
+            file_size=10,
+            status=FileStatus.UPLOADED,
+        )
+        with patch("openpyxl.load_workbook", side_effect=Exception("Invalid ZIP file")):
+            errors = await file_validation_service._validate_excel(upload)
+
+        assert len(errors) > 0
+        assert any("invalid excel" in err.lower() for err in errors)
+
 
 # Run with: pytest testing/backend-tests/unit/services/test_file_upload_security.py -v
 # Run with coverage: pytest testing/backend-tests/unit/services/test_file_upload_security.py -v --cov=backend.services.file_upload_service --cov=backend.services.file_validation_service --cov-report=term-missing

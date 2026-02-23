@@ -299,6 +299,12 @@ class EnhancedLoggingService:
 
         result = await db.execute(query)
         rows = result.all()
+        if not isinstance(rows, list):
+            fetchall = getattr(result, "fetchall", None)
+            if callable(fetchall):
+                rows = fetchall() or []
+            else:
+                rows = []
 
         stats = []
         for row in rows:

@@ -8,7 +8,11 @@ import logging
 from uuid import uuid4
 from typing import Optional
 from fastapi import HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from backend.core.config import settings
 
 
 # Configure logging
@@ -153,33 +157,121 @@ def file_operation_error(operation: str, internal_error: Optional[Exception] = N
     )
 
 
+def _get_correlation_id(request: Request) -> str:
+    correlation_id = getattr(request.state, "correlation_id", None)
+    if correlation_id:
+        return correlation_id
+
+    header_value = request.headers.get("X-Correlation-ID")
+    if header_value:
+        return header_value
+
+    return uuid4().hex
+
+
+def _safe_detail(status_code: int, detail: str) -> str:
+    if status_code >= 500:
+        return "An internal server error occurred."
+    return detail
+
+
+def _find_exception(exc: BaseException, exc_type: type[BaseException]) -> BaseException | None:
+    if isinstance(exc, exc_type):
+        return exc
+
+    if isinstance(exc, ExceptionGroup):
+        for sub_exc in exc.exceptions:
+            found = _find_exception(sub_exc, exc_type)
+            if found:
+                return found
+
+    return None
+
+
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    correlation_id = _get_correlation_id(request)
+    detail = _safe_detail(exc.status_code, str(exc.detail))
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": detail, "correlation_id": correlation_id},
+        headers={
+            "X-Error-ID": correlation_id,
+            "X-Correlation-ID": correlation_id
+        }
+    )
+
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    correlation_id = _get_correlation_id(request)
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": exc.errors(),
+            "correlation_id": correlation_id
+        },
+        headers={
+            "X-Error-ID": correlation_id,
+            "X-Correlation-ID": correlation_id
+        }
+    )
+
+
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Global exception handler for unhandled exceptions
     Ensures no sensitive information leaks in responses
     """
-    error_id = str(uuid4())
+    correlation_id = _get_correlation_id(request)
 
     # Log the full exception server-side
     logger.error(
-        f"Unhandled exception - Error ID {error_id}: {str(exc)}",
+        f"Unhandled exception - Correlation ID {correlation_id}: {str(exc)}",
         exc_info=True,
         extra={
-            "error_id": error_id,
+            "error_id": correlation_id,
             "path": request.url.path,
             "method": request.method
         }
     )
 
-    # Return generic message to user
+    if settings.ENVIRONMENT.lower() == "production":
+        detail = "An unexpected error occurred."
+    else:
+        detail = f"An unexpected error occurred: {str(exc)}"
+
     return JSONResponse(
         status_code=500,
         content={
-            "detail": "An unexpected error occurred. Our team has been notified. (Error ID: " + error_id + ")",
-            "error_id": error_id
+            "detail": detail,
+            "correlation_id": correlation_id
         },
-        headers={"X-Error-ID": error_id}
+        headers={
+            "X-Error-ID": correlation_id,
+            "X-Correlation-ID": correlation_id
+        }
     )
+
+
+async def exception_group_handler(request: Request, exc: ExceptionGroup) -> JSONResponse:
+    http_exc = _find_exception(exc, StarletteHTTPException)
+    if http_exc:
+        return await http_exception_handler(request, http_exc)  # type: ignore[arg-type]
+
+    validation_exc = _find_exception(exc, RequestValidationError)
+    if validation_exc:
+        return await validation_exception_handler(request, validation_exc)  # type: ignore[arg-type]
+
+    return await global_exception_handler(request, exc)
+
+
+def add_exception_handlers(app) -> None:
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(ExceptionGroup, exception_group_handler)
+    app.add_exception_handler(Exception, global_exception_handler)
 
 
 # Common error messages (safe for users)

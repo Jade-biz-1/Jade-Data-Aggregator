@@ -171,3 +171,11 @@ def mask_dev_user_login_failure() -> HTTPException:
         detail="Invalid username or password",
         headers={"WWW-Authenticate": "Bearer"}
     )
+
+
+async def apply_dev_role_protection(request, call_next):
+    """
+    Placeholder middleware hook for developer role protection.
+    Enforcement happens within role checks and admin endpoints.
+    """
+    return await call_next(request)
