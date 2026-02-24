@@ -44,8 +44,8 @@ Execute mandatory security, testing, documentation, and infrastructure work iden
 
 ### Week 99 – Integration & E2E
 
-- [ ] **TEST-013**: API integration workflows (50 tests)
-- [ ] **TEST-014**: E2E user journeys (50 tests)
+- [x] **TEST-013**: API integration workflows (50 tests)
+- [x] **TEST-014**: E2E user journeys (50 tests)
 
 ## Sub-Phase 11C: Production Security Features (Weeks 100-102)
 
