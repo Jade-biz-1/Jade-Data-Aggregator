@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import (
     APIRouter,
@@ -25,6 +25,12 @@ from backend.schemas.auth import (
     PasswordResetRequest,
     RefreshResponse,
     TokenRefresh,
+    TwoFactorDisableRequest,
+    TwoFactorEnableRequest,
+    TwoFactorEnableResponse,
+    TwoFactorRecoveryRequest,
+    TwoFactorSetupResponse,
+    TwoFactorVerifyRequest,
 )
 from backend.schemas.token import Token, TokenData
 from backend.schemas.user import User, UserCreate
@@ -47,15 +53,32 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    OAuth2 compatible token login, get an access token for future requests
+    OAuth2 compatible token login, get an access token for future requests.
+    Enforces account lockout (FEAT-002) and 2FA (FEAT-001) when enabled.
     """
-    auth_service = AuthService(db)
-
     # Fetch user from the database
     user = await crud.user.get_by_username(db, username=username)
+
+    # --- FEAT-002: Account lockout check ---
+    if user and user.lockout_until and user.lockout_until > datetime.utcnow():
+        remaining = int((user.lockout_until - datetime.utcnow()).total_seconds() // 60) + 1
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=f"Account is temporarily locked due to too many failed login attempts. "
+                   f"Try again in {remaining} minute(s).",
+        )
+
+    # Verify credentials
     if not user or not security.verify_password(password, user.hashed_password):
-        # Log failed login attempt
         await log_failed_login(db, username, request)
+        # Increment failed_login_attempts when user exists
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
+                user.lockout_until = datetime.utcnow() + timedelta(
+                    minutes=settings.LOCKOUT_DURATION
+                )
+            await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -63,13 +86,30 @@ async def login(
         )
 
     if not user.is_active:
-        # Log failed login attempt for inactive user
         await log_failed_login(db, username, request)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Inactive user",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Successful credential check — reset lockout counters
+    if user.failed_login_attempts or user.lockout_until:
+        user.failed_login_attempts = 0
+        user.lockout_until = None
+        await db.commit()
+
+    # --- FEAT-001: 2FA enforcement ---
+    if user.is_2fa_enabled:
+        # Issue a short-lived partial token that signals 2FA is required.
+        # The client must exchange this for a full token via POST /auth/2fa/verify.
+        partial_token = security.create_access_token(
+            subject=user.username,
+            expires_delta=timedelta(minutes=5),
+            role=user.role,
+            data={"sub": user.username, "role": user.role, "requires_2fa": True},
+        )
+        return {"access_token": partial_token, "token_type": "bearer", "requires_2fa": True}
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
@@ -319,3 +359,233 @@ async def change_password(
     await log_password_change(db, current_user.id, request)
 
     return {"message": "Password changed successfully"}
+
+
+# =============================================================================
+# FEAT-001: Two-Factor Authentication Endpoints
+# =============================================================================
+
+def _generate_recovery_codes(count: int = 8) -> tuple[list[str], list[str]]:
+    """Generate plaintext recovery codes and their bcrypt hashes.
+
+    Returns (plaintext_codes, hashed_codes).
+    """
+    import secrets as _secrets
+    plaintext = [
+        f"{_secrets.token_hex(4).upper()}-{_secrets.token_hex(4).upper()}"
+        for _ in range(count)
+    ]
+    hashed = [security.get_password_hash(code) for code in plaintext]
+    return plaintext, hashed
+
+
+@router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
+async def setup_2fa(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Generate a new TOTP secret for the authenticated user and return the
+    provisioning URI for QR-code display.  2FA is NOT yet enabled — the user
+    must call POST /auth/2fa/enable with a valid code to activate it.
+    """
+    from sqlalchemy import select
+    from backend.models.user import User as UserModel
+
+    db_user = (await db.execute(select(UserModel).where(UserModel.id == current_user.id))).scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    secret = security.generate_otp_secret()
+    otp_uri = security.generate_otp_uri(
+        email=db_user.email,
+        secret=secret,
+        issuer_name=settings.PROJECT_NAME,
+    )
+    db_user.otp_secret = secret
+    db_user.otp_auth_url = otp_uri
+    await db.commit()
+
+    return TwoFactorSetupResponse(
+        secret=secret,
+        otp_uri=otp_uri,
+        message="Scan the QR code with your authenticator app, then call POST /auth/2fa/enable with the generated code.",
+    )
+
+
+@router.post("/2fa/enable", response_model=TwoFactorEnableResponse)
+async def enable_2fa(
+    body: TwoFactorEnableRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Enable 2FA after verifying the first TOTP code.  Returns one-time recovery
+    codes that the user must store safely.
+    """
+    from sqlalchemy import select
+    from backend.models.user import User as UserModel
+
+    db_user = (await db.execute(select(UserModel).where(UserModel.id == current_user.id))).scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not db_user.otp_secret:
+        raise HTTPException(status_code=400, detail="Run POST /auth/2fa/setup first")
+    if db_user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled")
+    if not security.verify_otp(db_user.otp_secret, body.code):
+        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+
+    plaintext_codes, hashed_codes = _generate_recovery_codes()
+    db_user.is_2fa_enabled = True
+    db_user.recovery_codes = hashed_codes
+    await db.commit()
+
+    return TwoFactorEnableResponse(
+        message="2FA has been enabled successfully. Store your recovery codes securely — they will not be shown again.",
+        recovery_codes=plaintext_codes,
+    )
+
+
+@router.post("/2fa/disable")
+async def disable_2fa(
+    body: TwoFactorDisableRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Disable 2FA for the authenticated user after verifying the current TOTP code.
+    """
+    from sqlalchemy import select
+    from backend.models.user import User as UserModel
+
+    db_user = (await db.execute(select(UserModel).where(UserModel.id == current_user.id))).scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not db_user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is not enabled")
+    if not security.verify_otp(db_user.otp_secret, body.code):
+        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+
+    db_user.is_2fa_enabled = False
+    db_user.otp_secret = None
+    db_user.otp_auth_url = None
+    db_user.recovery_codes = None
+    await db.commit()
+
+    return {"message": "2FA has been disabled"}
+
+
+@router.post("/2fa/verify")
+async def verify_2fa(
+    body: TwoFactorVerifyRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Exchange a partial token (issued by POST /login when 2FA is enabled) plus
+    a valid TOTP code for a full access token.
+    """
+    from jose import JWTError, jwt
+    from backend.models.user import User as UserModel
+    from sqlalchemy import select
+
+    try:
+        payload = jwt.decode(body.partial_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired partial token")
+
+    if not payload.get("requires_2fa"):
+        raise HTTPException(status_code=400, detail="Token does not require 2FA verification")
+
+    username = payload.get("sub")
+    db_user = (await db.execute(select(UserModel).where(UserModel.username == username))).scalar_one_or_none()
+    if not db_user or not db_user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    if not security.verify_otp(db_user.otp_secret, body.code):
+        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+
+    access_token = security.create_access_token(
+        subject=db_user.username,
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        role=db_user.role,
+        is_2fa_authenticated=True,
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/2fa/recovery")
+async def verify_2fa_recovery(
+    body: TwoFactorRecoveryRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Exchange a partial token plus a recovery code for a full access token.
+    The recovery code is consumed (single-use) upon success.
+    """
+    from jose import JWTError, jwt
+    from backend.models.user import User as UserModel
+    from sqlalchemy import select
+
+    try:
+        payload = jwt.decode(body.partial_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired partial token")
+
+    if not payload.get("requires_2fa"):
+        raise HTTPException(status_code=400, detail="Token does not require 2FA verification")
+
+    username = payload.get("sub")
+    db_user = (await db.execute(select(UserModel).where(UserModel.username == username))).scalar_one_or_none()
+    if not db_user or not db_user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    stored_hashes: list = db_user.recovery_codes or []
+    matched_index = None
+    for i, hashed in enumerate(stored_hashes):
+        if security.verify_password(body.recovery_code, hashed):
+            matched_index = i
+            break
+
+    if matched_index is None:
+        raise HTTPException(status_code=400, detail="Invalid recovery code")
+
+    # Consume the used recovery code
+    remaining = [h for idx, h in enumerate(stored_hashes) if idx != matched_index]
+    db_user.recovery_codes = remaining
+    await db.commit()
+
+    access_token = security.create_access_token(
+        subject=db_user.username,
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        role=db_user.role,
+        is_2fa_authenticated=True,
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# =============================================================================
+# FEAT-003: CSRF Token Endpoint
+# =============================================================================
+
+@router.get("/csrf-token")
+async def get_csrf_token(response: "Response"):
+    """
+    Return a CSRF token and set it as a readable (non-HttpOnly) cookie so that
+    frontend JavaScript can read it and attach it as the X-CSRF-Token header on
+    state-changing requests (POST / PUT / PATCH / DELETE).
+    """
+    import secrets as _secrets
+    from fastapi.responses import JSONResponse
+
+    token = _secrets.token_urlsafe(32)
+    resp = JSONResponse(content={"csrf_token": token})
+    resp.set_cookie(
+        key="csrf_token",
+        value=token,
+        httponly=False,      # JS-readable so the frontend can read and echo it
+        samesite="strict",
+        secure=settings.ENVIRONMENT == "production",
+        max_age=3600,
+    )
+    return resp

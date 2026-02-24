@@ -354,3 +354,35 @@ async def reset_user_password(
         "temporary_password": temp_password,
         "note": "User should change this password immediately"
     }
+
+
+# ---------------------------------------------------------------------------
+# FEAT-002: Admin account unlock
+# ---------------------------------------------------------------------------
+
+@router.post("/{user_id}/unlock-account")
+async def unlock_account(
+    user_id: int,
+    current_user: User = Depends(require_developer()),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Clear the account lockout for a user (developer / admin only).
+
+    Resets `failed_login_attempts` to 0 and clears `lockout_until` so the user
+    can log in again without waiting for the lockout period to expire.
+    """
+    from datetime import datetime
+    from sqlalchemy import select
+    from backend.models.user import User as UserModel
+
+    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.failed_login_attempts = 0
+    user.lockout_until = None
+    await db.commit()
+
+    return {"message": f"Account lockout cleared for user {user.username}"}

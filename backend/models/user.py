@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, Text, JSON
 from sqlalchemy.orm import relationship
 from backend.core.database import Base
 
@@ -21,10 +21,11 @@ class User(Base):
     # Email verification
     is_verified = Column(Boolean, default=False)
 
-    # Two-Factor Authentication (2FA) - Phase 9B
+    # Two-Factor Authentication (2FA) - Phase 9B / FEAT-001
     is_2fa_enabled = Column(Boolean, default=False)
     otp_secret = Column(String, nullable=True)
     otp_auth_url = Column(String, nullable=True)
+    recovery_codes = Column(JSON, nullable=True)  # list of hashed recovery codes
 
     # Account Lockout - Phase 9B
     failed_login_attempts = Column(Integer, default=0)

@@ -15,6 +15,7 @@ from backend.middleware.rate_limiting import rate_limit_middleware
 from backend.middleware.admin_protection import apply_admin_protection
 from backend.middleware.dev_role_protection import apply_dev_role_protection
 from backend.middleware.input_validation import validate_request_data
+from backend.middleware.csrf import CSRFMiddleware
 from backend.core.error_handler import add_exception_handlers
 from backend.core.init_db import init_db
 # Import all models to register them with SQLAlchemy
@@ -60,6 +61,10 @@ def create_app():
     # 3. Input Validation Middleware
     # Blocks SQL injection and XSS attempts
     app.add_middleware(BaseHTTPMiddleware, dispatch=validate_request_data)
+
+    # 3b. CSRF Protection Middleware (FEAT-003)
+    # Validates X-CSRF-Token header against csrf_token cookie for POST/PUT/PATCH/DELETE
+    app.add_middleware(CSRFMiddleware)
 
     # 4. Session Timeout Middleware (already active)
     app.add_middleware(SessionTimeoutMiddleware, timeout_minutes=60)

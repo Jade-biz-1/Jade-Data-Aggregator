@@ -25,18 +25,35 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Helper: read a cookie value by name (browser-only).
+function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  return document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split('=')[1];
+}
+
+// Methods that mutate state and must carry the CSRF token (FEAT-003).
+const CSRF_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
+// Request interceptor to add auth token and CSRF token
 api.interceptors.request.use(
   (config) => {
-    // Get the token from cookies
     if (typeof window !== 'undefined') {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('access_token='))
-        ?.split('=')[1];
+      // Attach Bearer token from cookie
+      const accessToken = getCookie('access_token');
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Attach CSRF token for state-changing requests (FEAT-003)
+      const method = (config.method ?? '').toLowerCase();
+      if (CSRF_METHODS.has(method)) {
+        const csrfToken = getCookie('csrf_token');
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        }
       }
     }
     return config;

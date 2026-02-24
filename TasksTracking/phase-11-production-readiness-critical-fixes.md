@@ -11,7 +11,7 @@ Execute mandatory security, testing, documentation, and infrastructure work iden
 - ✅ Centralized error handler with correlation IDs in place (SEC-002 complete)
 - ⚠️ Test coverage expanded but ≥80% target not yet verified end-to-end
 - ✅ Documentation corrected — Spark/Flink/InfluxDB claims removed
-- 🚫 2FA, account lockout, and CSRF enforcement logic still missing
+- ✅ 2FA endpoints, account lockout enforcement, and CSRF middleware now implemented (FEAT-001/002/003)
 
 ## Sub-Phase 11A: Critical Security Fixes (Week 93) ✅ COMPLETE
 
@@ -47,11 +47,11 @@ Execute mandatory security, testing, documentation, and infrastructure work iden
 - [x] **TEST-013**: API integration workflows (50 tests)
 - [x] **TEST-014**: E2E user journeys (50 tests)
 
-## Sub-Phase 11C: Production Security Features (Weeks 100-102)
+## Sub-Phase 11C: Production Security Features (Weeks 100-102) ✅ COMPLETE
 
-- [ ] **FEAT-001**: Two-factor authentication — complete API endpoints (enable/disable, verify TOTP during login), recovery codes generation and storage, and enforce 2FA in the login flow. DB columns and `pyotp` helpers already exist; enforcement logic is missing.
-- [ ] **FEAT-002**: Account lockout — wire `failed_login_attempts` increment and `lockout_until` enforcement into the login handler; add admin override endpoint and lockout notification email. DB columns and config constants (`MAX_LOGIN_ATTEMPTS=5`, `LOCKOUT_DURATION_MINUTES=15`) already exist.
-- [ ] **FEAT-003**: CSRF protection — implement token generation endpoint, server-side validation middleware for state-changing routes (POST/PUT/PATCH/DELETE), and frontend token attachment. Config flag `ENABLE_CSRF_PROTECTION=True` exists but no middleware is implemented.
+- [x] **FEAT-001**: Two-factor authentication — complete API endpoints (enable/disable, verify TOTP during login), recovery codes generation and storage, and enforce 2FA in the login flow. DB columns and `pyotp` helpers already exist; enforcement logic is missing.
+- [x] **FEAT-002**: Account lockout — wire `failed_login_attempts` increment and `lockout_until` enforcement into the login handler; add admin override endpoint and lockout notification email. DB columns and config constants (`MAX_LOGIN_ATTEMPTS=5`, `LOCKOUT_DURATION_MINUTES=15`) already exist.
+- [x] **FEAT-003**: CSRF protection — implement token generation endpoint, server-side validation middleware for state-changing routes (POST/PUT/PATCH/DELETE), and frontend token attachment. Config flag `ENABLE_CSRF_PROTECTION=True` exists but no middleware is implemented.
 
 ## Sub-Phase 11D: Documentation Corrections (Week 103)
 
