@@ -17,8 +17,9 @@ const customJestConfig = {
   
   testEnvironment: 'jest-environment-jsdom',
 
-  // Mock CSS imports
+  // Mock CSS imports and resolve @/ path alias from tsconfig.json
   moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
 
