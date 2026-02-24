@@ -1,0 +1,124 @@
+# Default values for data-aggregator Helm chart.
+# Override specific keys in values.production.yaml or via --set flags.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# ---------------------------------------------------------------------------
+# Backend (FastAPI)
+# ---------------------------------------------------------------------------
+backend:
+  name: dataaggregator-backend
+  image:
+    repository: ghcr.io/jade-biz-1/jade-data-aggregator/backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    port: 8001
+  env:
+    ENVIRONMENT: production
+    POSTGRES_SERVER: ""      # set via values.production.yaml or --set
+    POSTGRES_USER: ""
+    POSTGRES_DB: dataaggregator
+    REDIS_URL: redis://redis-master:6379/0
+    ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+    MAX_LOGIN_ATTEMPTS: "5"
+    LOCKOUT_DURATION: "15"
+  envFromSecrets:
+    # Each key maps to a K8s Secret key; the Secret name is "<release>-secrets"
+    - POSTGRES_PASSWORD
+    - SECRET_KEY
+    - SENTRY_DSN
+  livenessProbe:
+    httpGet:
+      path: /api/v1/health/live
+      port: 8001
+    initialDelaySeconds: 20
+    periodSeconds: 15
+  readinessProbe:
+    httpGet:
+      path: /api/v1/health/ready
+      port: 8001
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+# ---------------------------------------------------------------------------
+# Frontend (Next.js)
+# ---------------------------------------------------------------------------
+frontend:
+  name: dataaggregator-frontend
+  image:
+    repository: ghcr.io/jade-biz-1/jade-data-aggregator/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 125m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  service:
+    type: ClusterIP
+    port: 3000
+  env:
+    NEXT_PUBLIC_API_URL: ""    # set via values.production.yaml
+    NEXT_PUBLIC_ENVIRONMENT: production
+  envFromSecrets:
+    - NEXT_PUBLIC_SENTRY_DSN
+
+# ---------------------------------------------------------------------------
+# Ingress
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: dataaggregator.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    - secretName: dataaggregator-tls
+      hosts:
+        - dataaggregator.com
+
+# ---------------------------------------------------------------------------
+# Autoscaling
+# ---------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+  backend:
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  frontend:
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+# ---------------------------------------------------------------------------
+# Pod disruption budgets
+# ---------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

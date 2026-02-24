@@ -10,6 +10,7 @@ from backend.core.database import get_db
 from backend.core.rbac import RBACService, require_admin, require_developer
 from backend.models.user import User as UserModel
 from backend.schemas.pagination import PaginatedResponse
+from backend.services.cache_service import cache_service
 from backend.core.security import get_current_active_user
 from backend.middleware.admin_protection import (
     check_can_activate_deactivate,
@@ -88,6 +89,7 @@ async def create_user(
         check_can_assign_role(current_user, user.username, user.role)
 
     new_user = await crud.user.create(db, obj_in=user)
+    await cache_service.invalidate_api_cache("users")  # CACHE-001
 
     # Log user creation
     await log_user_created(db, new_user.id, current_user.id, request)
@@ -218,6 +220,7 @@ async def update_user(
         check_can_assign_role(current_user, user.username, user_in.role)
 
     user = await crud.user.update(db, db_obj=user, obj_in=user_in)
+    await cache_service.invalidate_api_cache("users")  # CACHE-001
 
     # Log user update
     await log_user_updated(db, user_id, current_user.id, request)
@@ -243,6 +246,7 @@ async def delete_user(
     check_can_delete_user(current_user, user.id, user.username)
 
     user = await crud.user.remove(db, id=user_id)
+    await cache_service.invalidate_api_cache("users")  # CACHE-001
     return user
 
 
@@ -445,4 +449,6 @@ async def bulk_delete_users(
         await crud.user.remove(db, id=uid)
         deleted_count += 1
 
+    if deleted_count:
+        await cache_service.invalidate_api_cache("users")  # CACHE-001
     return {"deleted": deleted_count, "requested": len(body.ids), "skipped": skipped}

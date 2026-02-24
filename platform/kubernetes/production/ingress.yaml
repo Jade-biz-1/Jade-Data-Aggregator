@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dataaggregator-ingress
+  namespace: dataaggregator
+  labels:
+    app.kubernetes.io/name: data-aggregator
+    environment: production
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - secretName: dataaggregator-tls
+      hosts:
+        - dataaggregator.com
+  rules:
+    - host: dataaggregator.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: dataaggregator-backend
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dataaggregator-frontend
+                port:
+                  name: http

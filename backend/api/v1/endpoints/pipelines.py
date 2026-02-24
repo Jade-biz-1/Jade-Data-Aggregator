@@ -10,6 +10,7 @@ from backend.core.database import get_db
 from backend.core.rbac import require_viewer, require_designer
 from backend import crud
 from backend.models.pipeline import Pipeline as PipelineModel
+from backend.services.cache_service import cache_service
 
 
 router = APIRouter()
@@ -55,6 +56,7 @@ async def create_pipeline(
     Create a new pipeline (Designer, Developer, Admin only)
     """
     db_pipeline = await crud.pipeline.create(db, obj_in=pipeline)
+    await cache_service.invalidate_api_cache("pipelines")  # CACHE-001
     return db_pipeline
 
 
@@ -87,6 +89,7 @@ async def update_pipeline(
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     pipeline = await crud.pipeline.update(db, db_obj=pipeline, obj_in=pipeline_in)
+    await cache_service.invalidate_api_cache("pipelines")  # CACHE-001
     return pipeline
 
 
@@ -103,6 +106,7 @@ async def delete_pipeline(
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     pipeline = await crud.pipeline.remove(db, id=pipeline_id)
+    await cache_service.invalidate_api_cache("pipelines")  # CACHE-001
     return pipeline
 
 
@@ -136,4 +140,6 @@ async def bulk_delete_pipelines(
             await crud.pipeline.remove(db, id=pid)
             deleted_count += 1
 
+    if deleted_count:
+        await cache_service.invalidate_api_cache("pipelines")  # CACHE-001
     return {"deleted": deleted_count, "requested": len(body.ids)}

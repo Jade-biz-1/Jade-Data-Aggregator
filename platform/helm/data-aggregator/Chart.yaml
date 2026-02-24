@@ -1,0 +1,14 @@
+apiVersion: v2
+name: data-aggregator
+description: Data Aggregator Platform — full-stack data integration application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - data-aggregator
+  - data-pipeline
+  - fastapi
+  - nextjs
+maintainers:
+  - name: Jade Platform Team
+    email: platform@jade.biz

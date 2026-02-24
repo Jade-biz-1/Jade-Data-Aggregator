@@ -6,6 +6,7 @@ from backend.schemas.user import User
 from backend.core.database import get_db
 from backend.core.rbac import require_viewer, require_designer
 from backend.services.connection_test_service import ConnectionTestService
+from backend.services.cache_service import cache_service
 from typing import Dict, Any
 from backend import crud
 
@@ -35,6 +36,7 @@ async def create_connector(
     Create a new connector (Designer, Developer, Admin only)
     """
     db_connector = await crud.connector.create(db, obj_in=connector)
+    await cache_service.invalidate_api_cache("connectors")  # CACHE-001
     return db_connector
 
 
@@ -67,6 +69,7 @@ async def update_connector(
     if not connector:
         raise HTTPException(status_code=404, detail="Connector not found")
     connector = await crud.connector.update(db, db_obj=connector, obj_in=connector_in)
+    await cache_service.invalidate_api_cache("connectors")  # CACHE-001
     return connector
 
 
@@ -80,6 +83,7 @@ async def delete_connector(
     Delete a connector (Designer, Developer, Admin only)
     """
     connector = await crud.connector.remove(db, id=connector_id)
+    await cache_service.invalidate_api_cache("connectors")  # CACHE-001
     return connector
 
 

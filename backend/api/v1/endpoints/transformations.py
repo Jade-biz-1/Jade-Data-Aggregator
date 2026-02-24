@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.database import get_db
 from backend.core.rbac import require_designer, require_viewer
 from backend.crud.transformation import transformation
+from backend.services.cache_service import cache_service
 from backend.schemas.transformation import (
     Transformation,
     TransformationCreate,
@@ -49,6 +50,7 @@ async def create_transformation(
     Create a new transformation (Designer, Developer, Admin only)
     """
     db_transformation = await transformation.create(db, obj_in=transformation_in)
+    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
     return db_transformation
 
 
@@ -81,6 +83,7 @@ async def update_transformation(
     if not transformation_obj:
         raise HTTPException(status_code=404, detail="Transformation not found")
     updated_transformation = await transformation.update(db, db_obj=transformation_obj, obj_in=transformation_in)
+    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
     return updated_transformation
 
 
@@ -97,6 +100,7 @@ async def delete_transformation(
     if not transformation_obj:
         raise HTTPException(status_code=404, detail="Transformation not found")
     deleted_transformation = await transformation.remove(db, id=transformation_id)
+    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
     return deleted_transformation
 
 

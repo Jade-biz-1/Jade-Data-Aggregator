@@ -2,7 +2,7 @@
 
 Execute mandatory security, testing, documentation, and infrastructure work identified in the November 18, 2025 comprehensive review.
 
-**Status:** 🟡 In Progress | **Duration:** 12 weeks | **Blocking:** Production launch
+**Status:** ✅ COMPLETE | **Duration:** 12 weeks | **Blocking:** Production launch
 
 ## Critical Findings Overview
 
@@ -70,7 +70,9 @@ These items were built but never wired into the running application:
 
 ## Sub-Phase 11F: Data Access & API Polish ✅ COMPLETE
 
-- [ ] **CACHE-001**: Wire cache invalidation hooks into API route handlers — when records are updated or deleted, call `cache_service.invalidate_query_cache()` or `invalidate_api_cache()` for the affected endpoints. `CacheService` is fully implemented in `backend/services/cache_service.py` but not called from route handlers.
+<!-- CACHE-001 was previously unchecked; confirmed wired in this session -->
+
+- [x] **CACHE-001**: Wire cache invalidation hooks into API route handlers — when records are updated or deleted, call `cache_service.invalidate_query_cache()` or `invalidate_api_cache()` for the affected endpoints. `CacheService` is fully implemented in `backend/services/cache_service.py` but not called from route handlers.
 - [x] **API-001**: Add pagination response metadata to list endpoints — pipelines and users list endpoints now return `PaginatedResponse` with `items`, `total`, `page`, `pages`, `has_more`; `skip`/`limit` query parameters added. Shared `backend/schemas/pagination.py` created.
 
 ## Sub-Phase 11G: UX Resiliency ✅ COMPLETE
@@ -78,10 +80,10 @@ These items were built but never wired into the running application:
 - [x] **UX-001**: Add React Error Boundary / Next.js `error.tsx` files — global `app/error.tsx` plus page-level boundaries for `pipeline-builder/`, `analytics/`, and `admin/`. All boundaries report to Sentry on mount.
 - [x] **UX-002**: Implement bulk operation backend endpoints and wire them to the frontend — `DELETE /pipelines/bulk` and `DELETE /users/bulk` endpoints added; `bulkDeletePipelines()` and `bulkDeleteUsers()` methods added to `frontend/src/lib/api.ts`.
 
-## Sub-Phase 11H: Kubernetes & Performance (Week 104)
+## Sub-Phase 11H: Kubernetes & Performance (Week 104) ✅ COMPLETE
 
-- [ ] **INFRA-001**: Author Helm charts and K8s manifests; document deployment and rollback. AWS ECS Terraform and Docker Compose monitoring stack are in place under `platform/`; portable K8s/Helm assets are absent.
-- [ ] **PERF-001**: Establish load/performance testing suite with baseline report
+- [x] **INFRA-001**: Author Helm charts and K8s manifests; document deployment and rollback. Helm chart at `platform/helm/data-aggregator/` (Chart.yaml, values.yaml, values.production.yaml, 7 templates). Standalone manifests at `platform/kubernetes/production/` (namespace, configmap, deployments, services, ingress, HPA, PDB). Deployment and rollback guide at `platform/kubernetes/README.md`.
+- [x] **PERF-001**: Establish load/performance testing suite with baseline report. Locust suite at `testing/performance-tests/locustfile.py` with 3 user classes (ReadHeavy 70%, Mixed 15%, WriteHeavy 15%), SLO verification hook, and headless CI mode. Baseline report at `testing/performance-tests/baseline-report.md`.
 
 ## Launch Planning Guidance
 

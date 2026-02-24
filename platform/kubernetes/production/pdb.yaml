@@ -1,0 +1,28 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dataaggregator-backend-pdb
+  namespace: dataaggregator
+  labels:
+    app.kubernetes.io/name: data-aggregator
+    app.kubernetes.io/component: backend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: dataaggregator-backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dataaggregator-frontend-pdb
+  namespace: dataaggregator
+  labels:
+    app.kubernetes.io/name: data-aggregator
+    app.kubernetes.io/component: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: dataaggregator-frontend

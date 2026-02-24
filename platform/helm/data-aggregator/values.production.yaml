@@ -1,0 +1,20 @@
+# Production overrides — commit WITHOUT secret values; supply secrets via
+# sealed-secrets, Vault, or CI/CD environment injection.
+
+backend:
+  replicaCount: 3
+  env:
+    POSTGRES_SERVER: "postgres.dataaggregator.svc.cluster.local"
+    POSTGRES_USER: "dataaggregator"
+    POSTGRES_DB: "dataaggregator_prod"
+    REDIS_URL: "redis://redis-master.dataaggregator.svc.cluster.local:6379/0"
+    ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+
+frontend:
+  replicaCount: 3
+  env:
+    NEXT_PUBLIC_API_URL: "https://dataaggregator.com/api/v1"
+    NEXT_PUBLIC_ENVIRONMENT: "production"
+
+autoscaling:
+  enabled: true

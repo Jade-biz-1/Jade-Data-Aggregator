@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "data-aggregator.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-aggregator.labels" . | nindent 4 }}
+data:
+  # Non-sensitive backend configuration
+  ENVIRONMENT: "production"
+  POSTGRES_DB: {{ .Values.backend.env.POSTGRES_DB | default "dataaggregator" | quote }}
+  REDIS_URL: {{ .Values.backend.env.REDIS_URL | default "redis://redis-master:6379/0" | quote }}
+  ACCESS_TOKEN_EXPIRE_MINUTES: {{ .Values.backend.env.ACCESS_TOKEN_EXPIRE_MINUTES | default "30" | quote }}
+  MAX_LOGIN_ATTEMPTS: {{ .Values.backend.env.MAX_LOGIN_ATTEMPTS | default "5" | quote }}
+  LOCKOUT_DURATION: {{ .Values.backend.env.LOCKOUT_DURATION | default "15" | quote }}
+  # Non-sensitive frontend configuration
+  NEXT_PUBLIC_ENVIRONMENT: {{ .Values.frontend.env.NEXT_PUBLIC_ENVIRONMENT | default "production" | quote }}
