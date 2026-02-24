@@ -1,11 +1,15 @@
+import math
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend import crud
 from backend.core.database import get_db
 from backend.core.rbac import RBACService, require_admin, require_developer
+from backend.models.user import User as UserModel
+from backend.schemas.pagination import PaginatedResponse
 from backend.core.security import get_current_active_user
 from backend.middleware.admin_protection import (
     check_can_activate_deactivate,
@@ -32,18 +36,31 @@ from backend.services.activity_log_service import (
 router = APIRouter()
 
 
-@router.get("/", response_model=List[User])
+@router.get("/", response_model=PaginatedResponse[User])
 async def read_users(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
     current_user: User = Depends(require_developer()),
     db: AsyncSession = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100
 ):
     """
-    Get all users (admin/developer only)
+    Get all users with pagination metadata (admin/developer only) — API-001.
     """
+    total_result = await db.execute(select(func.count()).select_from(UserModel))
+    total = total_result.scalar() or 0
+
     users = await crud.user.get_multi(db, skip=skip, limit=limit)
-    return users
+    pages = math.ceil(total / limit) if limit else 1
+
+    return PaginatedResponse(
+        items=users,
+        total=total,
+        skip=skip,
+        limit=limit,
+        page=skip // limit + 1 if limit else 1,
+        pages=pages,
+        has_more=(skip + limit) < total,
+    )
 
 
 @router.post("/", response_model=User)
@@ -386,3 +403,46 @@ async def unlock_account(
     await db.commit()
 
     return {"message": f"Account lockout cleared for user {user.username}"}
+
+
+# ---------------------------------------------------------------------------
+# UX-002: Bulk delete users
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel as _BaseModel
+from typing import List as _List
+
+
+class BulkDeleteUsersRequest(_BaseModel):
+    ids: _List[int]
+
+
+@router.delete("/bulk", status_code=200)
+async def bulk_delete_users(
+    body: BulkDeleteUsersRequest,
+    current_user: User = Depends(require_developer()),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete multiple users by ID in a single request (UX-002).
+    Admin users and the calling user cannot be bulk-deleted.
+    IDs that do not exist are silently skipped.
+    Returns the count of actually deleted users.
+    """
+    from backend.middleware.admin_protection import check_can_delete_user
+
+    deleted_count = 0
+    skipped = []
+    for uid in body.ids:
+        target = await crud.user.get(db, id=uid)
+        if not target:
+            continue
+        try:
+            check_can_delete_user(current_user, target.id, target.username)
+        except Exception:
+            skipped.append(uid)
+            continue
+        await crud.user.remove(db, id=uid)
+        deleted_count += 1
+
+    return {"deleted": deleted_count, "requested": len(body.ids), "skipped": skipped}

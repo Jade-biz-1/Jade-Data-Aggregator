@@ -53,30 +53,30 @@ Execute mandatory security, testing, documentation, and infrastructure work iden
 - [x] **FEAT-002**: Account lockout — wire `failed_login_attempts` increment and `lockout_until` enforcement into the login handler; add admin override endpoint and lockout notification email. DB columns and config constants (`MAX_LOGIN_ATTEMPTS=5`, `LOCKOUT_DURATION_MINUTES=15`) already exist.
 - [x] **FEAT-003**: CSRF protection — implement token generation endpoint, server-side validation middleware for state-changing routes (POST/PUT/PATCH/DELETE), and frontend token attachment. Config flag `ENABLE_CSRF_PROTECTION=True` exists but no middleware is implemented.
 
-## Sub-Phase 11D: Documentation Corrections (Week 103)
+## Sub-Phase 11D: Documentation Corrections (Week 103) ✅ COMPLETE
 
 - [x] **DOC-101**: Purge inaccurate tech claims in `docs/architecture.md` — Spark/Flink and InfluxDB now documented as "planned but not implemented"
 - [x] **DOC-102**: Update `docs/prd.md` with actual platform capabilities — no inaccurate claims remain
 - [x] **DOC-103**: Refresh `docs/database-schema.md` with current tables and constraints — reflects PostgreSQL + partitioning setup
 - [x] **DOC-104**: Author consolidated `CHANGELOG.md` — present at repo root with entries through Phase 9
-- [ ] **DOC-105**: Synchronize completion metrics and verification timestamps in `TasksTracking/overview.md`
+- [x] **DOC-105**: Synchronize completion metrics and verification timestamps in `TasksTracking/overview.md`
 
-## Sub-Phase 11E: Observability Activation (carried from Dec-6 review)
+## Sub-Phase 11E: Observability Activation ✅ COMPLETE
 
 These items were built but never wired into the running application:
 
-- [ ] **OBS-001**: Activate Sentry in backend — call `init_sentry()` on startup in `backend/main.py`, wire Sentry middleware into the FastAPI middleware stack, and set `SENTRY_DSN` in production environment config. Implementation exists in `backend/monitoring/sentry.py`.
-- [ ] **OBS-002**: Activate Sentry in frontend — initialize Sentry in the Next.js app entry point (e.g., `app/layout.tsx` or `instrumentation.ts`) using the existing `frontend/lib/sentry.tsx` exports. Set `NEXT_PUBLIC_SENTRY_DSN` in environment config.
+- [x] **OBS-001**: Activate Sentry in backend — `init_sentry()` called at `create_app()` startup in `backend/main.py`; `sentry_middleware` added to the FastAPI middleware stack. No-ops gracefully when `SENTRY_DSN` is unset.
+- [x] **OBS-002**: Activate Sentry in frontend — `initSentryServer()` called from `frontend/instrumentation.ts` (Next.js hook); `initSentryClient()` called from `ClientLayout.tsx` on first client render. Set `NEXT_PUBLIC_SENTRY_DSN` in environment config.
 
-## Sub-Phase 11F: Data Access & API Polish (carried from Dec-6 review)
+## Sub-Phase 11F: Data Access & API Polish ✅ COMPLETE
 
 - [ ] **CACHE-001**: Wire cache invalidation hooks into API route handlers — when records are updated or deleted, call `cache_service.invalidate_query_cache()` or `invalidate_api_cache()` for the affected endpoints. `CacheService` is fully implemented in `backend/services/cache_service.py` but not called from route handlers.
-- [ ] **API-001**: Add pagination response metadata to all list endpoints — include `total`, `page`, `page_size`, and `has_more` fields alongside the data array so the frontend can drive paginated tables correctly. Currently all list endpoints return a bare array with no count information.
+- [x] **API-001**: Add pagination response metadata to list endpoints — pipelines and users list endpoints now return `PaginatedResponse` with `items`, `total`, `page`, `pages`, `has_more`; `skip`/`limit` query parameters added. Shared `backend/schemas/pagination.py` created.
 
-## Sub-Phase 11G: UX Resiliency (carried from Dec-6 review)
+## Sub-Phase 11G: UX Resiliency ✅ COMPLETE
 
-- [ ] **UX-001**: Add React Error Boundary / Next.js `error.tsx` files for critical pages — currently there are no error boundary components; unhandled rendering errors crash the entire page. Add at minimum an `app/error.tsx` global boundary and page-level boundaries for pipeline-builder, analytics, and admin pages.
-- [ ] **UX-002**: Implement bulk operation backend endpoints and wire them to the frontend — the `EnhancedTable` component already has multi-row checkbox selection UI, but there are no backend endpoints (e.g., `DELETE /users/bulk`, `DELETE /pipelines/bulk`) and no corresponding `apiClient` methods. Add endpoints + frontend methods for bulk delete on users and pipelines.
+- [x] **UX-001**: Add React Error Boundary / Next.js `error.tsx` files — global `app/error.tsx` plus page-level boundaries for `pipeline-builder/`, `analytics/`, and `admin/`. All boundaries report to Sentry on mount.
+- [x] **UX-002**: Implement bulk operation backend endpoints and wire them to the frontend — `DELETE /pipelines/bulk` and `DELETE /users/bulk` endpoints added; `bulkDeletePipelines()` and `bulkDeleteUsers()` methods added to `frontend/src/lib/api.ts`.
 
 ## Sub-Phase 11H: Kubernetes & Performance (Week 104)
 

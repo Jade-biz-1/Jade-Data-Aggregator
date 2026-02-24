@@ -18,12 +18,16 @@ from backend.middleware.input_validation import validate_request_data
 from backend.middleware.csrf import CSRFMiddleware
 from backend.core.error_handler import add_exception_handlers
 from backend.core.init_db import init_db
+from backend.monitoring.sentry import init_sentry, sentry_middleware
 # Import all models to register them with SQLAlchemy
 from backend import models
 from backend.models import pipeline_run, auth_token
 
 
 def create_app():
+    # OBS-001: Activate Sentry on startup (no-ops gracefully when SENTRY_DSN is unset)
+    init_sentry()
+
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
@@ -49,6 +53,10 @@ def create_app():
     # ============================================
     # SECURITY MIDDLEWARE (Phase 11A - SEC-001)
     # ============================================
+
+    # 0. Sentry request context middleware (OBS-001)
+    # Must be early so it tags all subsequent logs with request context
+    app.add_middleware(BaseHTTPMiddleware, dispatch=sentry_middleware)
 
     # 1. Security Headers Middleware
     # Adds CSP, XSS Protection, HSTS, etc.

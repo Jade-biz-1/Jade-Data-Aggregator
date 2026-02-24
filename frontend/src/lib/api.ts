@@ -266,6 +266,14 @@ class ApiClient {
     });
   }
 
+  /** UX-002: Delete multiple pipelines in one request. */
+  async bulkDeletePipelines(ids: number[]): Promise<{ deleted: number; requested: number }> {
+    return this.request('/pipelines/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
   // Connector methods
   async getConnectors(): Promise<Connector[]> {
     return this.request<Connector[]>('/connectors');
@@ -462,6 +470,14 @@ class ApiClient {
   async deleteUser(id: number): Promise<void> {
     await this.request(`/users/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  /** UX-002: Delete multiple users in one request. */
+  async bulkDeleteUsers(ids: number[]): Promise<{ deleted: number; requested: number; skipped: number[] }> {
+    return this.request('/users/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
     });
   }
 
