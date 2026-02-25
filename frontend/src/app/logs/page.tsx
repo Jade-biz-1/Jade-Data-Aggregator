@@ -45,7 +45,7 @@ const LogsPage = () => {
   const [sources, setSources] = useState<string[]>([]);
 
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     fetchLogs();
@@ -91,11 +91,12 @@ const LogsPage = () => {
       }
 
       const response = await apiClient.fetch<any>('/logs', { params });
-      setLogs(response.data.logs || []);
-      setStatistics(response.data.statistics || null);
+      const logData = (response as any).logs || [];
+      setLogs(logData);
+      setStatistics((response as any).statistics || null);
 
       // Extract unique sources
-      const uniqueSources = Array.from(new Set(response.data.logs.map((log: LogEntry) => log.source)));
+      const uniqueSources = Array.from(new Set(logData.map((log: LogEntry) => log.source)));
       setSources(uniqueSources as string[]);
 
       success('Logs loaded successfully');
@@ -144,11 +145,7 @@ const LogsPage = () => {
         params.level = filterLevel.toUpperCase();
       }
 
-      const response = await apiClient.fetch<any>('/logs/export', { params });
-
-      // Create CSV content
-      const csvContent = response.data;
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const blob = await apiClient.fetch<Blob>('/logs/export', { params, responseType: 'blob' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -170,11 +167,10 @@ const LogsPage = () => {
     }
 
     try {
-      const response = await apiClient.fetch<any>('/logs/correlation', {
-        params: { correlation_id: correlationId }
-      });
-      setLogs(response.data.logs || []);
-      success(`Found ${response.data.logs.length} related logs`);
+      const response = await apiClient.fetch<any>(`/logs/correlation/${encodeURIComponent(correlationId)}`);
+      const corLogs = (response as any).logs || [];
+      setLogs(corLogs);
+      success(`Found ${corLogs.length} related logs`);
     } catch (error: any) {
       console.error('Correlation search error:', error);
       showError('Failed to search by correlation ID');
@@ -244,7 +240,7 @@ const LogsPage = () => {
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

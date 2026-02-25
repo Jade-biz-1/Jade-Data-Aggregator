@@ -6,7 +6,12 @@ Part of Sub-Phase 5B: Advanced Monitoring
 Updated: Phase 11A - SEC-002 (Fixed error message leakage)
 """
 
+import csv
+from io import StringIO
+from collections import Counter
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from datetime import datetime, timedelta
@@ -57,6 +62,134 @@ class ArchiveLogsRequest(BaseModel):
 
 
 # API Endpoints
+
+@router.get("")
+async def get_logs(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    limit: int = Query(default=500, le=1000),
+    level: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """List/search logs via GET params — frontend-compatible wrapper over POST /search"""
+    try:
+        start_time = None
+        end_time = None
+        if start_date:
+            try:
+                start_time = datetime.fromisoformat(start_date)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid start_date format")
+        if end_date:
+            try:
+                end_time = datetime.fromisoformat(end_date)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid end_date format")
+
+        log_level = None
+        if level:
+            try:
+                log_level = LogLevel(level.lower())
+            except ValueError:
+                pass  # unknown level — return all
+
+        logs = await logging_service.search_logs(
+            db=db,
+            start_time=start_time,
+            end_time=end_time,
+            level=log_level,
+            component=source,   # frontend "source" → backend "component"
+            limit=limit
+        )
+
+        log_list = [
+            {
+                "id": log.id,
+                "timestamp": log.timestamp,
+                "level": log.level.value.upper(),  # frontend expects uppercase
+                "source": log.component,            # backend "component" → frontend "source"
+                "message": log.message,
+                "correlation_id": log.correlation_id,
+                "user_id": str(log.user_id) if log.user_id else None,
+                "pipeline_id": str(log.pipeline_id) if log.pipeline_id else None,
+                "execution_id": None,
+                "details": log.extra_data           # backend "extra_data" → frontend "details"
+            }
+            for log in logs
+        ]
+
+        level_counts = Counter(entry["level"] for entry in log_list)
+        unique_sources = len(set(entry["source"] for entry in log_list if entry["source"]))
+
+        statistics = {
+            "total_logs": len(log_list),
+            "error_count": level_counts.get("ERROR", 0) + level_counts.get("CRITICAL", 0),
+            "warning_count": level_counts.get("WARNING", 0),
+            "info_count": level_counts.get("INFO", 0),
+            "debug_count": level_counts.get("DEBUG", 0),
+            "unique_sources": unique_sources,
+            "time_range": f"{start_date or 'all'} to {end_date or 'now'}"
+        }
+
+        return {"logs": log_list, "statistics": statistics}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise safe_error_response(500, "Unable to fetch logs", internal_error=e)
+
+
+@router.get("/export")
+async def export_logs(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    level: Optional[str] = Query(None),
+    format: str = Query(default="csv"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Export logs as CSV"""
+    try:
+        start_time = datetime.fromisoformat(start_date) if start_date else None
+        end_time = datetime.fromisoformat(end_date) if end_date else None
+
+        log_level = None
+        if level:
+            try:
+                log_level = LogLevel(level.lower())
+            except ValueError:
+                pass
+
+        logs = await logging_service.search_logs(
+            db=db,
+            start_time=start_time,
+            end_time=end_time,
+            level=log_level,
+            limit=1000
+        )
+
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["id", "timestamp", "level", "source", "message", "correlation_id", "pipeline_id"])
+        for log in logs:
+            writer.writerow([
+                log.id,
+                log.timestamp,
+                log.level.value.upper(),
+                log.component or "",
+                log.message,
+                log.correlation_id or "",
+                log.pipeline_id or ""
+            ])
+
+        filename = f"logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        raise safe_error_response(500, "Unable to export logs", internal_error=e)
+
 
 @router.post("/", status_code=201)
 async def create_log(
