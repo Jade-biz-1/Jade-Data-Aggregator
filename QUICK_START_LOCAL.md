@@ -7,8 +7,8 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/your-org/dataaggregator.git
-cd dataaggregator
+git clone https://github.com/Jade-biz-1/Jade-Data-Aggregator.git
+cd Jade-Data-Aggregator
 
 # 2. Configure
 cp .env.example .env
@@ -36,6 +36,7 @@ bash scripts/load-example.sh
 
 **You need:**
 - Docker & Docker Compose
+- curl and jq (for optional example loader)
 - 8GB RAM (16GB recommended)
 - 50GB free disk space
 
@@ -84,7 +85,7 @@ docker compose ps
 # Should show all as "Up (healthy)"
 
 # Test backend
-curl http://localhost:8001/health/live
+curl http://localhost:8001/health
 
 # Expected: {"status":"healthy"}
 ```
@@ -184,7 +185,7 @@ docker system prune -a
 - ❌ Large-scale processing
 - ❌ Critical data
 
-**For production, see:** `DEPLOYMENT_GUIDE_COMPLETE.md`
+**For production, see:** `docs/deployment/complete-guide.md`
 
 ---
 
@@ -204,7 +205,7 @@ docker compose up -d
 ```
 
 **Still stuck?**
-- Read `DEPLOYMENT_GUIDE_COMPLETE.md`
+- Read `docs/deployment/complete-guide.md`
 - Check `docs/troubleshooting.md`
 - Open GitHub issue
 
@@ -212,6 +213,6 @@ docker compose up -d
 
 **Quick Start Guide**
 **Version:** 1.0
-**Last Updated:** November 7, 2025
+**Last Updated:** February 25, 2026
 
 🎉 **Happy data aggregating!**
