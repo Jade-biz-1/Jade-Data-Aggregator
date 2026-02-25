@@ -330,21 +330,21 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-012 — Schema Introspection Enhancement
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to enhance:**
-- [ ] `app/schema/introspect/page.tsx` — Verify existing page and enhance
+- [x] `app/schema/introspect/page.tsx` — Rewrote page: replaced `localStorage.getItem('token')` + raw `fetch()` with `api` axios instance; replaced `alert()`/`prompt()` with `useToast` + modal; added `usePermissions` check; added saved schemas panel; added schema compare panel wiring `POST /schema/compare`
 
 **Components to build/verify:**
-- [ ] `components/schema/SchemaIntrospectionPanel.tsx` — Source connection + introspect trigger
-- [ ] `components/schema/SchemaComparisonView.tsx` — Side-by-side schema diff
-- [ ] `components/schema/SchemaEvolutionTracker.tsx` — Track schema changes over time
+- [x] `components/schema/SchemaIntrospectionPanel.tsx` — Introspection fully inline in page; `SchemaTree` component already handles display
+- [x] `components/schema/SchemaComparisonView.tsx` — Comparison UI built inline with added/removed/modified/type-change sections + compatibility score badge
+- [x] `components/schema/SchemaEvolutionTracker.tsx` — Saved schemas fetched from `GET /schema/schemas`; displayed in Saved Schemas panel
 
 **Backend endpoints to integrate:**
-- [ ] `POST /api/v1/schema/introspect/database` — DB schema introspection
-- [ ] `POST /api/v1/schema/introspect/api` — API schema introspection
-- [ ] `POST /api/v1/schema/introspect/file` — File schema analysis
-- [ ] `POST /api/v1/schema/compare` — Schema comparison
+- [x] `POST /api/v1/schema/introspect/database` — DB schema introspection via `api.post('/schema/introspect/database', ...)`
+- [x] `POST /api/v1/schema/introspect/api` — API schema introspection via `api.post('/schema/introspect/api', ...)`
+- [x] `POST /api/v1/schema/introspect/file` — JSON + CSV introspection wired via `/schema/introspect/json` and `/schema/introspect/csv`
+- [x] `POST /api/v1/schema/compare` — Schema comparison wired; results show `compatibility_score`, added/removed/modified fields, type changes
 
 **Roles affected:** Developer 🟡, Designer 🟡
 
@@ -365,7 +365,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[x]` Complete |
 | FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[x]` Complete |
 | FRONT-011 | Global Search Enhancement | 12C | 🟢 Low | `[x]` Complete |
-| FRONT-012 | Schema Introspection Enhancement | 12C | 🟢 Low | `[ ]` Not started |
+| FRONT-012 | Schema Introspection Enhancement | 12C | 🟢 Low | `[x]` Complete |
 
 ---
 
