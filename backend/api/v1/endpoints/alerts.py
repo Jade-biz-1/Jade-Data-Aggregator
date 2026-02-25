@@ -40,6 +40,20 @@ class AlertRuleCreate(BaseModel):
     query_config: Optional[Dict[str, Any]] = None
 
 
+class AlertRuleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    rule_type: Optional[str] = Field(None, pattern="^(threshold|anomaly|error_rate)$")
+    metric_name: Optional[str] = None
+    condition: Optional[str] = Field(None, pattern="^(gt|gte|lt|lte|eq)$")
+    threshold_value: Optional[float] = None
+    severity: Optional[AlertSeverity] = None
+    time_window_minutes: Optional[int] = Field(None, ge=1, le=1440)
+    notification_channels: Optional[List[str]] = None
+    cooldown_minutes: Optional[int] = Field(None, ge=1, le=1440)
+    is_active: Optional[bool] = None
+
+
 class AlertRuleEvaluate(BaseModel):
     current_value: float
     context: Optional[Dict[str, Any]] = None
@@ -101,6 +115,136 @@ async def create_alert_rule(
         }
     except Exception as e:
         raise safe_error_response(500, "Unable to create alert rule", internal_error=e)
+
+
+@router.get("/rules")
+async def list_alert_rules(
+    active_only: bool = Query(default=False),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, le=500),
+    db: AsyncSession = Depends(get_db)
+):
+    """List all alert rules"""
+    try:
+        rules = await alert_service.get_alert_rules(
+            db=db, active_only=active_only, skip=skip, limit=limit
+        )
+        return {
+            "rules": [
+                {
+                    "id": r.id,
+                    "name": r.name,
+                    "description": r.description,
+                    "rule_type": r.rule_type,
+                    "metric_name": r.metric_name,
+                    "condition": r.condition,
+                    "threshold_value": r.threshold_value,
+                    "severity": r.severity.value,
+                    "time_window_minutes": r.time_window_minutes,
+                    "notification_channels": r.notification_channels,
+                    "cooldown_minutes": r.cooldown_minutes,
+                    "is_active": r.is_active,
+                    "trigger_count": r.trigger_count,
+                    "last_triggered_at": r.last_triggered_at,
+                    "created_at": r.created_at,
+                }
+                for r in rules
+            ],
+            "count": len(rules),
+        }
+    except Exception as e:
+        raise safe_error_response(500, "Unable to fetch alert rules", internal_error=e)
+
+
+@router.put("/rules/{rule_id}")
+async def update_alert_rule(
+    rule_id: int,
+    rule: AlertRuleUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing alert rule"""
+    try:
+        updated = await alert_service.update_alert_rule(
+            db=db,
+            rule_id=rule_id,
+            **{k: v for k, v in rule.model_dump().items() if v is not None},
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Alert rule not found")
+        return {
+            "id": updated.id,
+            "name": updated.name,
+            "description": updated.description,
+            "rule_type": updated.rule_type,
+            "metric_name": updated.metric_name,
+            "condition": updated.condition,
+            "threshold_value": updated.threshold_value,
+            "severity": updated.severity.value,
+            "is_active": updated.is_active,
+            "updated_at": updated.updated_at,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise safe_error_response(500, "Unable to update alert rule", internal_error=e)
+
+
+@router.delete("/rules/{rule_id}", status_code=204)
+async def delete_alert_rule(
+    rule_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete an alert rule"""
+    try:
+        deleted = await alert_service.delete_alert_rule(db=db, rule_id=rule_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Alert rule not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise safe_error_response(500, "Unable to delete alert rule", internal_error=e)
+
+
+@router.get("/history")
+async def get_alerts_history(
+    days: int = Query(default=7, ge=1, le=90),
+    severity: Optional[AlertSeverity] = None,
+    status: Optional[AlertStatus] = None,
+    limit: int = Query(default=500, le=1000),
+    db: AsyncSession = Depends(get_db)
+):
+    """List historical alerts within a rolling date window"""
+    try:
+        alerts = await alert_service.get_alerts_history(
+            db=db, days=days, severity=severity, status=status, limit=limit
+        )
+        return {
+            "alerts": [
+                {
+                    "id": a.id,
+                    "title": a.title,
+                    "description": a.description,
+                    "severity": a.severity.value,
+                    "status": a.status.value,
+                    "triggered_value": a.triggered_value,
+                    "threshold_value": a.threshold_value,
+                    "metric_name": a.metric_name,
+                    "pipeline_id": a.pipeline_id,
+                    "component": a.component,
+                    "triggered_at": a.triggered_at,
+                    "acknowledged_at": a.acknowledged_at,
+                    "acknowledged_by": a.acknowledged_by,
+                    "resolved_at": a.resolved_at,
+                    "resolution_note": a.resolution_note,
+                    "current_escalation_level": a.current_escalation_level,
+                }
+                for a in alerts
+            ],
+            "count": len(alerts),
+            "days": days,
+        }
+    except Exception as e:
+        raise safe_error_response(500, "Unable to fetch alert history", internal_error=e)
 
 
 @router.post("/rules/{rule_id}/evaluate")
@@ -188,7 +332,7 @@ async def get_active_alerts(
 async def acknowledge_alert(
     alert_id: int,
     ack: AlertAcknowledge,
-    user_id: int = Query(...),
+    user_id: Optional[int] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Acknowledge an alert"""

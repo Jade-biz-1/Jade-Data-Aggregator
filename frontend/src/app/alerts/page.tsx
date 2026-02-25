@@ -58,7 +58,7 @@ export default function AlertsPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     if (!permissionsLoading && features?.monitoring?.view_alerts) {
@@ -71,14 +71,14 @@ export default function AlertsPage() {
       setIsLoading(true);
 
       const [alerts, rules, stats] = await Promise.all([
-        apiClient.fetch<any>('/alerts/active'),
+        apiClient.fetch<any>('/alerts/'),
         apiClient.fetch<any>('/alerts/rules'),
         apiClient.fetch<any>('/alerts/statistics')
       ]);
 
-      setActiveAlerts(alerts.data || []);
-      setAlertRules(rules.data || []);
-      setStatistics(stats.data || {});
+      setActiveAlerts(alerts.alerts || []);
+      setAlertRules(rules.rules || []);
+      setStatistics(stats.statistics || {});
     } catch (err: any) {
       console.error('Error fetching alert data:', err);
       showError('Failed to load alert data');
@@ -101,9 +101,11 @@ export default function AlertsPage() {
     switch (severity) {
       case 'critical':
         return 'text-red-600 bg-red-50 border-red-200';
-      case 'warning':
+      case 'high':
+        return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'medium':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'info':
+      case 'low':
         return 'text-blue-600 bg-blue-50 border-blue-200';
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200';
@@ -114,9 +116,11 @@ export default function AlertsPage() {
     switch (severity) {
       case 'critical':
         return <XCircle className="h-5 w-5 text-red-500" />;
-      case 'warning':
+      case 'high':
+        return <AlertTriangle className="h-5 w-5 text-orange-500" />;
+      case 'medium':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'info':
+      case 'low':
         return <Bell className="h-5 w-5 text-blue-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
@@ -163,7 +167,7 @@ export default function AlertsPage() {
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -207,7 +211,7 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Active Alerts</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {statistics?.active_count || 0}
+                    {statistics?.by_status?.active || 0}
                   </p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-xl">
@@ -223,7 +227,7 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Critical</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {statistics?.critical_count || 0}
+                    {statistics?.by_severity?.critical || 0}
                   </p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-xl">
@@ -239,7 +243,7 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Acknowledged</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {statistics?.acknowledged_count || 0}
+                    {statistics?.by_status?.acknowledged || 0}
                   </p>
                 </div>
                 <div className="p-3 bg-yellow-100 rounded-xl">
@@ -255,7 +259,7 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Resolved (24h)</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {statistics?.resolved_24h || 0}
+                    {statistics?.by_status?.resolved || 0}
                   </p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-xl">
