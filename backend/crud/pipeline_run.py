@@ -48,7 +48,7 @@ class CRUDPipelineRun:
     ) -> List[PipelineRun]:
         """Get all runs for a specific pipeline."""
         result = await db.execute(
-            select(self.model)
+            select(PipelineRun)
             .filter(PipelineRun.pipeline_id == pipeline_id)
             .order_by(desc(PipelineRun.started_at))
             .offset(skip)
@@ -64,7 +64,7 @@ class CRUDPipelineRun:
     ) -> Optional[PipelineRun]:
         """Get the latest run for a specific pipeline."""
         result = await db.execute(
-            select(self.model)
+            select(PipelineRun)
             .filter(PipelineRun.pipeline_id == pipeline_id)
             .order_by(desc(PipelineRun.started_at))
             .limit(1)
@@ -79,7 +79,7 @@ class CRUDPipelineRun:
     ) -> List[PipelineRun]:
         """Get all currently running pipeline runs."""
         result = await db.execute(
-            select(self.model)
+            select(PipelineRun)
             .options(selectinload(PipelineRun.pipeline))
             .filter(PipelineRun.status.in_(["queued", "running"]))
             .order_by(desc(PipelineRun.started_at))
@@ -96,7 +96,7 @@ class CRUDPipelineRun:
     ) -> List[PipelineRun]:
         """Get recent pipeline runs across all pipelines."""
         result = await db.execute(
-            select(self.model)
+            select(PipelineRun)
             .options(selectinload(PipelineRun.pipeline))
             .order_by(desc(PipelineRun.started_at))
             .offset(skip)

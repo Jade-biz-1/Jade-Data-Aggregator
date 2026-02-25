@@ -95,9 +95,7 @@ export function initSentryServer() {
     tracesSampleRate: getTracesSampleRate(),
 
     // Node.js specific
-    integrations: [
-      Sentry.httpIntegration(),
-    ],
+    integrations: [],
 
     // Filtering
     beforeSend(event, hint) {

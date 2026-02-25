@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DynamicFormField, FormFieldConfig } from './DynamicFormField';
-import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader, Lightbulb } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface FieldGroup {
   id: string;
@@ -32,62 +33,55 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
-
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const recommendationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetchSchema();
   }, [connectorType]);
 
-  const getAccessToken = () => {
-    if (typeof document !== 'undefined') {
-      return document.cookie
-        .split('; ')
-        .find(row => row.startsWith('access_token='))
-        ?.split('=')[1];
-    }
-    return undefined;
-  };
+  // Debounce recommendations fetch when form values change
+  useEffect(() => {
+    if (!schema) return;
+    if (recommendationTimer.current) clearTimeout(recommendationTimer.current);
+    recommendationTimer.current = setTimeout(() => fetchRecommendations(formValues), 900);
+    return () => {
+      if (recommendationTimer.current) clearTimeout(recommendationTimer.current);
+    };
+  }, [formValues, schema]);
 
   const fetchSchema = async () => {
     try {
-      const token = getAccessToken();
+      const response = await api.get(`/configuration/schemas/${connectorType}`);
+      const data = response.data;
+      setSchema(data);
 
-      let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-      // Remove trailing slash
-      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-      // Remove /api/v1 if already present
-      let url = '';
-      if (baseUrl.endsWith('/api/v1')) {
-        url = `${baseUrl}/configuration/schemas/${connectorType}`;
-      } else {
-        url = `${baseUrl}/api/v1/configuration/schemas/${connectorType}`;
-      }
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(url, { headers });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSchema(data);
-
-        // Set default values
-        const defaults: Record<string, any> = {};
-        data.fields.forEach((field: FormFieldConfig) => {
-          if (field.default_value !== undefined && field.default_value !== null) {
-            defaults[field.name] = field.default_value;
-          }
-        });
-        setFormValues({ ...defaults, ...initialValues });
-      }
+      // Set default values
+      const defaults: Record<string, any> = {};
+      (data.fields || []).forEach((field: FormFieldConfig) => {
+        if (field.default_value !== undefined && field.default_value !== null) {
+          defaults[field.name] = field.default_value;
+        }
+      });
+      setFormValues({ ...defaults, ...initialValues });
     } catch (error) {
       console.error('Error fetching schema:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecommendations = async (values: Record<string, any>) => {
+    // Only fetch if there are meaningful values
+    if (Object.values(values).every(v => v === undefined || v === null || v === '')) return;
+    try {
+      const response = await api.post('/configuration/recommendations', {
+        connector_type: connectorType,
+        configuration: values,
+      });
+      setRecommendations(response.data.recommendations || []);
+    } catch {
+      // Recommendations are non-critical — silently ignore failures
     }
   };
 
@@ -218,50 +212,11 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       if (onTest) {
         await onTest(testValues);
       } else {
-        // Default test implementation
-        // Use the same token extraction as fetchSchema
-        let token;
-        if (typeof document !== 'undefined') {
-          token = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('access_token='))
-            ?.split('=')[1];
-        }
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
-        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        // Remove /api/v1 if already present
-        let url = '';
-        if (baseUrl.endsWith('/api/v1')) {
-          url = `${baseUrl}/configuration/test-connection`;
-        } else {
-          url = `${baseUrl}/api/v1/configuration/test-connection`;
-        }
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        const response = await fetch(
-          url,
-          {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              connector_type: connectorType,
-              configuration: testValues
-            })
-          }
-        );
-        if (response.ok) {
-          const result = await response.json();
-          setTestResult(result);
-        } else {
-          setTestResult({
-            success: false,
-            message: 'Connection test failed'
-          });
-        }
+        const response = await api.post('/configuration/test-connection', {
+          connector_type: connectorType,
+          configuration: testValues,
+        });
+        setTestResult(response.data);
       }
     } catch (error) {
       setTestResult({
@@ -380,6 +335,21 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <h5 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+            <Lightbulb className="w-4 h-4" />
+            Configuration Recommendations
+          </h5>
+          <ul className="space-y-1">
+            {recommendations.map((rec, i) => (
+              <li key={i} className="text-sm text-amber-800">• {rec}</li>
+            ))}
+          </ul>
         </div>
       )}
 

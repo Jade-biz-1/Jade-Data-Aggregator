@@ -23,6 +23,10 @@ class VersionCreate(BaseModel):
     set_as_active: bool = False
 
 
+class TagVersionRequest(BaseModel):
+    tag: str
+
+
 # Version endpoints
 
 @router.get("/pipelines/{pipeline_id}/versions")
@@ -202,6 +206,33 @@ async def compare_versions(
         raise HTTPException(status_code=400, detail=comparison["error"])
 
     return comparison
+
+
+@router.post("/pipelines/{pipeline_id}/versions/{version_id}/tag")
+async def tag_version(
+    pipeline_id: int,
+    version_id: int,
+    tag_request: TagVersionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["admin", "editor"]))
+) -> Dict[str, Any]:
+    """Tag a version by setting its version_name label"""
+    version = await PipelineVersionService.get_version(db, version_id)
+
+    if not version or version.pipeline_id != pipeline_id:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    version.version_name = tag_request.tag.strip()
+    await db.commit()
+    await db.refresh(version)
+
+    return {
+        "id": version.id,
+        "version_number": version.version_number,
+        "version_name": version.version_name,
+        "tags": [version.version_name] if version.version_name else [],
+        "message": f"Tagged version {version.version_number} as '{tag_request.tag.strip()}'"
+    }
 
 
 @router.delete("/versions/{version_id}")

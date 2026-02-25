@@ -9,7 +9,7 @@ import os
 import gzip
 import structlog
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,6 +50,14 @@ class EnhancedLoggingService:
             logger_factory=structlog.stdlib.LoggerFactory(),
             cache_logger_on_first_use=True,
         )
+
+    @staticmethod
+    def _to_naive_utc(dt: Optional[datetime]) -> Optional[datetime]:
+        if dt is None:
+            return None
+        if dt.tzinfo is not None:
+            return dt.astimezone(tz=timezone.utc).replace(tzinfo=None)
+        return dt
 
     async def log(
         self,
@@ -204,6 +212,9 @@ class EnhancedLoggingService:
         """
         query = select(SystemLog)
 
+        start_time = self._to_naive_utc(start_time)
+        end_time = self._to_naive_utc(end_time)
+
         conditions = []
 
         # Time range filter
@@ -279,6 +290,9 @@ class EnhancedLoggingService:
         Returns:
             List of statistics dicts
         """
+        start_time = self._to_naive_utc(start_time)
+        end_time = self._to_naive_utc(end_time)
+
         query = select(
             SystemLog.level if group_by == "level" else
             SystemLog.component if group_by == "component" else

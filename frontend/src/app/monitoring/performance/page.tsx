@@ -11,10 +11,13 @@ import {
   BarChart3,
   LineChart as LineChartIcon,
   RefreshCw,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useRealTimeMetrics } from '@/hooks/useRealTimeMetrics';
 
 interface PerformanceMetrics {
   response_time: {
@@ -62,6 +65,8 @@ export default function PerformanceMonitoringPage() {
   const [timeRange, setTimeRange] = useState('1h');
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+
+  const { metrics: liveMetrics, lastUpdate: liveLastUpdate, isConnected: wsConnected } = useRealTimeMetrics();
 
   useEffect(() => {
     loadPerformanceData();
@@ -253,6 +258,103 @@ export default function PerformanceMonitoringPage() {
             </div>
           </div>
         )}
+
+        {/* Live System Resources */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-green-600" />
+              Live System Resources
+            </h2>
+            <div className="flex items-center gap-2 text-sm">
+              {wsConnected ? (
+                <span className="flex items-center gap-1 text-green-600">
+                  <Wifi className="w-4 h-4" />
+                  Live
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-gray-400">
+                  <WifiOff className="w-4 h-4" />
+                  Connecting...
+                </span>
+              )}
+              {liveLastUpdate && (
+                <span className="text-gray-500 dark:text-gray-400">
+                  Updated {liveLastUpdate.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+          </div>
+          {liveMetrics ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* CPU */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Usage</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {liveMetrics.cpu.percent.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      liveMetrics.cpu.percent > 80 ? 'bg-red-500' :
+                      liveMetrics.cpu.percent > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(liveMetrics.cpu.percent, 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">{liveMetrics.cpu.count} cores</p>
+              </div>
+              {/* Memory */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Memory Usage</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {liveMetrics.memory.percent.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      liveMetrics.memory.percent > 85 ? 'bg-red-500' :
+                      liveMetrics.memory.percent > 70 ? 'bg-yellow-500' : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${Math.min(liveMetrics.memory.percent, 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {liveMetrics.memory.used_gb.toFixed(1)} / {liveMetrics.memory.total_gb.toFixed(1)} GB
+                </p>
+              </div>
+              {/* Disk */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disk Usage</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {liveMetrics.disk.percent.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      liveMetrics.disk.percent > 90 ? 'bg-red-500' :
+                      liveMetrics.disk.percent > 75 ? 'bg-yellow-500' : 'bg-purple-500'
+                    }`}
+                    style={{ width: `${Math.min(liveMetrics.disk.percent, 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {liveMetrics.disk.used_gb.toFixed(1)} / {liveMetrics.disk.total_gb.toFixed(1)} GB
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              {wsConnected ? 'Waiting for metrics...' : 'WebSocket disconnected — live metrics unavailable'}
+            </div>
+          )}
+        </div>
 
         {/* Response Time Chart */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

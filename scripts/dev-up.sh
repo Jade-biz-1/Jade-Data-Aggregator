@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! docker info >/dev/null 2>&1; then
+  echo "[dev-up] Docker daemon is not reachable. Start or restart Docker Desktop and try again." >&2
+  exit 1
+fi
+
 echo "[dev-up] Building containers..."
 docker compose build
 
@@ -19,5 +24,6 @@ until curl -sSf http://localhost:8001/health >/dev/null 2>&1; do
   sleep 2
 done
 
-echo "[dev-up] Backend is healthy. Admin user should be available (admin/password)."
-echo "[dev-up] Frontend: http://localhost:3000  |  API Docs: http://localhost:8001/docs"
+echo "[dev-up] Backend is healthy. Admin user should be available (admin/admin123!)."
+FRONTEND_PORT_VALUE="${FRONTEND_PORT:-3000}"
+echo "[dev-up] Frontend: http://localhost:${FRONTEND_PORT_VALUE}  |  API Docs: http://localhost:8001/docs"

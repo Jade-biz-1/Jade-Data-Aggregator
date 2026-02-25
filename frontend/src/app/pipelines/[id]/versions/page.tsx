@@ -49,7 +49,7 @@ const PipelineVersionsPage = () => {
   const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
 
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     fetchVersions();
@@ -60,11 +60,24 @@ const PipelineVersionsPage = () => {
     try {
       const [pipelineResponse, versionsResponse] = await Promise.all([
         apiClient.fetch<any>(`/pipelines/${pipelineId}`),
-        apiClient.fetch<any>(`/pipelines/${pipelineId}/versions`)
+        apiClient.fetch<any>(`/pipeline-versions/pipelines/${pipelineId}/versions`)
       ]);
 
-      setPipeline(pipelineResponse.data);
-      setVersions(versionsResponse.data.versions || []);
+      setPipeline(pipelineResponse as any);
+      const rawVersions = (versionsResponse as any).versions || [];
+      setVersions(rawVersions.map((v: any) => ({
+        id: String(v.id),
+        version_number: v.version_number,
+        pipeline_id: String(v.pipeline_id ?? pipelineId),
+        created_at: v.created_at,
+        created_by: String(v.created_by ?? ''),
+        created_by_username: v.created_by_username,
+        change_summary: v.change_description ?? '',
+        is_current: v.is_active ?? false,
+        tags: v.version_name ? [v.version_name] : [],
+        config: v.pipeline_snapshot ?? null,
+        metadata: v.metadata ?? null,
+      })));
       success('Pipeline versions loaded');
     } catch (error: any) {
       console.error('Error fetching versions:', error);
@@ -76,14 +89,22 @@ const PipelineVersionsPage = () => {
 
   const handleCompare = async (v1: PipelineVersion, v2: PipelineVersion) => {
     try {
-      const response = await apiClient.fetch<any>(`/pipelines/${pipelineId}/versions/compare`, {
-        params: {
-          version1: v1.version_number,
-          version2: v2.version_number
-        }
-      });
-
-      setDiff(response.data.diff);
+      const response = await apiClient.fetch<any>(
+        `/pipeline-versions/versions/${v1.id}/compare/${v2.id}`
+      );
+      const r = response as any;
+      // Backend returns {version1, version2, differences: [{field, version1_value, version2_value}]}
+      // Transform into the VersionDiff shape the UI expects
+      const transformed: VersionDiff = {
+        added: [],
+        removed: [],
+        modified: (r.differences || []).map((d: any) => ({
+          field: d.field,
+          old_value: d.version1_value,
+          new_value: d.version2_value,
+        })),
+      };
+      setDiff(transformed);
       setSelectedVersion(v1);
       setCompareVersion(v2);
       setShowDiff(true);
@@ -100,7 +121,7 @@ const PipelineVersionsPage = () => {
     }
 
     try {
-      await apiClient.post<any>(`/pipelines/${pipelineId}/versions/${version.id}/rollback`);
+      await apiClient.post<any>(`/pipeline-versions/versions/${version.id}/restore`);
       success(`Rolled back to version ${version.version_number}`);
       fetchVersions();
     } catch (error: any) {
@@ -114,7 +135,7 @@ const PipelineVersionsPage = () => {
     if (!tag) return;
 
     try {
-      await apiClient.post<any>(`/pipelines/${pipelineId}/versions/${version.id}/tag`, {
+      await apiClient.post<any>(`/pipeline-versions/pipelines/${pipelineId}/versions/${version.id}/tag`, {
         tag: tag.trim()
       });
       success(`Tagged version ${version.version_number} as "${tag}"`);
@@ -125,9 +146,18 @@ const PipelineVersionsPage = () => {
     }
   };
 
-  const handleViewConfig = (version: PipelineVersion) => {
-    setSelectedVersion(version);
-    setShowDiff(false);
+  const handleViewConfig = async (version: PipelineVersion) => {
+    try {
+      const detail = await apiClient.fetch<any>(`/pipeline-versions/versions/${version.id}`);
+      const d = detail as any;
+      setSelectedVersion({
+        ...version,
+        config: d.pipeline_snapshot ?? null,
+      });
+      setShowDiff(false);
+    } catch (err) {
+      showError('Failed to load version configuration');
+    }
   };
 
   const toggleExpanded = (versionId: string) => {
@@ -273,7 +303,7 @@ const PipelineVersionsPage = () => {
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

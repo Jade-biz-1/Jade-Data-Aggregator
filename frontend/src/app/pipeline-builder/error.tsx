@@ -14,7 +14,7 @@ interface ErrorProps {
 
 export default function PipelineBuilderError({ error, reset }: ErrorProps) {
   useEffect(() => {
-    import('../../../../../lib/sentry')
+    import('../../../lib/sentry')
       .then(({ captureException }) => captureException(error, { tags: { page: 'pipeline-builder' } }))
       .catch(() => {});
   }, [error]);

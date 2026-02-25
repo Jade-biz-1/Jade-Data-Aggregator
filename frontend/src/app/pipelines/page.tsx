@@ -16,7 +16,9 @@ import {
   XCircle,
   Shield,
   Trash2,
-  History
+  History,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -24,6 +26,7 @@ import { apiClient } from '@/lib/api';
 import { Pipeline } from '@/types';
 import useToast from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/ToastContainer';
+import { useRealTimePipelineStatus } from '@/hooks/useRealTimePipelineStatus';
 
 interface PipelineDisplay extends Pipeline {
   status?: string;
@@ -41,6 +44,19 @@ export default function PipelinesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { features, loading: permissionsLoading } = usePermissions();
   const { toasts, error, success, warning } = useToast();
+  const { pipelineStatuses, isConnected: wsConnected } = useRealTimePipelineStatus();
+
+  // Merge real-time WS pipeline statuses into local state
+  useEffect(() => {
+    if (Object.keys(pipelineStatuses).length === 0) return;
+    setPipelines(prev => prev.map(p => {
+      const wsStatus = pipelineStatuses[p.id];
+      if (wsStatus && wsStatus.status !== p.status) {
+        return { ...p, status: wsStatus.status };
+      }
+      return p;
+    }));
+  }, [pipelineStatuses]);
 
   // Fetch pipelines from API
   useEffect(() => {
@@ -232,12 +248,18 @@ export default function PipelinesPage() {
               Manage your data processing pipelines
             </p>
           </div>
-          {features?.pipelines?.create && (
-            <Button onClick={() => router.push('/pipeline-builder')}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Pipeline
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            <span className={`flex items-center gap-1 text-sm ${wsConnected ? 'text-green-600' : 'text-gray-400'}`}>
+              {wsConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+              {wsConnected ? 'Live' : 'Offline'}
+            </span>
+            {features?.pipelines?.create && (
+              <Button onClick={() => router.push('/pipeline-builder')}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Pipeline
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}

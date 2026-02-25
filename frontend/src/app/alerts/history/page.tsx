@@ -49,7 +49,7 @@ export default function AlertHistoryPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [dateRange, setDateRange] = useState('7d');
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     if (!permissionsLoading && features?.monitoring?.view_alerts) {
@@ -67,7 +67,7 @@ export default function AlertHistoryPage() {
       const response = await apiClient.fetch<any>('/alerts/history', {
         params: { days: dateRange.replace('d', '') }
       });
-      setAlerts(response.data || []);
+      setAlerts(response.alerts || []);
     } catch (err: any) {
       console.error('Error fetching alert history:', err);
       showError('Failed to load alert history');
@@ -138,9 +138,11 @@ export default function AlertHistoryPage() {
     switch (severity) {
       case 'critical':
         return 'border-l-red-500 bg-red-50';
-      case 'warning':
+      case 'high':
+        return 'border-l-orange-500 bg-orange-50';
+      case 'medium':
         return 'border-l-yellow-500 bg-yellow-50';
-      case 'info':
+      case 'low':
         return 'border-l-blue-500 bg-blue-50';
       default:
         return 'border-l-gray-500 bg-gray-50';
@@ -181,7 +183,7 @@ export default function AlertHistoryPage() {
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

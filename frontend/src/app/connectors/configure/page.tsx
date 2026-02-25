@@ -78,25 +78,24 @@ const ConnectorConfigContent = () => {
       const validation = validateResponse.data;
 
       if (validation.is_valid) {
+        // Strip top-level connector fields from the config payload
+        const { name: _name, is_active: _active, ...connectorConfig } = values;
+
         if (isEditing && editingConnector) {
-          // Update existing connector
           await api.put(`/connectors/${editingConnector.id}`, {
             name: values.name || editingConnector.name,
             connector_type: selectedType,
-            config: values,
+            config: connectorConfig,
             is_active: values.is_active !== undefined ? values.is_active : editingConnector.is_active
           });
           success('Connector updated successfully', 'Success');
         } else {
-          // Create new connector
-          // Get owner_id from currentUser if available
-          const owner_id = currentUser?.id;
-          const response = await api.post('/connectors', {
+          await api.post('/connectors', {
             name: values.name || `${selectedType} Connector`,
             connector_type: selectedType,
-            config: values,
+            config: connectorConfig,
             is_active: true,
-            ...(owner_id ? { owner_id } : {})
+            owner_id: currentUser!.id
           });
           success('Connector created successfully', 'Success');
         }

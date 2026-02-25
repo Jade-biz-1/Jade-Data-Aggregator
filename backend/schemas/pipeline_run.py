@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -41,6 +41,14 @@ class PipelineRun(PipelineRunBase):
 
     class Config:
         from_attributes = True
+
+
+class PipelineRunResponse(PipelineRun):
+    """Extended pipeline run response with computed fields."""
+    duration_seconds: Optional[float] = None
+    pipeline_name: Optional[str] = None
+    trigger_type: Optional[str] = None
+    steps: List[Any] = []
 
 
 class PipelineRunExecuteRequest(BaseModel):

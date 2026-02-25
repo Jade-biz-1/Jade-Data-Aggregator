@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Filter, Clock, Bookmark, X, Zap, Database, FileText, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
@@ -33,6 +33,22 @@ interface SavedSearch {
   created_at: string;
 }
 
+const HISTORY_KEY = 'jade_search_history';
+const SAVED_KEY = 'jade_saved_searches';
+
+const mapToSearchResult = (entityType: string, item: any): SearchResult => {
+  const { id, name, title, display_name, description, type, match_score, created_at, ...rest } = item;
+  return {
+    id,
+    entity_type: type || entityType,
+    title: name || title || display_name || String(id),
+    description,
+    match_score: typeof match_score === 'number' ? match_score : 1,
+    metadata: Object.keys(rest).length > 0 ? rest : undefined,
+    created_at,
+  };
+};
+
 export default function AdvancedSearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -40,9 +56,12 @@ export default function AdvancedSearchPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { features, loading: permissionsLoading } = usePermissions();
   const { toasts, error, success, warning } = useToast();
+  const suggestionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const entityTypes = [
     { value: 'pipeline', label: 'Pipelines', icon: Zap, color: 'text-blue-600' },
@@ -51,52 +70,106 @@ export default function AdvancedSearchPage() {
     { value: 'user', label: 'Users', icon: User, color: 'text-orange-600' },
   ];
 
-  // Load search history and saved searches
   useEffect(() => {
     loadSearchHistory();
     loadSavedSearches();
+    return () => {
+      if (suggestionTimer.current) clearTimeout(suggestionTimer.current);
+    };
   }, []);
 
-  const loadSearchHistory = async () => {
+  // --- localStorage-backed history & saved searches ---
+
+  const loadSearchHistory = () => {
     try {
-      const response = await api.get('/search/history');
-      setSearchHistory(response.data.history || []);
-    } catch (err: any) {
-      console.error('Failed to load search history:', err);
-      error(err.message || 'Failed to load search history', 'Error');
+      const raw = localStorage.getItem(HISTORY_KEY);
+      setSearchHistory(raw ? JSON.parse(raw) : []);
+    } catch {
+      setSearchHistory([]);
     }
   };
 
-  const loadSavedSearches = async () => {
+  const persistHistory = (q: string, count: number) => {
     try {
-      const response = await api.get('/search/saved');
-      setSavedSearches(response.data.saved_searches || []);
-    } catch (err: any) {
-      console.error('Failed to load saved searches:', err);
-      error(err.message || 'Failed to load saved searches', 'Error');
+      const existing: SearchHistory[] = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      const deduped = existing.filter(h => h.query !== q);
+      const updated = [
+        { query: q, timestamp: new Date().toISOString(), results_count: count },
+        ...deduped,
+      ].slice(0, 20);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      setSearchHistory(updated);
+    } catch {}
+  };
+
+  const loadSavedSearches = () => {
+    try {
+      const raw = localStorage.getItem(SAVED_KEY);
+      setSavedSearches(raw ? JSON.parse(raw) : []);
+    } catch {
+      setSavedSearches([]);
     }
   };
 
-  const performSearch = async () => {
-    if (!query.trim()) {
+  // --- Suggestions (backend: GET /search/suggestions) ---
+
+  const fetchSuggestions = async (q: string) => {
+    if (!q.trim() || q.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    try {
+      const response = await api.get('/search/suggestions', { params: { q } });
+      const items: string[] = response.data.suggestions || [];
+      setSuggestions(items);
+      setShowSuggestions(items.length > 0);
+    } catch {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (suggestionTimer.current) clearTimeout(suggestionTimer.current);
+    suggestionTimer.current = setTimeout(() => fetchSuggestions(value), 300);
+  };
+
+  const applySuggestion = (s: string) => {
+    setQuery(s);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    // Trigger search immediately after selecting a suggestion
+    setTimeout(() => runSearch(s), 0);
+  };
+
+  // --- Core search (backend: GET /search) ---
+
+  const runSearch = async (q: string) => {
+    if (!q.trim()) {
       warning('Please enter a search query', 'Warning');
       return;
     }
-
+    setShowSuggestions(false);
     setLoading(true);
     try {
-      const params: any = { q: query };
+      const params: Record<string, any> = { q };
       if (selectedTypes.length > 0) {
         params.entity_types = selectedTypes.join(',');
       }
 
-      const response = await api.get('/search/global', { params });
-      setResults(response.data.results || []);
+      const response = await api.get('/search', { params });
+      // Backend returns { query, total_results, results: { pipelines: [...], connectors: [...], ... } }
+      const rawResults: Record<string, any[]> = response.data.results || {};
+      const flat: SearchResult[] = Object.entries(rawResults).flatMap(([entityType, items]) =>
+        (items || []).map(item => mapToSearchResult(entityType, item))
+      );
 
-      // Reload history after search
-      loadSearchHistory();
+      setResults(flat);
+      persistHistory(q, flat.length);
 
-      if (response.data.results.length === 0) {
+      if (flat.length === 0) {
         warning('No results found for your search', 'No Results');
       }
     } catch (err: any) {
@@ -108,34 +181,41 @@ export default function AdvancedSearchPage() {
     }
   };
 
-  const saveCurrentSearch = async () => {
+  const performSearch = () => runSearch(query);
+
+  // --- Save / delete searches (localStorage) ---
+
+  const saveCurrentSearch = () => {
     const name = prompt('Enter a name for this search:');
     if (!name) return;
-
     try {
-      await api.post('/search/saved', {
+      const existing: SavedSearch[] = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+      const newSaved: SavedSearch = {
+        id: Date.now(),
         name,
         query,
-        filters: { entity_types: selectedTypes }
-      });
+        filters: { entity_types: selectedTypes },
+        created_at: new Date().toISOString(),
+      };
+      const updated = [newSaved, ...existing];
+      localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+      setSavedSearches(updated);
       success('Search saved successfully', 'Success');
-      loadSavedSearches();
-    } catch (err: any) {
-      console.error('Failed to save search:', err);
-      error(err.message || 'Failed to save search', 'Error');
+    } catch {
+      error('Failed to save search', 'Error');
     }
   };
 
-  const deleteSavedSearch = async (id: number) => {
+  const deleteSavedSearch = (id: number) => {
     if (!confirm('Are you sure you want to delete this saved search?')) return;
-
     try {
-      await api.delete(`/search/saved/${id}`);
+      const existing: SavedSearch[] = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+      const updated = existing.filter(s => s.id !== id);
+      localStorage.setItem(SAVED_KEY, JSON.stringify(updated));
+      setSavedSearches(updated);
       success('Saved search deleted', 'Success');
-      loadSavedSearches();
-    } catch (err: any) {
-      console.error('Failed to delete saved search:', err);
-      error(err.message || 'Failed to delete saved search', 'Error');
+    } catch {
+      error('Failed to delete saved search', 'Error');
     }
   };
 
@@ -152,8 +232,7 @@ export default function AdvancedSearchPage() {
 
   const getEntityIcon = (entityType: string) => {
     const entity = entityTypes.find(t => t.value === entityType);
-    if (!entity) return FileText;
-    return entity.icon;
+    return entity?.icon ?? FileText;
   };
 
   const getEntityColor = (entityType: string) => {
@@ -161,7 +240,6 @@ export default function AdvancedSearchPage() {
     return entity?.color || 'text-gray-600';
   };
 
-  // Check permission to view this page
   if (permissionsLoading) {
     return (
       <DashboardLayout>
@@ -288,7 +366,7 @@ export default function AdvancedSearchPage() {
                     >
                       <div className="text-sm text-gray-700 dark:text-gray-300">{item.query}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {item.results_count} results
+                        {item.results_count} result{item.results_count !== 1 ? 's' : ''}
                       </div>
                     </button>
                   ))}
@@ -305,13 +383,33 @@ export default function AdvancedSearchPage() {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
+                    ref={searchInputRef}
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && performSearch()}
+                    onChange={(e) => handleQueryChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { setShowSuggestions(false); performSearch(); }
+                      if (e.key === 'Escape') setShowSuggestions(false);
+                    }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                     placeholder="Search for anything..."
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                  {/* Suggestions dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          onMouseDown={() => applySuggestion(s)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2"
+                        >
+                          <Search className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={performSearch}
@@ -324,6 +422,7 @@ export default function AdvancedSearchPage() {
                   <button
                     onClick={saveCurrentSearch}
                     className="px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                    title="Save this search"
                   >
                     <Bookmark className="w-5 h-5" />
                   </button>
@@ -390,9 +489,11 @@ export default function AdvancedSearchPage() {
                             <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded uppercase">
                               {result.entity_type}
                             </span>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {Math.round(result.match_score * 100)}% match
-                            </span>
+                            {result.match_score < 1 && (
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {Math.round(result.match_score * 100)}% match
+                              </span>
+                            )}
                           </div>
                           {result.description && (
                             <p className="text-gray-600 dark:text-gray-400 mb-3">
@@ -400,7 +501,7 @@ export default function AdvancedSearchPage() {
                             </p>
                           )}
                           {result.metadata && Object.keys(result.metadata).length > 0 && (
-                            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                               {Object.entries(result.metadata).slice(0, 3).map(([key, value]) => (
                                 <span key={key}>
                                   <span className="font-medium">{key}:</span> {String(value)}

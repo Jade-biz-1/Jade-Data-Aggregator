@@ -266,7 +266,7 @@ let notificationsWS: WebSocketService | null = null;
 export function getPipelineStatusWebSocket(): WebSocketService {
   if (!pipelineStatusWS) {
     pipelineStatusWS = new WebSocketService({
-      url: '/api/v1/ws/pipeline-status',
+      url: '/api/v1/ws',
       debug: process.env.NODE_ENV === 'development',
     });
   }
@@ -275,11 +275,13 @@ export function getPipelineStatusWebSocket(): WebSocketService {
 
 /**
  * Get or create WebSocket connection for system metrics
+ * Note: metrics are delivered on the shared /api/v1/ws endpoint as
+ * system_metrics message type — there is no dedicated metrics endpoint.
  */
 export function getMetricsWebSocket(): WebSocketService {
   if (!metricsWS) {
     metricsWS = new WebSocketService({
-      url: '/api/v1/ws/metrics',
+      url: '/api/v1/ws',
       debug: process.env.NODE_ENV === 'development',
     });
   }
@@ -288,11 +290,13 @@ export function getMetricsWebSocket(): WebSocketService {
 
 /**
  * Get or create WebSocket connection for notifications
+ * Note: notifications are delivered on the shared /api/v1/ws endpoint as
+ * system_alert message type — there is no dedicated notifications endpoint.
  */
 export function getNotificationsWebSocket(): WebSocketService {
   if (!notificationsWS) {
     notificationsWS = new WebSocketService({
-      url: '/api/v1/ws/notifications',
+      url: '/api/v1/ws',
       debug: process.env.NODE_ENV === 'development',
     });
   }

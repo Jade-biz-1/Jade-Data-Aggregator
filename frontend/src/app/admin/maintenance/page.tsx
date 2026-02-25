@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 import { AccessDenied } from '@/components/common/AccessDenied';
 import {
   Database,
@@ -86,6 +87,24 @@ interface CleanupSchedule {
   next_run?: string;
 }
 
+// Map a cron expression (e.g. "0 2 * * 0") to the schedule_type enum the UI uses
+const cronToScheduleType = (cron?: string): 'daily' | 'weekly' | 'monthly' => {
+  if (!cron) return 'daily';
+  const parts = cron.split(' ');
+  if (parts[4] && parts[4] !== '*') return 'weekly';
+  if (parts[2] && parts[2] !== '*') return 'monthly';
+  return 'daily';
+};
+
+// Map a schedule_type back to a cron expression for the PUT request
+const scheduleTypeToCron = (type?: 'daily' | 'weekly' | 'monthly'): string => {
+  switch (type) {
+    case 'weekly':  return '0 2 * * 0';
+    case 'monthly': return '0 2 1 * *';
+    default:        return '0 2 * * *';
+  }
+};
+
 export default function MaintenancePage() {
   const [stats, setStats] = useState<CleanupStats | null>(null);
   const [cleanupResults, setCleanupResults] = useState<CleanupResult | null>(null);
@@ -106,7 +125,7 @@ export default function MaintenancePage() {
     onConfirm: () => { },
   });
   const { features, loading: permissionsLoading } = usePermissions();
-  const { addToast } = useToast();
+  const { addToast, toasts } = useToast();
 
   useEffect(() => {
     if (features?.system?.maintenance) {
@@ -164,7 +183,16 @@ export default function MaintenancePage() {
       }
 
       const data = await response.json();
-      setSchedule(data);
+      // Backend returns {enabled, cron_expression, *_retention_*, last_updated}
+      // Map to the CleanupSchedule interface the UI uses
+      setSchedule({
+        id: '1',
+        schedule_type: cronToScheduleType(data.cron_expression),
+        cleanup_operations: ['activity-logs', 'temp-files', 'orphaned-data', 'expired-tokens'],
+        enabled: data.enabled ?? false,
+        last_run: data.last_updated ?? undefined,
+        next_run: undefined,
+      });
     } catch (error) {
       console.error('Error fetching schedule:', error);
     }
@@ -172,13 +200,22 @@ export default function MaintenancePage() {
 
   const updateSchedule = async (scheduleData: Partial<CleanupSchedule>) => {
     try {
+      // Backend expects {enabled, cron_expression, *_retention_*} — not the frontend shape
+      const backendPayload = {
+        enabled: scheduleData.enabled ?? schedule?.enabled ?? false,
+        cron_expression: scheduleTypeToCron(scheduleData.schedule_type ?? schedule?.schedule_type),
+        activity_log_retention_days: 90,
+        execution_log_retention_days: 30,
+        temp_file_retention_hours: 24,
+      };
+
       const response = await fetch('/api/v1/admin/cleanup/schedule', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(scheduleData),
+        body: JSON.stringify(backendPayload),
       });
 
       if (!response.ok) {
@@ -186,7 +223,15 @@ export default function MaintenancePage() {
       }
 
       const data = await response.json();
-      setSchedule(data);
+      // Map backend response back to CleanupSchedule, preserving frontend-only fields
+      setSchedule({
+        id: '1',
+        schedule_type: scheduleData.schedule_type ?? schedule?.schedule_type ?? 'daily',
+        cleanup_operations: scheduleData.cleanup_operations ?? schedule?.cleanup_operations ?? [],
+        enabled: data.enabled ?? scheduleData.enabled ?? false,
+        last_run: data.last_updated ?? schedule?.last_run,
+        next_run: undefined,
+      });
 
       addToast({
         type: 'success',
@@ -403,6 +448,7 @@ export default function MaintenancePage() {
 
   return (
     <DashboardLayout>
+      <ToastContainer toasts={toasts} />
       {/* Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -734,7 +780,7 @@ export default function MaintenancePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {Object.entries(cleanupResults.operations).map(([key, value]: [string, any]) => (
+                    {cleanupResults.operations && Object.entries(cleanupResults.operations).map(([key, value]: [string, any]) => (
                       <div key={key} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="font-medium capitalize">{key.replace('_', ' ')}</span>
                         <span className="text-sm text-gray-600">
@@ -743,28 +789,30 @@ export default function MaintenancePage() {
                       </div>
                     ))}
 
+                    {cleanupResults.summary && (
                     <div className="pt-4 border-t border-gray-200">
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                           <p className="text-2xl font-bold text-gray-900">
-                            {cleanupResults.summary.total_records_deleted}
+                            {cleanupResults.summary.total_records_deleted ?? 0}
                           </p>
                           <p className="text-xs text-gray-600">Records Deleted</p>
                         </div>
                         <div>
                           <p className="text-2xl font-bold text-gray-900">
-                            {cleanupResults.summary.total_space_freed_mb.toFixed(2)} MB
+                            {(cleanupResults.summary.total_space_freed_mb ?? 0).toFixed(2)} MB
                           </p>
                           <p className="text-xs text-gray-600">Space Freed</p>
                         </div>
                         <div>
                           <p className="text-2xl font-bold text-gray-900">
-                            {cleanupResults.summary.duration_seconds.toFixed(2)}s
+                            {(cleanupResults.summary.duration_seconds ?? 0).toFixed(2)}s
                           </p>
                           <p className="text-xs text-gray-600">Duration</p>
                         </div>
                       </div>
                     </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -34,10 +34,26 @@ interface Widget {
 interface DashboardLayout {
   id?: number;
   name: string;
+  description?: string;
   layout: Widget[];
   is_default: boolean;
+  is_shared?: boolean;
+  is_template?: boolean;
+  widget_count?: number;
   created_at?: string;
 }
+
+const mapLayout = (raw: any): DashboardLayout => ({
+  id: raw.id,
+  name: raw.name ?? 'Untitled',
+  description: raw.description,
+  layout: (raw.layout_config as any)?.widgets ?? [],
+  is_default: raw.is_default ?? false,
+  is_shared: raw.is_shared ?? false,
+  is_template: raw.is_template ?? false,
+  widget_count: (raw.layout_config as any)?.widgets?.length ?? 0,
+  created_at: raw.created_at,
+});
 
 interface WidgetTemplate {
   type: string;
@@ -109,6 +125,7 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
   const [showWidgetLibrary, setShowWidgetLibrary] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [layouts, setLayouts] = useState<DashboardLayout[]>([]);
+  const [templates, setTemplates] = useState<DashboardLayout[]>([]);
   const [currentLayoutName, setCurrentLayoutName] = useState(initialLayout?.name || 'My Dashboard');
   const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,16 +133,29 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
 
   useEffect(() => {
     loadLayouts();
+    loadTemplates();
   }, []);
 
   const loadLayouts = async () => {
     try {
-      const response = await api.get('/dashboards/layouts');
-      setLayouts(response.data.layouts || []);
+      const response = await api.get('/dashboards');
+      const raw: any[] = Array.isArray(response.data) ? response.data : [];
+      setLayouts(raw.map(mapLayout));
     } catch (err: any) {
       console.error('Failed to load layouts:', err);
       error(err.message || 'Failed to load layouts', 'Error');
       setLayouts([]);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const response = await api.get('/dashboards/templates');
+      const raw: any[] = Array.isArray(response.data) ? response.data : [];
+      setTemplates(raw.map(mapLayout));
+    } catch (err: any) {
+      console.error('Failed to load templates:', err);
+      setTemplates([]);
     }
   };
 
@@ -156,22 +186,26 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
     setSaving(true);
 
     try {
-      const layout: DashboardLayout = {
+      const body = {
         name: layoutName,
-        layout: widgets,
+        layout_config: { widgets },
         is_default: false,
+        is_shared: false,
       };
 
+      let saved: DashboardLayout;
       if (initialLayout?.id) {
-        await api.put(`/dashboards/layouts/${initialLayout.id}`, layout);
+        const response = await api.put(`/dashboards/${initialLayout.id}`, body);
+        saved = mapLayout(response.data);
         success('Layout updated successfully', 'Success');
       } else {
-        await api.post('/dashboards/layouts', layout);
+        const response = await api.post('/dashboards', body);
+        saved = mapLayout(response.data);
         success('Layout saved successfully', 'Success');
       }
 
       await loadLayouts();
-      onSave?.(layout);
+      onSave?.(saved);
     } catch (err: any) {
       console.error('Failed to save layout:', err);
       error(err.message || 'Failed to save layout', 'Error');
@@ -182,8 +216,8 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
 
   const loadLayout = async (layoutId: number) => {
     try {
-      const response = await api.get(`/dashboards/layouts/${layoutId}`);
-      const layout = response.data;
+      const response = await api.get(`/dashboards/${layoutId}`);
+      const layout = mapLayout(response.data);
       setWidgets(layout.layout);
       setCurrentLayoutName(layout.name);
       success('Layout loaded successfully', 'Success');
@@ -197,12 +231,39 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
     if (!confirm('Are you sure you want to delete this layout?')) return;
 
     try {
-      await api.delete(`/dashboards/layouts/${layoutId}`);
+      await api.delete(`/dashboards/${layoutId}`);
       success('Layout deleted successfully', 'Success');
       await loadLayouts();
     } catch (err: any) {
       console.error('Failed to delete layout:', err);
       error(err.message || 'Failed to delete layout', 'Error');
+    }
+  };
+
+  const setDefaultLayout = async (layoutId: number) => {
+    try {
+      await api.post(`/dashboards/${layoutId}/set-default`);
+      success('Default layout updated', 'Success');
+      await loadLayouts();
+    } catch (err: any) {
+      console.error('Failed to set default layout:', err);
+      error(err.message || 'Failed to set default layout', 'Error');
+    }
+  };
+
+  const cloneTemplate = async (templateId: number, templateName: string) => {
+    try {
+      const response = await api.post(`/dashboards/${templateId}/clone`, {
+        new_name: `${templateName} (copy)`,
+      });
+      const cloned = mapLayout(response.data);
+      setWidgets(cloned.layout);
+      setCurrentLayoutName(cloned.name);
+      success(`Template "${templateName}" applied`, 'Success');
+      await loadLayouts();
+    } catch (err: any) {
+      console.error('Failed to clone template:', err);
+      error(err.message || 'Failed to apply template', 'Error');
     }
   };
 
@@ -438,7 +499,7 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Dashboard Templates
+                Layouts &amp; Templates
               </h2>
               <button
                 onClick={() => setShowTemplates(false)}
@@ -448,54 +509,111 @@ export default function DashboardCustomizer({ onSave, initialLayout }: Dashboard
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
-              <div className="space-y-4">
-                {layouts.map(layout => (
-                  <div
-                    key={layout.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {layout.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {layout.layout.length} widgets
-                        {layout.is_default && (
-                          <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+              {/* Saved layouts */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                  My Saved Layouts
+                </h3>
+                <div className="space-y-2">
+                  {layouts.map(layout => (
+                    <div
+                      key={layout.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                          {layout.name}
+                        </h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          {layout.widget_count ?? layout.layout.length} widget{(layout.widget_count ?? layout.layout.length) !== 1 ? 's' : ''}
+                          {layout.is_default && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                              Default
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 ml-3 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            loadLayout(layout.id!);
+                            setShowTemplates(false);
+                          }}
+                          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          Load
+                        </button>
+                        {!layout.is_default && (
+                          <button
+                            onClick={() => setDefaultLayout(layout.id!)}
+                            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                            title="Set as default"
+                          >
                             Default
-                          </span>
+                          </button>
                         )}
-                      </p>
+                        {!layout.is_default && (
+                          <button
+                            onClick={() => deleteLayout(layout.id!)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                  ))}
+                  {layouts.length === 0 && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                      No saved layouts yet. Save a layout to see it here.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* System templates */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                  Templates
+                </h3>
+                <div className="space-y-2">
+                  {templates.map(tmpl => (
+                    <div
+                      key={tmpl.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                          {tmpl.name}
+                        </h4>
+                        {tmpl.description && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            {tmpl.description}
+                          </p>
+                        )}
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          {tmpl.widget_count ?? tmpl.layout.length} widget{(tmpl.widget_count ?? tmpl.layout.length) !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                       <button
-                        onClick={() => {
-                          loadLayout(layout.id!);
+                        onClick={async () => {
+                          await cloneTemplate(tmpl.id!, tmpl.name);
                           setShowTemplates(false);
                         }}
-                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="ml-3 flex-shrink-0 px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                       >
-                        Load
+                        Use Template
                       </button>
-                      {!layout.is_default && (
-                        <button
-                          onClick={() => deleteLayout(layout.id!)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
-                  </div>
-                ))}
-
-                {layouts.length === 0 && (
-                  <div className="text-center py-12">
-                    <Layout className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">No saved layouts yet</p>
-                  </div>
-                )}
+                  ))}
+                  {templates.length === 0 && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                      No templates available.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

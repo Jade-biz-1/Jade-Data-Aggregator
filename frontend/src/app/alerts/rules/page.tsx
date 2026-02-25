@@ -27,13 +27,12 @@ interface AlertRule {
   id?: string;
   name: string;
   description: string;
-  condition: {
-    metric: string;
-    operator: string;
-    threshold: number;
-    duration_minutes?: number;
-  };
-  severity: 'critical' | 'warning' | 'info';
+  rule_type: 'threshold' | 'anomaly' | 'error_rate';
+  metric_name: string;
+  condition: 'gt' | 'gte' | 'lt' | 'lte' | 'eq';
+  threshold_value: number;
+  time_window_minutes: number;
+  severity: 'low' | 'medium' | 'high' | 'critical';
   is_active: boolean;
   created_at?: string;
   trigger_count?: number;
@@ -45,19 +44,18 @@ export default function AlertRulesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   const [formData, setFormData] = useState<AlertRule>({
     name: '',
     description: '',
-    condition: {
-      metric: 'pipeline_failure_rate',
-      operator: 'greater_than',
-      threshold: 50,
-      duration_minutes: 5
-    },
-    severity: 'warning',
-    is_active: true
+    rule_type: 'threshold',
+    metric_name: 'pipeline_failure_rate',
+    condition: 'gt',
+    threshold_value: 50,
+    time_window_minutes: 5,
+    severity: 'medium',
+    is_active: true,
   });
 
   useEffect(() => {
@@ -70,7 +68,7 @@ export default function AlertRulesPage() {
     try {
       setIsLoading(true);
       const response = await apiClient.fetch<any>('/alerts/rules');
-      setRules(response.data || []);
+      setRules(response.rules || []);
     } catch (err: any) {
       console.error('Error fetching alert rules:', err);
       showError('Failed to load alert rules');
@@ -133,14 +131,13 @@ export default function AlertRulesPage() {
     setFormData({
       name: '',
       description: '',
-      condition: {
-        metric: 'pipeline_failure_rate',
-        operator: 'greater_than',
-        threshold: 50,
-        duration_minutes: 5
-      },
-      severity: 'warning',
-      is_active: true
+      rule_type: 'threshold',
+      metric_name: 'pipeline_failure_rate',
+      condition: 'gt',
+      threshold_value: 50,
+      time_window_minutes: 5,
+      severity: 'medium',
+      is_active: true,
     });
   };
 
@@ -148,9 +145,11 @@ export default function AlertRulesPage() {
     switch (severity) {
       case 'critical':
         return 'bg-red-100 text-red-800';
-      case 'warning':
+      case 'high':
+        return 'bg-orange-100 text-orange-800';
+      case 'medium':
         return 'bg-yellow-100 text-yellow-800';
-      case 'info':
+      case 'low':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -178,7 +177,7 @@ export default function AlertRulesPage() {
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -240,6 +239,24 @@ export default function AlertRulesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Rule Type *
+                    </label>
+                    <select
+                      value={formData.rule_type}
+                      onChange={(e) => setFormData({ ...formData, rule_type: e.target.value as any })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="threshold">Threshold</option>
+                      <option value="error_rate">Error Rate</option>
+                      <option value="anomaly">Anomaly</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Severity *
                     </label>
                     <select
@@ -248,9 +265,29 @@ export default function AlertRulesPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     >
-                      <option value="info">Info</option>
-                      <option value="warning">Warning</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
                       <option value="critical">Critical</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Metric *
+                    </label>
+                    <select
+                      value={formData.metric_name}
+                      onChange={(e) => setFormData({ ...formData, metric_name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="pipeline_failure_rate">Pipeline Failure Rate</option>
+                      <option value="execution_time">Execution Time</option>
+                      <option value="error_count">Error Count</option>
+                      <option value="records_processed">Records Processed</option>
+                      <option value="cpu_usage">CPU Usage</option>
+                      <option value="memory_usage">Memory Usage</option>
                     </select>
                   </div>
                 </div>
@@ -270,43 +307,19 @@ export default function AlertRulesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Metric *
+                      Condition *
                     </label>
                     <select
-                      value={formData.condition.metric}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        condition: { ...formData.condition, metric: e.target.value }
-                      })}
+                      value={formData.condition}
+                      onChange={(e) => setFormData({ ...formData, condition: e.target.value as any })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     >
-                      <option value="pipeline_failure_rate">Pipeline Failure Rate</option>
-                      <option value="execution_time">Execution Time</option>
-                      <option value="error_count">Error Count</option>
-                      <option value="records_processed">Records Processed</option>
-                      <option value="cpu_usage">CPU Usage</option>
-                      <option value="memory_usage">Memory Usage</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Operator *
-                    </label>
-                    <select
-                      value={formData.condition.operator}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        condition: { ...formData.condition, operator: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="greater_than">Greater Than</option>
-                      <option value="less_than">Less Than</option>
-                      <option value="equals">Equals</option>
-                      <option value="not_equals">Not Equals</option>
+                      <option value="gt">Greater Than (&gt;)</option>
+                      <option value="gte">Greater Than or Equal (≥)</option>
+                      <option value="lt">Less Than (&lt;)</option>
+                      <option value="lte">Less Than or Equal (≤)</option>
+                      <option value="eq">Equals (=)</option>
                     </select>
                   </div>
 
@@ -316,34 +329,29 @@ export default function AlertRulesPage() {
                     </label>
                     <input
                       type="number"
-                      value={formData.condition.threshold}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        condition: { ...formData.condition, threshold: Number(e.target.value) }
-                      })}
+                      value={formData.threshold_value}
+                      onChange={(e) => setFormData({ ...formData, threshold_value: Number(e.target.value) })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Duration (minutes)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.condition.duration_minutes || 5}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      condition: { ...formData.condition, duration_minutes: Number(e.target.value) }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    min="1"
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Condition must be met for this duration before triggering alert
-                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Window (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.time_window_minutes}
+                      onChange={(e) => setFormData({ ...formData, time_window_minutes: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      min="1"
+                      max="1440"
+                    />
+                    <p className="text-sm text-gray-600 mt-1">
+                      Condition must be met for this duration before triggering
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -430,17 +438,17 @@ export default function AlertRulesPage() {
                         <p className="text-sm text-gray-600 mb-3">{rule.description}</p>
                         <div className="flex items-center gap-4 text-sm text-gray-700">
                           <span className="font-medium">
-                            {rule.condition.metric.replace(/_/g, ' ')}
+                            {rule.metric_name.replace(/_/g, ' ')}
                           </span>
                           <span className="text-gray-500">
-                            {rule.condition.operator.replace(/_/g, ' ')}
+                            {rule.condition}
                           </span>
                           <span className="font-medium">
-                            {rule.condition.threshold}
+                            {rule.threshold_value}
                           </span>
-                          {rule.condition.duration_minutes && (
+                          {rule.time_window_minutes && (
                             <span className="text-gray-500">
-                              for {rule.condition.duration_minutes} min
+                              for {rule.time_window_minutes} min
                             </span>
                           )}
                         </div>

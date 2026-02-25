@@ -237,26 +237,14 @@ async def export_analytics_data(
 
         data = await engine.get_time_series_data(start, end, "day")
 
-    # Prepare export
-    # For large exports, this should be an async job
-    export_service = ExportService()
+    # Build export using the appropriate format method
+    data_list = data if isinstance(data, list) else []
+    if export_request.export_format == ExportFormat.CSV:
+        result = ExportService.export_to_csv(data_list)
+    else:
+        result = ExportService.export_to_json({"data": data_list})
 
-    # This is a synchronous example, but better as a background task
-    file_content, filename = export_service.generate_export_content(
-        data,
-        export_request.export_format,
-        "analytics_export"
-    )
-
-    # Here you would typically save the file and return a URL or job ID
-    # For this example, we'll return a simplified response
-    # In a real app: background_tasks.add_task(save_and_notify, file_content, filename, current_user)
-
-    return {
-        "message": "Export job started. You will be notified upon completion.",
-        "filename": filename,
-        "format": export_request.export_format
-    }
+    return result
 
 
 @router.post("/scheduled-exports")

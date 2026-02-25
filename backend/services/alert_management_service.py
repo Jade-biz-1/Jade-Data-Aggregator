@@ -576,3 +576,69 @@ class AlertManagementService:
             ).order_by(AlertAction.performed_at.asc())
         )
         return list(result.scalars().all())
+
+    async def get_alert_rules(
+        self,
+        db: AsyncSession,
+        active_only: bool = False,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[AlertRule]:
+        """List alert rules"""
+        query = select(AlertRule)
+        if active_only:
+            query = query.where(AlertRule.is_active == True)
+        query = query.order_by(AlertRule.created_at.desc()).offset(skip).limit(limit)
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
+    async def update_alert_rule(
+        self,
+        db: AsyncSession,
+        rule_id: int,
+        **fields: Any
+    ) -> Optional[AlertRule]:
+        """Update an existing alert rule"""
+        result = await db.execute(select(AlertRule).where(AlertRule.id == rule_id))
+        rule = result.scalar_one_or_none()
+        if not rule:
+            return None
+        for key, value in fields.items():
+            if hasattr(rule, key) and value is not None:
+                setattr(rule, key, value)
+        await db.commit()
+        await db.refresh(rule)
+        return rule
+
+    async def delete_alert_rule(
+        self,
+        db: AsyncSession,
+        rule_id: int
+    ) -> bool:
+        """Delete an alert rule by ID"""
+        result = await db.execute(select(AlertRule).where(AlertRule.id == rule_id))
+        rule = result.scalar_one_or_none()
+        if not rule:
+            return False
+        await db.delete(rule)
+        await db.commit()
+        return True
+
+    async def get_alerts_history(
+        self,
+        db: AsyncSession,
+        days: int = 7,
+        severity: Optional[AlertSeverity] = None,
+        status: Optional[AlertStatus] = None,
+        limit: int = 500
+    ) -> List[Alert]:
+        """List all historical alerts within a date window"""
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        query = select(Alert).where(Alert.triggered_at >= cutoff)
+        if severity:
+            query = query.where(Alert.severity == severity)
+        if status:
+            query = query.where(Alert.status == status)
+        query = query.order_by(Alert.triggered_at.desc()).limit(limit)
+        result = await db.execute(query)
+        return list(result.scalars().all())
