@@ -303,24 +303,26 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-011 — Global Search Enhancement
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to enhance:**
-- [ ] `app/search/page.tsx` — Enhance existing search page
+- [x] `app/search/page.tsx` — Existed; rewrote with all bug fixes and enhancements
 
 **Components to build:**
-- [ ] `components/search/UnifiedSearchBar.tsx` — Enhanced typeahead search bar
-- [ ] `components/search/SearchResultsView.tsx` — Grouped results by entity type
-- [ ] `components/search/SearchFilterPanel.tsx` — Entity type, date range, role filters
-- [ ] `components/search/SearchSuggestions.tsx` — Debounced auto-complete dropdown
-- [ ] `components/search/RecentSearches.tsx` — Persisted recent search history
+- [x] `components/search/UnifiedSearchBar.tsx` — Handled inline; search input with suggestions dropdown, debounced 300ms on keystroke
+- [x] `components/search/SearchResultsView.tsx` — Handled inline; flat results list with entity icon + type badge + match score + metadata preview
+- [x] `components/search/SearchFilterPanel.tsx` — Handled inline; entity type toggle buttons (Pipelines / Connectors / Transformations / Users)
+- [x] `components/search/SearchSuggestions.tsx` — Handled inline; GET /search/suggestions dropdown with mouse/keyboard dismiss; `onMouseDown` prevents blur-before-click race
+- [x] `components/search/RecentSearches.tsx` — Handled inline; persisted to localStorage (key: `jade_search_history`), up to 20 entries, deduped by query
 
 **Backend endpoints to integrate:**
-- [ ] `GET /api/v1/search` — Global cross-entity search
-- [ ] `GET /api/v1/search/suggestions` — Auto-complete suggestions
-- [ ] `GET /api/v1/search/pipelines` — Pipeline-scoped search
-- [ ] `GET /api/v1/search/connectors` — Connector-scoped search
-- [ ] `GET /api/v1/search/users` — User-scoped search
+- [x] `GET /api/v1/search` — Existed at `/search/` (root); frontend was calling `/search/global` (wrong) — fixed to `/search`; response `results` is dict-by-entity-type; flattened with `mapToSearchResult()` helper that normalises `name`→`title`, `type`→`entity_type`
+- [x] `GET /api/v1/search/suggestions` — Existed; wired with 300ms debounce on query input; dropdown closes on Escape, blur (150ms delay), and Enter
+- [x] `GET /api/v1/search/pipelines` — Existed (available via entity_types filter on global search)
+- [x] `GET /api/v1/search/connectors` — Existed (available via entity_types filter)
+- [x] `GET /api/v1/search/users` — Existed (available via entity_types filter)
+- [x] `/search/history` — Did not exist; replaced with localStorage (`jade_search_history`); persisted on every successful search
+- [x] `/search/saved` — Did not exist; replaced with localStorage (`jade_saved_searches`); save/delete fully client-side
 
 **Roles affected:** All roles 🟢
 
@@ -362,7 +364,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[x]` Complete |
 | FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[x]` Complete |
-| FRONT-011 | Global Search Enhancement | 12C | 🟢 Low | `[ ]` Not started |
+| FRONT-011 | Global Search Enhancement | 12C | 🟢 Low | `[x]` Complete |
 | FRONT-012 | Schema Introspection Enhancement | 12C | 🟢 Low | `[ ]` Not started |
 
 ---
