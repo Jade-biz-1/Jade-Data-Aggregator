@@ -53,7 +53,7 @@ const TransformationFunctionsPage = () => {
   const [copied, setCopied] = useState(false);
 
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     fetchFunctions();
@@ -66,14 +66,49 @@ const TransformationFunctionsPage = () => {
   const fetchFunctions = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.fetch<any>('/transformations/functions');
-      setFunctions(response.data.functions || []);
+      const response = await apiClient.fetch<any>('/transformation-functions');
+      const raw: any[] = (response as any).functions || [];
+      setFunctions(raw.map((f: any) => ({
+        id: String(f.id),
+        name: f.name,
+        category: f.category ?? '',
+        description: f.description ?? '',
+        code: '',
+        parameters: f.parameters ?? [],
+        return_type: f.return_type ?? '',
+        examples: [],
+        usage_count: f.use_count ?? 0,
+        tags: f.tags ?? [],
+        created_by: f.created_by ? String(f.created_by) : undefined,
+        created_at: f.created_at,
+      })));
       success('Function library loaded');
     } catch (error: any) {
       console.error('Error fetching functions:', error);
       showError('Failed to load function library');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectFunction = async (func: TransformationFunction) => {
+    setSelectedFunction(func);
+    setTestInput('');
+    setTestResult(null);
+    try {
+      const detail = await apiClient.fetch<any>(`/transformation-functions/${func.id}`);
+      const d = detail as any;
+      setSelectedFunction({
+        ...func,
+        code: d.function_code ?? '',
+        parameters: d.parameters ?? func.parameters,
+        return_type: d.return_type ?? func.return_type,
+        examples: (d.example_input != null || d.example_output != null)
+          ? [{ input: d.example_input, output: d.example_output, description: d.example_usage }]
+          : [],
+      });
+    } catch (error: any) {
+      console.error('Error fetching function detail:', error);
     }
   };
 
@@ -107,14 +142,15 @@ const TransformationFunctionsPage = () => {
 
     try {
       const parsedInput = JSON.parse(testInput);
-      const response = await apiClient.post<any>(`/transformations/functions/${func.id}/test`, {
-        input: parsedInput
+      const response = await apiClient.post<any>(`/transformation-functions/${func.id}/test`, {
+        test_input: parsedInput
       });
 
+      const r = response as any;
       setTestResult({
-        success: true,
-        output: response.data.output,
-        execution_time_ms: response.data.execution_time_ms
+        success: r.success !== false,
+        output: r.output ?? r.result,
+        execution_time_ms: r.execution_time_ms
       });
       success('Function tested successfully');
     } catch (error: any) {
@@ -159,7 +195,7 @@ const TransformationFunctionsPage = () => {
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -229,11 +265,7 @@ const TransformationFunctionsPage = () => {
                   filteredFunctions.map((func) => (
                     <button
                       key={func.id}
-                      onClick={() => {
-                        setSelectedFunction(func);
-                        setTestInput('');
-                        setTestResult(null);
-                      }}
+                      onClick={() => handleSelectFunction(func)}
                       className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
                         selectedFunction?.id === func.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                       }`}
@@ -369,7 +401,7 @@ const TransformationFunctionsPage = () => {
                   </div>
 
                   {/* Examples */}
-                  {selectedFunction.examples.length > 0 && (
+                  {(selectedFunction.examples?.length ?? 0) > 0 && (
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <BookOpen className="w-5 h-5" />

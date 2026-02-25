@@ -298,6 +298,30 @@ async def test_transformation_function(
     return result
 
 
+@router.get("/{function_id}/usage")
+async def get_function_usage(
+    function_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_any_authenticated())
+) -> Dict[str, Any]:
+    """Get usage statistics for a transformation function"""
+    function = await TransformationFunctionService.get_function(db, function_id)
+
+    if not function:
+        raise HTTPException(status_code=404, detail="Function not found")
+
+    return {
+        "function_id": function.id,
+        "function_name": function.name,
+        "display_name": function.display_name,
+        "use_count": function.use_count,
+        "is_builtin": function.is_builtin,
+        "is_public": function.is_public,
+        "category": function.category,
+        "created_at": function.created_at.isoformat() if function.created_at else None
+    }
+
+
 @router.post("/{function_id}/use")
 async def increment_function_use_count(
     function_id: int,

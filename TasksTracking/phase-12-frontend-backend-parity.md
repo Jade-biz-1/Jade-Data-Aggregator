@@ -216,26 +216,26 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-008 — Transformation Function Library
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to create:**
-- [ ] `app/transformations/functions/page.tsx` — Function catalog with category browse
-- [ ] `app/transformations/functions/[id]/page.tsx` — Function detail + usage examples
+- [x] `app/transformations/functions/page.tsx` — Existed; fixed URL prefix (`/transformation-functions`), removed `.data` wrapper, mapped `use_count`→`usage_count`, added `handleSelectFunction()` for two-step list+detail fetch, fixed test endpoint (`test_input` param), fixed `ToastContainer toasts={toasts}`
+- [x] `app/transformations/functions/[id]/page.tsx` — Created; full detail page with parameters, code, example input/output, test panel, usage stats panel
 
 **Components to build:**
-- [ ] `components/functions/FunctionCatalog.tsx` — Searchable function grid
-- [ ] `components/functions/FunctionCategoryFilter.tsx` — Category sidebar navigation
-- [ ] `components/functions/FunctionDetailsView.tsx` — Signature, description, parameters
-- [ ] `components/functions/FunctionTestingPanel.tsx` — Interactive input/output tester
-- [ ] `components/functions/FunctionUsageExamples.tsx` — Code examples (Python / SQL)
-- [ ] `components/functions/FunctionStatistics.tsx` — Usage count, popularity rank
+- [x] `components/functions/FunctionCatalog.tsx` — Handled inline in `functions/page.tsx` (search + category filter + list)
+- [x] `components/functions/FunctionCategoryFilter.tsx` — Handled inline; `<select>` with dynamic categories from loaded functions
+- [x] `components/functions/FunctionDetailsView.tsx` — Handled inline in `functions/page.tsx` detail panel + `[id]/page.tsx`
+- [x] `components/functions/FunctionTestingPanel.tsx` — Handled inline; JSON textarea + Run Test + result display
+- [x] `components/functions/FunctionUsageExamples.tsx` — Handled inline; `example_input`/`example_output` from detail endpoint
+- [x] `components/functions/FunctionStatistics.tsx` — Handled inline in `[id]/page.tsx` usage stats panel
 
 **Backend endpoints to integrate:**
-- [ ] `GET  /api/v1/transformation-functions` — List all functions (paginated)
-- [ ] `GET  /api/v1/transformation-functions/{id}` — Function detail
-- [ ] `GET  /api/v1/transformation-functions/categories` — Category list
-- [ ] `POST /api/v1/transformation-functions/test` — Test function with sample data
-- [ ] `GET  /api/v1/transformation-functions/{id}/usage` — Usage statistics
+- [x] `GET  /api/v1/transformation-functions` — Existed; frontend URL prefix fixed; maps `use_count`→`usage_count` at parse time
+- [x] `GET  /api/v1/transformation-functions/{id}` — Existed; fetched on function selection to get `function_code`, `example_input`, `example_output`
+- [x] `GET  /api/v1/transformation-functions/by-category` — Existed; categories derived from list response (no separate call needed)
+- [x] `POST /api/v1/transformation-functions/{id}/test` — Existed; frontend fixed body to `{test_input: ...}` and URL prefix
+- [x] `GET  /api/v1/transformation-functions/{id}/usage` — Added; returns `use_count`, `is_builtin`, `is_public`, `category`, `created_at`
 
 **Roles affected:** Designer 🔴, Developer 🟡
 
@@ -357,7 +357,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[x]` Complete |
-| FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[ ]` Not started |
+| FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[ ]` Not started |
 | FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[ ]` Not started |
 | FRONT-011 | Global Search Enhancement | 12C | 🟢 Low | `[ ]` Not started |
