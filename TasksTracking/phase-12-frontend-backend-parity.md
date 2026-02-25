@@ -76,27 +76,25 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-003 — Execution History Viewer
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
-**Pages to create:**
-- [ ] `app/pipelines/[id]/executions/page.tsx` — Execution list with filters (date, status)
-- [ ] `app/pipelines/[id]/executions/[runId]/page.tsx` — Individual run detail + logs
+**Pages:**
+- [x] `app/pipelines/[id]/executions/page.tsx` — Existed; fixed ToastContainer, response parsing, stats parsing
+- [x] `app/pipelines/[id]/executions/[runId]/page.tsx` — Existed; fixed ToastContainer, response parsing, logs shape
 
-**Components to build:**
-- [ ] `components/execution/ExecutionHistoryTable.tsx` — Paginated run list
-- [ ] `components/execution/ExecutionDetailView.tsx` — Run metadata, duration, record counts
-- [ ] `components/execution/ExecutionLogViewer.tsx` — Searchable log output
-- [ ] `components/execution/ExecutionActionsMenu.tsx` — Retry / Cancel actions
-- [ ] `components/execution/ExecutionStatistics.tsx` — Success rate, avg duration charts
-- [ ] `components/execution/ExecutionTimeline.tsx` — Visual step-by-step timeline
-
-**Backend endpoints to integrate:**
-- [ ] `GET  /api/v1/pipelines/{id}/runs` — Execution history (paginated)
-- [ ] `GET  /api/v1/pipelines/{id}/runs/{runId}` — Run details
-- [ ] `GET  /api/v1/pipelines/{id}/runs/{runId}/logs` — Run logs
-- [ ] `POST /api/v1/pipelines/{id}/runs/{runId}/retry` — Retry run
-- [ ] `POST /api/v1/pipelines/{id}/runs/{runId}/cancel` — Cancel run
-- [ ] `GET  /api/v1/pipelines/{id}/runs/statistics` — Aggregated statistics
+**Backend fixes & additions:**
+- [x] Fixed `CRUDPipelineRun` — replaced `self.model` (undefined) with `PipelineRun` in 4 query methods
+- [x] Added `PipelineRunResponse` schema with `duration_seconds`, `pipeline_name`, `trigger_type`, `steps`
+- [x] Added `PipelineExecutor.retry_run()` — clones a failed/cancelled run into a fresh execution
+- [x] Fixed route paths: `GET/POST /runs/{run_id}` → `/{pipeline_id}/runs/{run_id}` (matching frontend calls)
+- [x] `GET  /api/v1/pipelines/{id}/runs` — now accepts `days` + `status` filters; returns `PipelineRunResponse`
+- [x] `GET  /api/v1/pipelines/{id}/runs/{runId}` — fixed path; returns detail with `pipeline_name` + `steps: []`
+- [x] `GET  /api/v1/pipelines/{id}/runs/{runId}/logs` — NEW; parses `run.logs` text into structured `LogEntry[]`
+- [x] `GET  /api/v1/pipelines/{id}/runs/{runId}/logs/export` — NEW; plain-text download
+- [x] `POST /api/v1/pipelines/{id}/runs/{runId}/retry` — NEW; delegates to `retry_run()`
+- [x] `POST /api/v1/pipelines/{id}/runs/{runId}/cancel` — fixed path
+- [x] `GET  /api/v1/pipelines/{id}/runs/statistics` — NEW; total/successful/failed/avg_duration/success_rate
+- [x] `GET  /api/v1/pipelines/{id}/runs/export` — NEW; CSV export with `days`/`status` filters
 
 **Roles affected:** Executor 🔴, Developer 🔴, Admin 🟡
 
@@ -356,7 +354,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 |----|---------|-----------|----------|--------|
 | FRONT-001 | Alert Management System | 12A | 🔴 High | `[x]` Complete |
 | FRONT-002 | WebSocket Real-time Integration | 12A | 🔴 High | `[x]` Complete |
-| FRONT-003 | Execution History Viewer | 12A | 🔴 High | `[ ]` Not started |
+| FRONT-003 | Execution History Viewer | 12A | 🔴 High | `[x]` Complete |
 | FRONT-004 | Advanced Analytics Implementation | 12A | 🔴 High | `[ ]` Not started |
 | FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[ ]` Not started |
 | FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[ ]` Not started |
