@@ -61,7 +61,7 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
   const [filterStatus, setFilterStatus] = useState('all');
   const [dateRange, setDateRange] = useState('7d');
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     if (!permissionsLoading && features?.pipelines?.view) {
@@ -84,9 +84,9 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
         apiClient.fetch(`/pipelines/${pipelineId}/runs/statistics`)
       ]);
 
-      setPipelineName((pipelineRes as any).data.name);
-      setExecutions((executionsRes as any).data || []);
-      setStatistics((statsRes as any).data || null);
+      setPipelineName((pipelineRes as any).name || `Pipeline ${pipelineId}`);
+      setExecutions(Array.isArray(executionsRes) ? (executionsRes as any) : []);
+      setStatistics((statsRes as any) || null);
     } catch (err: any) {
       console.error('Error fetching execution data:', err);
       showError('Failed to load execution data');
@@ -199,7 +199,7 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

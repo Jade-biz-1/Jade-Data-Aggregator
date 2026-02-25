@@ -156,6 +156,24 @@ class PipelineExecutor:
 
         return run
 
+    async def retry_run(self, run_id: int) -> PipelineRun:
+        """Retry a failed or cancelled pipeline run."""
+        original = await crud_pipeline_run.get(self.db, id=run_id)
+        if not original:
+            raise PipelineExecutionError(f"Pipeline run {run_id} not found")
+
+        if original.status not in ("failed", "cancelled"):
+            raise PipelineExecutionError(
+                f"Cannot retry run {run_id} with status '{original.status}'. "
+                "Only failed or cancelled runs can be retried."
+            )
+
+        return await self.execute_pipeline(
+            pipeline_id=original.pipeline_id,
+            execution_config=original.execution_config,
+            triggered_by=f"retry:{original.triggered_by or 'manual'}"
+        )
+
     async def get_run_status(self, run_id: int) -> Optional[PipelineRun]:
         """Get the status of a pipeline run."""
         return await crud_pipeline_run.get(self.db, id=run_id)

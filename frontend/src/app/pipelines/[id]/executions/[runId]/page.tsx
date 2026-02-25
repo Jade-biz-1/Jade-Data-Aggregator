@@ -81,7 +81,7 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
   const [searchTerm, setSearchTerm] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const { features, loading: permissionsLoading } = usePermissions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, toasts } = useToast();
 
   useEffect(() => {
     if (!permissionsLoading && features?.pipelines?.view) {
@@ -105,11 +105,11 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
         apiClient.fetch<any>(`/pipelines/${pipelineId}/runs/${runId}/logs`)
       ]);
 
-      setExecution(executionRes.data);
-      setLogs(logsRes.data || []);
+      setExecution(executionRes as any);
+      setLogs((logsRes as any).logs || []);
 
       // Auto-enable refresh if running
-      if (executionRes.data.status === 'running') {
+      if ((executionRes as any).status === 'running') {
         setAutoRefresh(true);
       }
     } catch (err: any) {
@@ -282,7 +282,7 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <DashboardLayout>
-      <ToastContainer toasts={[]} />
+      <ToastContainer toasts={toasts} />
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
