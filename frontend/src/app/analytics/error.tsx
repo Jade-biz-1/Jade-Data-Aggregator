@@ -13,7 +13,7 @@ interface ErrorProps {
 
 export default function AnalyticsError({ error, reset }: ErrorProps) {
   useEffect(() => {
-    import('../../../../../lib/sentry')
+    import('../../../lib/sentry')
       .then(({ captureException }) => captureException(error, { tags: { page: 'analytics' } }))
       .catch(() => {});
   }, [error]);

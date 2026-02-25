@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { SkipLink } from '@/components/ui/SkipLink';
-import { initSentryClient } from '../../../lib/sentry';
+import { initSentryClient } from '../../lib/sentry';
 
 interface ClientLayoutProps {
   children: React.ReactNode;

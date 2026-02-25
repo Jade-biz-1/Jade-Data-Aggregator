@@ -17,7 +17,7 @@ interface ErrorProps {
 export default function GlobalError({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Report to Sentry if available (import is lazy to avoid circular deps)
-    import('../../../lib/sentry')
+    import('../../lib/sentry')
       .then(({ captureException }) => captureException(error))
       .catch(() => {/* Sentry unavailable — swallow */});
   }, [error]);

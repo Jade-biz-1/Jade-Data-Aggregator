@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const { login, isLoading } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +24,11 @@ export default function LoginPage() {
 
     try {
       await login({ username, password });
-      router.push('/dashboard');
+      const redirectTarget = searchParams.get('redirect');
+      const safeRedirect = redirectTarget && redirectTarget.startsWith('/')
+        ? redirectTarget
+        : '/dashboard';
+      router.replace(safeRedirect);
     } catch (error: any) {
       // Handle different error response formats
       let errorMessage = 'Invalid username or password';

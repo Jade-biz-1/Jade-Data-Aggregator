@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify, JWTPayload } from 'jose';
+import { decodeJwt, jwtVerify, JWTPayload } from 'jose';
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -70,13 +70,16 @@ function hasRequiredRole(userRole: string, requiredRole: string, exact: boolean 
 async function getUserRoleFromToken(token: string): Promise<string | null> {
   const secret = process.env.JWT_SECRET_KEY || process.env.NEXT_PUBLIC_JWT_SECRET_KEY;
 
-  if (!secret) {
-    return null;
-  }
-
   try {
-    const encoder = new TextEncoder();
-    const { payload } = await jwtVerify(token, encoder.encode(secret));
+    let payload: JWTPayload;
+
+    if (secret) {
+      const encoder = new TextEncoder();
+      const verified = await jwtVerify(token, encoder.encode(secret));
+      payload = verified.payload;
+    } else {
+      payload = decodeJwt(token);
+    }
 
     const role = (payload as JWTPayload & { role?: string; roles?: string | string[] }).role;
 

@@ -3,11 +3,20 @@ Sentry Integration for Error Tracking
 Comprehensive error monitoring and reporting
 """
 
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    SENTRY_AVAILABLE = True
+except ImportError:
+    sentry_sdk = None
+    FastApiIntegration = None
+    SqlalchemyIntegration = None
+    RedisIntegration = None
+    LoggingIntegration = None
+    SENTRY_AVAILABLE = False
 import os
 import logging
 
@@ -16,6 +25,10 @@ def init_sentry():
     """
     Initialize Sentry error tracking
     """
+    if not SENTRY_AVAILABLE:
+        logging.warning("sentry-sdk not installed - Sentry error tracking disabled")
+        return
+
     # Get Sentry DSN from environment
     sentry_dsn = os.getenv('SENTRY_DSN')
 
@@ -151,6 +164,9 @@ def capture_exception(exception: Exception, **kwargs):
     """
     Manually capture exception with additional context
     """
+    if not SENTRY_AVAILABLE:
+        return
+
     with sentry_sdk.push_scope() as scope:
         # Add custom context
         for key, value in kwargs.items():
@@ -164,6 +180,9 @@ def capture_message(message: str, level: str = 'info', **kwargs):
     """
     Manually capture message with additional context
     """
+    if not SENTRY_AVAILABLE:
+        return
+
     with sentry_sdk.push_scope() as scope:
         # Add custom context
         for key, value in kwargs.items():
@@ -177,6 +196,9 @@ def set_user_context(user_id: str, email: str = None, username: str = None):
     """
     Set user context for error tracking
     """
+    if not SENTRY_AVAILABLE:
+        return
+
     sentry_sdk.set_user({
         'id': user_id,
         'email': email,
@@ -188,6 +210,9 @@ def set_request_context(request_id: str, endpoint: str, method: str):
     """
     Set request context for error tracking
     """
+    if not SENTRY_AVAILABLE:
+        return
+
     sentry_sdk.set_context('request', {
         'request_id': request_id,
         'endpoint': endpoint,
@@ -199,6 +224,9 @@ def add_breadcrumb(message: str, category: str, level: str = 'info', data: dict 
     """
     Add breadcrumb for error context
     """
+    if not SENTRY_AVAILABLE:
+        return
+
     sentry_sdk.add_breadcrumb(
         message=message,
         category=category,
@@ -211,6 +239,9 @@ def configure_scope(tags: dict = None, extras: dict = None):
     """
     Configure Sentry scope with tags and extras
     """
+    if not SENTRY_AVAILABLE:
+        return None
+
     scope = sentry_sdk.configure_scope()
 
     if tags:
