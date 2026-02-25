@@ -17,7 +17,7 @@ from backend.models.user import User
 from backend.services.dashboard_layout_service import dashboard_layout_service
 
 
-router = APIRouter(prefix="/dashboards", tags=["dashboards"])
+router = APIRouter(tags=["dashboards"])
 
 
 # Schemas

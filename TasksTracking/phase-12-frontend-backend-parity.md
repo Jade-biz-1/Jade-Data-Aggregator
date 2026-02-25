@@ -249,26 +249,28 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-009 — Dashboard Customization
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to implement:**
-- [ ] `app/dashboard/customize/page.tsx` — Full drag-and-drop dashboard builder
+- [x] `app/dashboard/customize/page.tsx` — Existed; thin wrapper delegating to `DashboardCustomizer`; no bugs
 
 **Components to build:**
-- [ ] `components/dashboard/DashboardBuilder.tsx` — Drag-and-drop widget canvas
-- [ ] `components/dashboard/WidgetLibrary.tsx` — Available widget catalog
-- [ ] `components/dashboard/WidgetConfigPanel.tsx` — Per-widget settings panel
-- [ ] `components/dashboard/DashboardTemplates.tsx` — Template browser
-- [ ] `components/dashboard/DashboardPreview.tsx` — Live preview while editing
+- [x] `components/dashboard/DashboardBuilder.tsx` — Handled inline in `DashboardCustomizer.tsx` (drag-and-drop reorder, grid layout)
+- [x] `components/dashboard/WidgetLibrary.tsx` — Handled inline; `WIDGET_TEMPLATES` catalog modal
+- [x] `components/dashboard/WidgetConfigPanel.tsx` — Handled inline; size toggle + duplicate + remove per widget
+- [x] `components/dashboard/DashboardTemplates.tsx` — Handled inline; "Layouts & Templates" modal with My Layouts + Templates sections
+- [x] `components/dashboard/DashboardPreview.tsx` — Not needed; live canvas serves as preview
 
-**Backend endpoints to integrate:**
-- [ ] `GET    /api/v1/dashboards` — User's saved dashboards
-- [ ] `POST   /api/v1/dashboards` — Create dashboard
-- [ ] `PUT    /api/v1/dashboards/{id}` — Update dashboard
-- [ ] `DELETE /api/v1/dashboards/{id}` — Delete dashboard
-- [ ] `GET    /api/v1/dashboards/templates` — Dashboard templates
-- [ ] `POST   /api/v1/dashboards/{id}/clone` — Clone dashboard
-- [ ] `POST   /api/v1/dashboards/{id}/set-default` — Set as default
+**Backend fixes & integrations:**
+- [x] Fixed `dashboards.py` — removed duplicate `prefix="/dashboards"` from `APIRouter()` constructor (was double-mounting as `/dashboards/dashboards/*`)
+- [x] `GET  /api/v1/dashboards` — Existed; frontend URL fixed from `/dashboards/layouts` → `/dashboards`; response is plain array, removed `.layouts` key lookup; mapped `layout_config.widgets` → `layout`
+- [x] `POST /api/v1/dashboards` — Existed; frontend body fixed: `{ layout: widgets }` → `{ name, layout_config: { widgets }, is_default, is_shared }`; response mapped with `mapLayout()`
+- [x] `PUT  /api/v1/dashboards/{id}` — Existed; URL fixed from `/dashboards/layouts/{id}` → `/dashboards/{id}`; same body fix
+- [x] `DELETE /api/v1/dashboards/{id}` — Existed; URL fixed from `/dashboards/layouts/{id}` → `/dashboards/{id}`
+- [x] `GET  /api/v1/dashboards/templates` — Existed; added `loadTemplates()` + `templates` state; shown in Templates modal
+- [x] `POST /api/v1/dashboards/{id}/clone` — Existed; added `cloneTemplate()` — clones template into user's layouts and loads it into canvas
+- [x] `POST /api/v1/dashboards/{id}/set-default` — Existed; added `setDefaultLayout()` — "Default" button in saved layouts panel
+- [x] `GET  /api/v1/dashboards/{id}` — Existed; URL fixed from `/dashboards/layouts/{id}` → `/dashboards/{id}`; `mapLayout()` converts `layout_config.widgets` → `layout`
 
 **Roles affected:** All roles 🟡
 
@@ -358,7 +360,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[x]` Complete |
-| FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[ ]` Not started |
+| FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[x]` Complete |
 | FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[ ]` Not started |
 | FRONT-011 | Global Search Enhancement | 12C | 🟢 Low | `[ ]` Not started |
 | FRONT-012 | Schema Introspection Enhancement | 12C | 🟢 Low | `[ ]` Not started |
