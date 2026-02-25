@@ -51,22 +51,24 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-002 — WebSocket Real-time Integration
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Services / hooks to create:**
-- [ ] `src/services/websocket.ts` — WebSocket manager (connect, reconnect, auth, teardown)
-- [ ] `src/hooks/useWebSocket.ts` — React hook wrapping the manager
+- [x] `src/services/websocket.ts` — WebSocket manager (connect, reconnect, auth, teardown) — fixed singleton URLs to `/api/v1/ws`
+- [x] `src/hooks/useWebSocket.ts` — React hook wrapping the manager (already existed)
+- [x] `src/hooks/useRealTimeMetrics.ts` — system metrics hook (already existed)
+- [x] `src/hooks/useRealTimePipelineStatus.ts` — pipeline status hook (already existed)
+- [x] `src/hooks/useRealTimeNotifications.ts` — notifications hook (already existed)
 
 **Pages / components to update:**
-- [ ] `app/monitoring/live/page.tsx` — Connect live execution feed via WebSocket
-- [ ] `app/monitoring/performance/page.tsx` — Stream live metrics
-- [ ] `app/dashboard/page.tsx` — Real-time pipeline status and system stats
-- [ ] `app/pipelines/page.tsx` — Live status badge updates per pipeline
+- [x] `app/monitoring/live/page.tsx` — Already wired to WS hooks
+- [x] `app/monitoring/performance/page.tsx` — Added live CPU/Memory/Disk panel + WS indicator
+- [x] `app/dashboard/page.tsx` — Already had real-time widgets
+- [x] `app/pipelines/page.tsx` — WS pipeline_status messages update status badges + Live indicator
 
-**Backend WebSocket endpoints to integrate:**
-- [ ] `WS /api/v1/ws/pipeline-status` — Per-pipeline run events
-- [ ] `WS /api/v1/ws/metrics` — System metrics stream
-- [ ] `WS /api/v1/ws/notifications` — User notification events
+**Backend WebSocket endpoints integrated:**
+- [x] `WS /api/v1/ws` — Shared endpoint; delivers `system_metrics`, `system_alert`, `pipeline_status`, `pipeline_progress`, `pipeline_log`, `pipeline_error` message types
+- [x] `WS /api/v1/ws/pipeline/{id}` — Per-pipeline subscription endpoint
 
 **Roles affected:** Developer 🔴, Executor 🔴, Admin 🟡
 
@@ -353,7 +355,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | ID | Feature | Sub-phase | Priority | Status |
 |----|---------|-----------|----------|--------|
 | FRONT-001 | Alert Management System | 12A | 🔴 High | `[x]` Complete |
-| FRONT-002 | WebSocket Real-time Integration | 12A | 🔴 High | `[ ]` Not started |
+| FRONT-002 | WebSocket Real-time Integration | 12A | 🔴 High | `[x]` Complete |
 | FRONT-003 | Execution History Viewer | 12A | 🔴 High | `[ ]` Not started |
 | FRONT-004 | Advanced Analytics Implementation | 12A | 🔴 High | `[ ]` Not started |
 | FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[ ]` Not started |
