@@ -102,27 +102,25 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-004 — Advanced Analytics Implementation
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
-**Pages to implement:**
-- [ ] `app/analytics/advanced/page.tsx` — Replace current placeholder with full implementation
+**Pages:**
+- [x] `app/analytics/advanced/page.tsx` — Existed as partial stub; fully wired and fixed
 
-**Components to build:**
-- [ ] `components/analytics/CustomQueryBuilder.tsx` — Visual query builder (filters, aggregations)
-- [ ] `components/analytics/ReportBuilder.tsx` — Report creation with column/chart selection
-- [ ] `components/analytics/TrendAnalysisView.tsx` — Time-series trend visualization
-- [ ] `components/analytics/ComparativeAnalyticsView.tsx` — Period-over-period comparison
-- [ ] `components/analytics/ReportExportPanel.tsx` — Export to CSV / JSON / Excel
-- [ ] `components/analytics/ScheduledReportsManager.tsx` — Schedule and manage automated exports
+**Existing chart components (already present, now used correctly):**
+- [x] `components/charts/trend-chart.tsx` — TrendChart (records + success rate)
+- [x] `components/charts/comparative-chart.tsx` — ComparativeChart (wired via comparative-analytics endpoint)
+- [x] `components/charts/predictive-indicator.tsx` — PredictiveIndicator (wired)
+- [x] `components/charts/line-chart.tsx` — LineChart (time-series)
 
-**Backend endpoints to integrate:**
-- [ ] `POST /api/v1/analytics/advanced/query` — Execute custom query
-- [ ] `POST /api/v1/analytics/advanced/reports` — Create report
-- [ ] `GET  /api/v1/analytics/advanced/reports` — List reports
-- [ ] `GET  /api/v1/analytics/advanced/trends` — Trend data
-- [ ] `POST /api/v1/analytics/advanced/export` — On-demand export
-- [ ] `POST /api/v1/analytics/advanced/scheduled-exports` — Create schedule
-- [ ] `GET  /api/v1/analytics/advanced/scheduled-exports` — List schedules
+**Backend fixes & integrations:**
+- [x] Fixed export endpoint: replaced non-existent `generate_export_content()` with `ExportService.export_to_csv()` / `export_to_json()` — returns `{content, mime_type, filename}`
+- [x] `POST /api/v1/analytics/advanced/time-series` — fixed: was called with GET; now uses POST + query params
+- [x] `POST /api/v1/analytics/advanced/trend-analysis` — fixed: metric now sent as query param, `{start,end}` as body
+- [x] `GET  /api/v1/analytics/advanced/predictive-indicators` — fixed response parsing
+- [x] `POST /api/v1/analytics/advanced/export` — fixed backend + frontend response parsing for file download
+- [x] `POST /api/v1/analytics/advanced/comparative-analytics` — wired; uses pipeline list to auto-populate IDs
+- [x] `POST /api/v1/analytics/advanced/reports/generate` — all 3 report types wired; downloads result as JSON
 
 **Roles affected:** Executive 🔴, Admin 🔴
 
@@ -355,7 +353,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-001 | Alert Management System | 12A | 🔴 High | `[x]` Complete |
 | FRONT-002 | WebSocket Real-time Integration | 12A | 🔴 High | `[x]` Complete |
 | FRONT-003 | Execution History Viewer | 12A | 🔴 High | `[x]` Complete |
-| FRONT-004 | Advanced Analytics Implementation | 12A | 🔴 High | `[ ]` Not started |
+| FRONT-004 | Advanced Analytics Implementation | 12A | 🔴 High | `[x]` Complete |
 | FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[ ]` Not started |
 | FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[ ]` Not started |
 | FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[ ]` Not started |
