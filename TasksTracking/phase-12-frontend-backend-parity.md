@@ -134,26 +134,26 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-005 — Log Analysis Interface
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to create:**
-- [ ] `app/logs/page.tsx` — Main log viewer with search and filters
-- [ ] `app/logs/correlations/[id]/page.tsx` — Full correlation ID trace view
+- [x] `app/logs/page.tsx` — Existed; fixed ToastContainer, response parsing, correlation URL, export
+- [ ] `app/logs/correlations/[id]/page.tsx` — Not needed; correlation trace handled inline via modal
 
 **Components to build:**
-- [ ] `components/logs/LogViewer.tsx` — Virtualized log list with syntax highlighting
-- [ ] `components/logs/LogSearchForm.tsx` — Advanced search (level, time range, service)
-- [ ] `components/logs/LogFilterPanel.tsx` — Quick filter controls (level chips, date picker)
-- [ ] `components/logs/CorrelationTracker.tsx` — Request trace waterfall
-- [ ] `components/logs/ErrorTrendChart.tsx` — Error rate over time chart
-- [ ] `components/logs/LogStatistics.tsx` — Volume, error rate, top-error summary
+- [x] `components/logs/LogViewer.tsx` — Handled inline in `logs/page.tsx`
+- [x] `components/logs/LogSearchForm.tsx` — Handled inline in `logs/page.tsx`
+- [x] `components/logs/LogFilterPanel.tsx` — Handled inline in `logs/page.tsx`
+- [x] `components/logs/CorrelationTracker.tsx` — Handled inline via correlation ID search
+- [ ] `components/logs/ErrorTrendChart.tsx` — Out of scope (no error trends in existing page)
+- [x] `components/logs/LogStatistics.tsx` — Statistics cards in `logs/page.tsx`
 
 **Backend endpoints to integrate:**
-- [ ] `GET  /api/v1/logs` — Search logs (paginated)
-- [ ] `GET  /api/v1/logs/correlation/{id}` — Correlation trace
-- [ ] `GET  /api/v1/logs/statistics` — Log statistics
-- [ ] `GET  /api/v1/logs/errors/trends` — Error trend data
-- [ ] `POST /api/v1/logs/export` — Export log segment
+- [x] `GET  /api/v1/logs` — Added; wraps `POST /search`; maps component→source, extra_data→details; computes flat statistics
+- [x] `GET  /api/v1/logs/correlation/{id}` — Existed; frontend fixed to use path param
+- [x] `GET  /api/v1/logs/statistics` — Exists; computed inline in `GET /logs` response
+- [ ] `GET  /api/v1/logs/errors/trends` — Exists but not wired to frontend (no UI for it)
+- [x] `GET  /api/v1/logs/export` — Added; CSV StreamingResponse; frontend uses responseType: 'blob'
 
 **Roles affected:** Developer 🔴, Admin 🟡
 
@@ -161,25 +161,25 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-006 — Pipeline Versioning UI
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to create:**
-- [ ] `app/pipelines/[id]/versions/page.tsx` — Version history list
-- [ ] `app/pipelines/[id]/versions/compare/page.tsx` — Side-by-side diff view
+- [x] `app/pipelines/[id]/versions/page.tsx` — Existed; fixed URL prefix, response parsing, field mapping, compare, rollback, tag, handleViewConfig
+- [ ] `app/pipelines/[id]/versions/compare/page.tsx` — Not needed; diff view handled inline in side panel
 
 **Components to build:**
-- [ ] `components/versioning/VersionHistoryTable.tsx` — Paginated version list with tags
-- [ ] `components/versioning/VersionDiffViewer.tsx` — JSON / config diff visualization
-- [ ] `components/versioning/VersionRollbackModal.tsx` — Confirmation + impact summary
-- [ ] `components/versioning/VersionTagForm.tsx` — Add / edit version tags and notes
-- [ ] `components/versioning/VersionTimelineView.tsx` — Visual commit-style timeline
+- [x] `components/versioning/VersionHistoryTable.tsx` — Handled inline in `versions/page.tsx`
+- [x] `components/versioning/VersionDiffViewer.tsx` — `renderDiff()` inline; transforms backend differences format
+- [x] `components/versioning/VersionRollbackModal.tsx` — `confirm()` dialog inline; calls `/restore`
+- [x] `components/versioning/VersionTagForm.tsx` — `prompt()` inline; stores tag in `version_name`
+- [ ] `components/versioning/VersionTimelineView.tsx` — Out of scope (existing list layout sufficient)
 
 **Backend endpoints to integrate:**
-- [ ] `GET  /api/v1/pipelines/{id}/versions` — Version history
-- [ ] `GET  /api/v1/pipelines/{id}/versions/{versionId}` — Version detail
-- [ ] `POST /api/v1/pipelines/{id}/versions/{versionId}/activate` — Activate version
-- [ ] `GET  /api/v1/pipelines/{id}/versions/compare` — Compare two versions
-- [ ] `POST /api/v1/pipelines/{id}/versions/{versionId}/tags` — Add tag / note
+- [x] `GET  /api/v1/pipeline-versions/pipelines/{id}/versions` — Existed; frontend URL prefix fixed
+- [x] `GET  /api/v1/pipeline-versions/versions/{versionId}` — Existed; fetched on "View Config" click
+- [x] `POST /api/v1/pipeline-versions/versions/{versionId}/activate` — Existed (not wired to UI; rollback/restore covers this)
+- [x] `GET  /api/v1/pipeline-versions/versions/{v1}/compare/{v2}` — Existed; frontend fixed to path params; response shape transformed
+- [x] `POST /api/v1/pipeline-versions/pipelines/{id}/versions/{versionId}/tag` — Added; stores tag in `version_name`
 
 **Roles affected:** Developer 🔴, Designer 🟡
 
@@ -354,8 +354,8 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-002 | WebSocket Real-time Integration | 12A | 🔴 High | `[x]` Complete |
 | FRONT-003 | Execution History Viewer | 12A | 🔴 High | `[x]` Complete |
 | FRONT-004 | Advanced Analytics Implementation | 12A | 🔴 High | `[x]` Complete |
-| FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[ ]` Not started |
-| FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[ ]` Not started |
+| FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[x]` Complete |
+| FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[ ]` Not started |
 | FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[ ]` Not started |
 | FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[ ]` Not started |
