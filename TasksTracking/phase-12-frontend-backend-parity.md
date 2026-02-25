@@ -187,28 +187,28 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-007 — System Cleanup UI
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to enhance:**
-- [ ] `app/admin/maintenance/page.tsx` — Enhance existing page (do not recreate)
+- [x] `app/admin/maintenance/page.tsx` — Existed (1006 lines); fixed ToastContainer, schedule field mapping, cleanupResults guards
 
 **Components to build:**
-- [ ] `components/admin/CleanupOperationsPanel.tsx` — One-click cleanup buttons with confirmation
-- [ ] `components/admin/CleanupStatistics.tsx` — Before/after disk and record counts
-- [ ] `components/admin/CleanupHistoryTable.tsx` — Past cleanup jobs with results
-- [ ] `components/admin/CleanupScheduler.tsx` — Cron-style schedule configuration
-- [ ] `components/admin/DiskSpaceMetrics.tsx` — Visual disk usage gauge
+- [x] `components/admin/CleanupOperationsPanel.tsx` — Handled inline; 4 operation buttons + Run All with ConfirmDialog
+- [x] `components/admin/CleanupStatistics.tsx` — Stats cards + PieChart + BarChart inline
+- [x] `components/admin/CleanupHistoryTable.tsx` — History tab inline; backend is placeholder (returns []) — displays empty state correctly
+- [x] `components/admin/CleanupScheduler.tsx` — Schedule tab inline; fixed field mapping with cronToScheduleType/scheduleTypeToCron helpers
+- [x] `components/admin/DiskSpaceMetrics.tsx` — Database Size card + record distribution chart inline
 
 **Backend endpoints to integrate:**
-- [ ] `POST /api/v1/admin/cleanup/activity-logs` — Clean activity logs
-- [ ] `POST /api/v1/admin/cleanup/orphaned-data` — Remove orphaned data
-- [ ] `POST /api/v1/admin/cleanup/temp-files` — Remove temp files
-- [ ] `POST /api/v1/admin/cleanup/execution-logs` — Clean execution logs
-- [ ] `POST /api/v1/admin/cleanup/database-vacuum` — Vacuum database
-- [ ] `POST /api/v1/admin/cleanup/sessions` — Clean expired sessions
-- [ ] `POST /api/v1/admin/cleanup/all` — Run all cleanups
-- [ ] `GET  /api/v1/admin/cleanup/statistics` — Cleanup stats
-- [ ] `GET  /api/v1/admin/cleanup/history` — Cleanup history
+- [x] `POST /api/v1/admin/cleanup/activity-logs` — Existed; frontend uses raw fetch (correct full path)
+- [x] `POST /api/v1/admin/cleanup/orphaned-data` — Existed; wired
+- [x] `POST /api/v1/admin/cleanup/temp-files` — Existed; wired
+- [x] `POST /api/v1/admin/cleanup/execution-logs` — Existed; wired
+- [x] `POST /api/v1/admin/cleanup/database-vacuum` — Existed; wired
+- [x] `POST /api/v1/admin/cleanup/expired-sessions` — Existed (note: backend path is /expired-sessions not /sessions); wired
+- [x] `POST /api/v1/admin/cleanup/all` — Existed; adds duration_seconds in admin endpoint wrapper
+- [x] `GET  /api/v1/admin/cleanup/stats` — Existed (note: path is /stats not /statistics); wired
+- [x] `GET  /api/v1/admin/cleanup/history` — Existed but is placeholder; returns [] — handled gracefully with empty state UI
 
 **Roles affected:** Admin 🔴
 
@@ -356,7 +356,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-004 | Advanced Analytics Implementation | 12A | 🔴 High | `[x]` Complete |
 | FRONT-005 | Log Analysis Interface | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-006 | Pipeline Versioning UI | 12B | 🟡 Medium | `[x]` Complete |
-| FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[ ]` Not started |
+| FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[ ]` Not started |
 | FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[ ]` Not started |
 | FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[ ]` Not started |
