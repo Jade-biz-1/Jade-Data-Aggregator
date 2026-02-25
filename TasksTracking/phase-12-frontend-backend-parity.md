@@ -278,24 +278,24 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 
 ### FRONT-010 — Enhanced Connector Configuration
 
-**Status:** `[ ]` Not started
+**Status:** `[x]` Complete
 
 **Pages to enhance:**
-- [ ] `app/connectors/configure/page.tsx` — Enhance existing page
+- [x] `app/connectors/configure/page.tsx` — Existed; fixed `handleSubmit` to strip top-level fields (`name`, `is_active`) from `config` payload before POST/PUT; added guaranteed `owner_id` from `currentUser`
 
 **Components to build:**
-- [ ] `components/connectors/DynamicFormBuilder.tsx` — Schema-driven form generation
-- [ ] `components/connectors/ConfigurationValidator.tsx` — Real-time field validation
-- [ ] `components/connectors/ConfigurationRecommendations.tsx` — Best-practice suggestions
-- [ ] `components/connectors/ConnectionTestPanel.tsx` — Enhanced test with diagnostics
-- [ ] `components/connectors/ConnectorTypeSelector.tsx` — Visual connector type catalog
+- [x] `components/connectors/DynamicFormBuilder.tsx` — Handled by `components/forms/DynamicForm.tsx` (already existed); fixed to use `api` axios instance instead of raw `fetch`
+- [x] `components/connectors/ConfigurationValidator.tsx` — Handled inline in `configure/page.tsx`; calls `POST /configuration/validate` before save
+- [x] `components/connectors/ConfigurationRecommendations.tsx` — Added inline in `DynamicForm.tsx`; debounced `POST /configuration/recommendations` on form value change; amber banner with bullet-list suggestions
+- [x] `components/connectors/ConnectionTestPanel.tsx` — Handled in `DynamicForm.tsx`; "Test Connection" button calls `POST /configuration/test-connection`; fixed to use `api` instead of raw `fetch`
+- [x] `components/connectors/ConnectorTypeSelector.tsx` — Handled inline in `configure/page.tsx`; grid of cards grouped by category
 
 **Backend endpoints to integrate:**
-- [ ] `GET  /api/v1/configuration/schema/{connectorType}` — Config schema for type
-- [ ] `POST /api/v1/configuration/validate` — Validate configuration
-- [ ] `GET  /api/v1/configuration/recommendations` — Best-practice recommendations
-- [ ] `POST /api/v1/connectors/test` — Test connection
-- [ ] `GET  /api/v1/configuration/connector-types` — Connector type catalog
+- [x] `GET  /api/v1/configuration/schemas/{connectorType}` — Existed; `DynamicForm.tsx` fixed to use `api.get` (was raw fetch with manual URL construction)
+- [x] `POST /api/v1/configuration/validate` — Existed; called in `configure/page.tsx` before save ✓
+- [x] `POST /api/v1/configuration/recommendations` — Existed (note: POST not GET); added in `DynamicForm.tsx` with 900ms debounce on form value changes
+- [x] `POST /api/v1/configuration/test-connection` — Existed; `DynamicForm.tsx` fixed to use `api.post` (was raw fetch); note: tracking file listed wrong path `/connectors/test` — actual path is `/configuration/test-connection`
+- [x] `GET  /api/v1/configuration/connector-types` — Existed; called in `configure/page.tsx` ✓
 
 **Roles affected:** Developer 🟡, Designer 🟡
 
@@ -361,7 +361,7 @@ Close the gap between the 100%-complete backend (212 endpoints, 26 routers) and 
 | FRONT-007 | System Cleanup UI | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-008 | Transformation Function Library | 12B | 🟡 Medium | `[x]` Complete |
 | FRONT-009 | Dashboard Customization | 12C | 🟢 Low | `[x]` Complete |
-| FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[ ]` Not started |
+| FRONT-010 | Enhanced Connector Configuration | 12C | 🟢 Low | `[x]` Complete |
 | FRONT-011 | Global Search Enhancement | 12C | 🟢 Low | `[ ]` Not started |
 | FRONT-012 | Schema Introspection Enhancement | 12C | 🟢 Low | `[ ]` Not started |
 
