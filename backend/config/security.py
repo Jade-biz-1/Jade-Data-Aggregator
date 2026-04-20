@@ -63,7 +63,10 @@ class SecurityConfig:
         if not secret:
             if os.getenv('ENVIRONMENT') == 'production':
                 raise ValueError("JWT_SECRET_KEY must be set in production")
-            secret = 'dev-secret-key-change-in-production'
+            # Generate a secure random key for development
+            import secrets
+            secret = secrets.token_urlsafe(32)
+            print("⚠️ Using a temporary development secret key. Replace this in production.")
         return secret
 
     @classmethod

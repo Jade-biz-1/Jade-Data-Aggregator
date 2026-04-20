@@ -7,6 +7,7 @@ from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Callable
 import time
+from uuid import uuid4
 from redis import Redis
 from functools import wraps
 
@@ -66,8 +67,9 @@ class RateLimiter:
                     'retry_after': retry_after
                 }
 
-            # Add current request
-            self.redis.zadd(redis_key, {str(current_time): current_time})
+            # Add current request with a unique member to avoid collisions
+            member = f"{current_time}:{uuid4().hex}"
+            self.redis.zadd(redis_key, {member: current_time})
 
             # Set expiry on the key
             self.redis.expire(redis_key, window_seconds)
