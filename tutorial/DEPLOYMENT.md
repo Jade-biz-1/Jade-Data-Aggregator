@@ -60,45 +60,32 @@ Create `vercel.json`:
 
 ### Option 2: Docker
 
+This repository now includes a production-ready `Dockerfile` and a `docker-compose.yml` at the tutorial root.
+
 #### Dockerfile
 
 ```dockerfile
-FROM node:18-alpine AS base
-
-# Install dependencies
-FROM base AS deps
+FROM node:18-alpine AS deps
 WORKDIR /app
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build application
-FROM base AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
+COPY package.json package-lock.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-# Production image
-FROM base AS runner
+FROM node:18-alpine AS runner
 WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
+COPY package.json ./package.json
 EXPOSE 4000
-
-ENV PORT 4000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
+CMD ["npm", "run", "start"]
 ```
 
 #### Build and Run
@@ -113,7 +100,13 @@ docker run -p 4000:4000 \
   -e NEXT_PUBLIC_APP_URL=http://localhost:4000 \
   tutorial-app
 ```
+#### Docker Compose
 
+A companion `docker-compose.yml` is available for local tutorial deployment and includes backend dependencies (Postgres, Redis, Kafka, Zookeeper, backend, and tutorial services).
+
+```bash
+docker compose up --build
+```
 #### Docker Compose
 
 ```yaml

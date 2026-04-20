@@ -55,14 +55,15 @@ Edit `.env` file to customize:
 ```bash
 # Security (CHANGE THESE!)
 SECRET_KEY=your-super-secret-key-here
-FIRST_SUPERUSER_PASSWORD=admin123!
 
 # Database
 POSTGRES_PASSWORD=postgres
 
-# Ports (if conflicts)
-# Default: Frontend=3000, Backend=8001
+# Frontend port (if conflict with port 3000)
+FRONTEND_PORT=3001
 ```
+
+> **Note:** The default admin password (`admin123!`) is set in `backend/core/init_db.py` and is not configurable via `.env`. Change it after first login under Settings → Security.
 
 ---
 
@@ -139,9 +140,13 @@ docker compose up -d
 
 **Port already in use?**
 ```bash
-# Change ports in .env
+# Frontend port — change in .env
 FRONTEND_PORT=3001
-BACKEND_PORT=8002
+
+# Backend port (8001) is hardcoded in docker-compose.yml.
+# To change it, edit the backend service ports line directly:
+#   ports:
+#     - "8002:8001"
 ```
 
 **Out of disk space?**

@@ -2558,10 +2558,10 @@ This section provides a step-by-step guide for new users to start using the Data
 A: The platform supports REST APIs, various SQL and NoSQL databases, file-based sources (CSV, JSON, XML, Excel), and popular SaaS platforms like Salesforce and HubSpot.
 
 **Q: How does the platform handle large volumes of data?**  
-A: The platform is designed with horizontal scaling in mind, using Apache Kafka for message queuing, Apache Flink for stream processing, and Apache Spark for batch processing. It can handle up to 100,000 records per minute.
+A: The platform is designed with horizontal scaling in mind, using Apache Kafka for message queuing, Python-based transformation pipelines, PostgreSQL for storage, and Redis for caching and session state. Batch and near-real-time processing are handled by the backend service layer with asynchronous workers.
 
 **Q: Is the platform suitable for real-time data processing?**  
-A: Yes, the platform supports both real-time streaming and batch processing. Apache Kafka handles event streaming, while Flink processes real-time data streams with low latency.
+A: Yes. The platform supports near-real-time updates and event-driven workflows using Kafka for event delivery, Redis for cache and session state, and WebSockets for live UI updates. The current implementation relies on Python and FastAPI rather than dedicated Flink or Spark processing engines.
 
 ### 12.2 Technical Questions
 
