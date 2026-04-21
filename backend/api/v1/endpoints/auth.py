@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import (
     APIRouter,
@@ -7,6 +7,7 @@ from fastapi import (
     Form,
     HTTPException,
     Request,
+    Response,
     status,
 )
 from fastapi.security import HTTPBearer
@@ -60,8 +61,8 @@ async def login(
     user = await crud.user.get_by_username(db, username=username)
 
     # --- FEAT-002: Account lockout check ---
-    if user and user.lockout_until and user.lockout_until > datetime.utcnow():
-        remaining = int((user.lockout_until - datetime.utcnow()).total_seconds() // 60) + 1
+    if user and user.lockout_until and user.lockout_until > datetime.now(timezone.utc):
+        remaining = int((user.lockout_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account is temporarily locked due to too many failed login attempts. "
@@ -75,7 +76,7 @@ async def login(
         if user:
             user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
             if user.failed_login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
-                user.lockout_until = datetime.utcnow() + timedelta(
+                user.lockout_until = datetime.now(timezone.utc) + timedelta(
                     minutes=settings.LOCKOUT_DURATION
                 )
             await db.commit()
@@ -503,7 +504,7 @@ async def verify_2fa(
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
     if not security.verify_otp(db_user.otp_secret, body.code):
-        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+        raise HTTPException(status_code=401, detail="Invalid TOTP code")
 
     access_token = security.create_access_token(
         subject=db_user.username,
@@ -548,7 +549,7 @@ async def verify_2fa_recovery(
             break
 
     if matched_index is None:
-        raise HTTPException(status_code=400, detail="Invalid recovery code")
+        raise HTTPException(status_code=401, detail="Invalid recovery code")
 
     # Consume the used recovery code
     remaining = [h for idx, h in enumerate(stored_hashes) if idx != matched_index]
@@ -569,7 +570,7 @@ async def verify_2fa_recovery(
 # =============================================================================
 
 @router.get("/csrf-token")
-async def get_csrf_token(response: "Response"):
+async def get_csrf_token(response: Response):
     """
     Return a CSRF token and set it as a readable (non-HttpOnly) cookie so that
     frontend JavaScript can read it and attach it as the X-CSRF-Token header on

@@ -34,6 +34,9 @@ class NodePosition(BaseModel):
     y: float
 
 
+Position = NodePosition
+
+
 class PipelineNode(BaseModel):
     """Visual pipeline node definition"""
     id: str
