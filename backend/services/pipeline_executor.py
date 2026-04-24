@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
@@ -16,6 +15,169 @@ logger = logging.getLogger(__name__)
 class PipelineExecutionError(Exception):
     """Custom exception for pipeline execution errors."""
     pass
+
+
+def _safe_float(value: object) -> float:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _typed_row(row: dict) -> dict:
+    """Return a copy of the row with numeric strings auto-converted to int/float."""
+    out = {}
+    for k, v in row.items():
+        try:
+            out[k] = int(v)
+            continue
+        except (TypeError, ValueError):
+            pass
+        try:
+            out[k] = float(v)
+            continue
+        except (TypeError, ValueError):
+            pass
+        out[k] = v
+    return out
+
+
+def _make_expr_builtins() -> dict:
+    """Return the safe built-ins exposed to map expression eval."""
+    import math as _math
+
+    def _substr(s, start: int, length: int = None):  # type: ignore[assignment]
+        s = str(s) if s is not None else ""
+        return s[start: start + length] if length is not None else s[start:]
+
+    def _coalesce(*args):
+        for a in args:
+            if a is not None and a != "":
+                return a
+        return ""
+
+    def _if_null(val, default):
+        return default if (val is None or val == "") else val
+
+    def _split(s, sep, idx: int = None):  # type: ignore[assignment]
+        parts = str(s).split(sep)
+        return parts[idx] if idx is not None else parts
+
+    def _concat(*args):
+        return "".join("" if a is None else str(a) for a in args)
+
+    def _pad_left(s, width: int, fill: str = " "):
+        return str(s).rjust(width, fill)
+
+    def _pad_right(s, width: int, fill: str = " "):
+        return str(s).ljust(width, fill)
+
+    return {
+        # string
+        "upper":      lambda s: str(s).upper() if s is not None else "",
+        "lower":      lambda s: str(s).lower() if s is not None else "",
+        "trim":       lambda s: str(s).strip() if s is not None else "",
+        "ltrim":      lambda s: str(s).lstrip() if s is not None else "",
+        "rtrim":      lambda s: str(s).rstrip() if s is not None else "",
+        "length":     lambda s: len(str(s)) if s is not None else 0,
+        "len":        lambda s: len(str(s)) if s is not None else 0,
+        "substr":     _substr,
+        "substring":  _substr,
+        "concat":     _concat,
+        "replace":    lambda s, old, new: str(s).replace(old, new) if s is not None else "",
+        "title":      lambda s: str(s).title() if s is not None else "",
+        "capitalize": lambda s: str(s).capitalize() if s is not None else "",
+        "split":      _split,
+        "pad_left":   _pad_left,
+        "pad_right":  _pad_right,
+        # math
+        "abs":        abs,
+        "round":      round,
+        "floor":      _math.floor,
+        "ceil":       _math.ceil,
+        "sqrt":       _math.sqrt,
+        "pow":        pow,
+        "mod":        lambda a, b: a % b,
+        # null / coerce
+        "coalesce":   _coalesce,
+        "if_null":    _if_null,
+        # type casts
+        "str":        str,
+        "int":        int,
+        "float":      float,
+        "bool":       bool,
+        # constants
+        "None":       None,
+        "True":       True,
+        "False":      False,
+    }
+
+
+_EXPR_BUILTINS = _make_expr_builtins()
+
+
+def _eval_expr(expr: str, row: dict):
+    """
+    Evaluate a Python-like expression against a row dict.
+    Falls back to a plain column lookup if the expression is just a bare name.
+    """
+    typed = _typed_row(row)
+    try:
+        return eval(expr, {"__builtins__": {}}, {**_EXPR_BUILTINS, **typed})  # noqa: S307
+    except Exception:
+        # bare column name that failed as an expression → direct lookup
+        return row.get(expr, "")
+
+
+def _apply_filter_condition(rows: list, condition: str, include: bool = True) -> list:
+    """
+    Evaluate a Python-like boolean expression against each row.
+    Column names in the condition are replaced by their row values.
+    Rows where the condition evaluates True are kept (include=True) or dropped (include=False).
+    On any evaluation error the row is kept.
+    """
+    result = []
+    for row in rows:
+        typed = _typed_row(row)
+        try:
+            match = bool(eval(condition, {"__builtins__": {}}, typed))  # noqa: S307
+        except Exception:
+            match = True
+        if match == include:
+            result.append(row)
+    return result
+
+
+def _is_numeric_col(rows: list, col: str) -> bool:
+    """Return True if the majority of non-empty values in a column look numeric."""
+    samples = [r.get(col) for r in rows[:20] if r.get(col) not in (None, "")]
+    if not samples:
+        return False
+    numeric = sum(1 for s in samples if _safe_float(s) != 0.0 or str(s) == "0")
+    return numeric > len(samples) / 2
+
+
+def _resolve_output_path(configured_path: str, pipeline_name: str) -> tuple[str, bool]:
+    """
+    Return (resolved_path, was_remapped).
+    Paths accessible from Docker (under /app/ or /tmp/) are used as-is.
+    macOS host paths (/Users/, /home/, etc.) are remapped to /app/uploads/.
+    """
+    import os
+    if not configured_path:
+        safe = "".join(c for c in pipeline_name if c.isalnum() or c in ("_", "-")).lower()
+        return f"/app/uploads/{safe}_output.csv", False
+
+    # Paths that Docker can write to
+    docker_roots = ("/app/", "/tmp/")
+    if any(configured_path.startswith(r) for r in docker_roots):
+        return configured_path, False
+
+    # Host path — remap to /app/uploads/ preserving just the filename
+    filename = os.path.basename(configured_path) or (
+        "".join(c for c in pipeline_name if c.isalnum() or c in ("_", "-")).lower() + "_output.csv"
+    )
+    return f"/app/uploads/{filename}", True
 
 
 class PipelineExecutor:
@@ -91,50 +253,339 @@ class PipelineExecutor:
         return run
 
     async def _execute_pipeline_logic(self, run: PipelineRun, pipeline: Pipeline):
-        """
-        Execute the actual pipeline logic.
+        """Execute pipeline: extract from source, transform, load to destination."""
+        import csv
+        import os
 
-        This is a simplified implementation. In a real system, this would:
-        1. Connect to the source system
-        2. Extract data according to source_config
-        3. Apply transformations according to transformation_config
-        4. Load data to destination according to destination_config
-        """
+        source_config = pipeline.source_config or {}
+        dest_config = pipeline.destination_config or {}
+        transformation_config = pipeline.transformation_config or {}
+        log_lines: list[str] = []
 
-        # Simulate data processing
-        records_to_process = 1000  # This would be determined by the actual data source
-        batch_size = 100
+        def log(msg: str) -> None:
+            log_lines.append(msg)
+            logger.info("Pipeline %s: %s", pipeline.id, msg)
 
-        total_processed = 0
-        total_failed = 0
+        # ── 1. Extract ────────────────────────────────────────────────────────
+        connector_id = source_config.get("config", {}).get("connector_id")
+        if not connector_id:
+            raise ValueError("No connector_id in source configuration")
 
-        # Simulate batch processing
-        for i in range(0, records_to_process, batch_size):
-            # Simulate processing time
-            await asyncio.sleep(0.1)  # 100ms per batch
+        from backend.crud.connector import connector as crud_connector
+        connector = await crud_connector.get(self.db, id=int(connector_id))
+        if not connector:
+            raise ValueError(f"Source connector {connector_id} not found")
 
-            # Simulate some failures (10% failure rate)
-            import random
-            batch_processed = batch_size
-            batch_failed = random.randint(0, batch_size // 10)
-            batch_processed -= batch_failed
+        log(f"Source: {connector.name} ({connector.connector_type})")
 
-            total_processed += batch_processed
-            total_failed += batch_failed
+        rows: list[dict] = []
+        headers: list[str] = []
 
-            # Update progress
-            run_update = PipelineRunUpdate(
-                records_processed=total_processed,
-                records_failed=total_failed,
-                logs=f"Processed batch {i//batch_size + 1}, "
-                     f"total processed: {total_processed}, "
-                     f"total failed: {total_failed}"
+        if connector.connector_type == "csv_file":
+            file_path: str = connector.config.get("file_path", "")
+            if not os.path.exists(file_path):
+                raise ValueError(f"Source file not found: {file_path}")
+
+            encoding = connector.config.get("encoding", "utf-8")
+            delimiter = connector.config.get("delimiter", ",")
+            has_header = connector.config.get("has_header", True)
+            skip_rows = int(connector.config.get("skip_rows", 0))
+
+            with open(file_path, "r", encoding=encoding, newline="") as f:
+                for _ in range(skip_rows):
+                    next(f, None)
+                if has_header:
+                    reader = csv.DictReader(f, delimiter=delimiter)
+                    rows = [dict(r) for r in reader]
+                    headers = list(reader.fieldnames or [])
+                else:
+                    raw = list(csv.reader(f, delimiter=delimiter))
+                    headers = [f"col_{i}" for i in range(len(raw[0]))] if raw else []
+                    rows = [dict(zip(headers, r)) for r in raw]
+
+            log(f"Read {len(rows)} rows from {file_path}")
+
+        elif connector.connector_type == "postgresql":
+            import asyncpg
+
+            src_cfg = source_config.get("config", {})
+            query_type = src_cfg.get("query_type", "table")
+
+            if query_type == "query":
+                sql = (src_cfg.get("query") or "").strip()
+                if not sql:
+                    raise ValueError("Database source: custom query is empty")
+            else:
+                table_name = (src_cfg.get("table_name") or "").strip()
+                if not table_name:
+                    raise ValueError("Database source: table name is not configured")
+                schema = connector.config.get("schema", "public")
+                sql = f'SELECT * FROM "{schema}"."{table_name}"'
+
+            ssl_req = connector.config.get("ssl_mode", "disable") in (
+                "require", "verify-ca", "verify-full"
             )
-            await crud_pipeline_run.update(self.db, db_obj=run, obj_in=run_update)
-            await self.db.commit()
+            pg_conn = await asyncpg.connect(
+                host=connector.config.get("host", "db"),
+                port=int(connector.config.get("port", 5432)),
+                database=connector.config.get("database"),
+                user=connector.config.get("username"),
+                password=connector.config.get("password"),
+                ssl=ssl_req,
+                timeout=30,
+            )
+            try:
+                records = await pg_conn.fetch(sql)
+            except Exception as pg_err:
+                await pg_conn.close()
+                raise ValueError(f"PostgreSQL query failed: {pg_err}") from pg_err
+            finally:
+                try:
+                    await pg_conn.close()
+                except Exception:
+                    pass
 
-        logger.info(f"Pipeline {pipeline.id} completed: "
-                   f"{total_processed} processed, {total_failed} failed")
+            if records:
+                headers = list(records[0].keys())
+                rows = [dict(r) for r in records]
+            else:
+                headers = []
+                rows = []
+
+            short_sql = sql[:80] + ("…" if len(sql) > 80 else "")
+            log(f"Read {len(rows)} rows from PostgreSQL ({short_sql})")
+            if not rows:
+                log("Warning: query returned 0 rows — check that the table exists and contains data")
+
+        elif connector.connector_type == "mysql":
+            raise ValueError(
+                "MySQL extraction is not yet implemented"
+            )
+
+        else:
+            raise ValueError(
+                f"Extraction not implemented for connector type: {connector.connector_type}"
+            )
+
+        # ── 2. Transform ──────────────────────────────────────────────────────
+        processed_rows = rows
+
+        # Collect transformation nodes from visual_definition (preferred) or
+        # fall back to the legacy structured transformation_config.filters list.
+        visual_def = pipeline.visual_definition or {}
+        transform_nodes = [
+            n for n in (visual_def.get("nodes") or [])
+            if n.get("type") == "transformation"
+        ]
+
+        applied_any = False
+        for tnode in transform_nodes:
+            node_data = tnode.get("data", {})
+            ttype = node_data.get("transformationType", "")
+            cfg = node_data.get("config") or {}
+
+            if ttype == "filter":
+                condition = cfg.get("condition", "").strip()
+                filter_type = cfg.get("filter_type", "include")
+                if condition:
+                    before = len(processed_rows)
+                    processed_rows = _apply_filter_condition(
+                        processed_rows, condition, include=(filter_type == "include")
+                    )
+                    applied_any = True
+                    log(f"Filter '{condition}' ({filter_type}): {before} → {len(processed_rows)} rows")
+
+            elif ttype == "sort":
+                sort_by = cfg.get("sort_by", "")
+                order = cfg.get("order", "asc")
+                if sort_by:
+                    reverse = order == "desc"
+                    processed_rows = sorted(
+                        processed_rows,
+                        key=lambda r: (_safe_float(r.get(sort_by)) if _is_numeric_col(processed_rows, sort_by) else str(r.get(sort_by, ""))),
+                        reverse=reverse,
+                    )
+                    applied_any = True
+                    log(f"Sort by '{sort_by}' {order}: {len(processed_rows)} rows")
+
+            elif ttype == "map":
+                mappings_raw = cfg.get("mappings", "")
+                drop_unmapped = cfg.get("drop_unmapped", False)
+                if mappings_raw:
+                    import json as _json
+                    try:
+                        parsed = _json.loads(mappings_raw) if isinstance(mappings_raw, str) else mappings_raw
+
+                        # Accept two storage formats:
+                        # 1. Array (new UI): [{source: "old_col", target: "new_col"}, ...]
+                        # 2. Dict (legacy JSON textarea): {"new_col": "old_col", ...}
+                        if isinstance(parsed, list):
+                            mappings: dict = {
+                                item["target"]: item["source"]
+                                for item in parsed
+                                if item.get("source") and item.get("target")
+                            }
+                        elif isinstance(parsed, dict):
+                            mappings = parsed
+                        else:
+                            raise ValueError("Mappings must be a list or object")
+
+                        if not mappings:
+                            log("Map: no valid field mappings configured — skipping")
+                        else:
+                            new_rows = []
+                            # Identify which source tokens are plain column names
+                            # (used to decide what to keep when drop_unmapped=False)
+                            plain_sources = {
+                                expr for expr in mappings.values()
+                                if processed_rows and expr in processed_rows[0]
+                            }
+                            for r in processed_rows:
+                                new_r = {}
+                                for new_col, expr in mappings.items():
+                                    new_r[new_col] = _eval_expr(expr, r)
+                                if not drop_unmapped:
+                                    for k, v in r.items():
+                                        if k not in plain_sources and k not in new_r:
+                                            new_r[k] = v
+                                new_rows.append(new_r)
+                            processed_rows = new_rows
+                            if new_rows:
+                                headers = list(new_rows[0].keys())
+                            applied_any = True
+                            log(f"Map applied {len(mappings)} field mapping(s): "
+                                + ", ".join(f"({expr})→{t}" for t, expr in mappings.items()))
+                    except Exception as e:
+                        log(f"Warning: map transformation failed: {e}")
+
+        # Legacy structured filters (transformation_config.filters)
+        if not applied_any:
+            filter_rules = transformation_config.get("filters", []) if transformation_config else []
+            for rule in filter_rules:
+                field = rule.get("field")
+                operator = rule.get("operator", "eq")
+                value = rule.get("value")
+                if not field or value is None:
+                    continue
+                before = len(processed_rows)
+                if operator == "eq":
+                    processed_rows = [r for r in processed_rows if str(r.get(field, "")) == str(value)]
+                elif operator == "neq":
+                    processed_rows = [r for r in processed_rows if str(r.get(field, "")) != str(value)]
+                elif operator == "contains":
+                    processed_rows = [r for r in processed_rows if str(value).lower() in str(r.get(field, "")).lower()]
+                elif operator == "gt":
+                    processed_rows = [r for r in processed_rows if _safe_float(r.get(field)) > _safe_float(value)]
+                elif operator == "lt":
+                    processed_rows = [r for r in processed_rows if _safe_float(r.get(field)) < _safe_float(value)]
+                log(f"Filter '{field} {operator} {value}': {before} → {len(processed_rows)} rows")
+                applied_any = True
+
+        if not applied_any:
+            log("No transformations configured — passing all rows through")
+
+        # ── 3. Load ───────────────────────────────────────────────────────────
+        dest_type = dest_config.get("type", "file")
+
+        if dest_type == "file":
+            original_path: str = dest_config.get("config", {}).get("file_path", "")
+            output_path, remapped = _resolve_output_path(original_path, pipeline.name)
+            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+            if remapped:
+                log(f"Note: destination '{original_path}' is not writable from the server; "
+                    f"writing to '{output_path}' instead")
+
+            effective_headers = headers or (list(processed_rows[0].keys()) if processed_rows else [])
+            with open(output_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=effective_headers, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(processed_rows)
+
+            log(f"Output written: {output_path}")
+            log(f"Records written: {len(processed_rows)}")
+
+        elif dest_type in ("database", "unknown") or dest_config.get("destinationType") == "database":
+            from backend.crud.connector import connector as crud_connector
+            dest_connector_id = dest_config.get("config", {}).get("connector_id")
+            if not dest_connector_id:
+                raise ValueError("No connector_id in destination configuration")
+
+            dest_connector = await crud_connector.get(self.db, id=int(dest_connector_id))
+            if not dest_connector:
+                raise ValueError(f"Destination connector {dest_connector_id} not found")
+
+            if dest_connector.connector_type == "postgresql":
+                import asyncpg
+
+                table_name = (dest_config.get("config", {}).get("table_name") or "").strip()
+                write_mode = dest_config.get("config", {}).get("write_mode", "insert")
+                unique_key = (dest_config.get("config", {}).get("unique_key") or "").strip()
+                dest_schema = dest_connector.config.get("schema", "public")
+
+                if not table_name:
+                    raise ValueError("Destination table name is not configured")
+
+                ssl_req = dest_connector.config.get("ssl_mode", "disable") in (
+                    "require", "verify-ca", "verify-full"
+                )
+                pg_conn = await asyncpg.connect(
+                    host=dest_connector.config.get("host", "db"),
+                    port=int(dest_connector.config.get("port", 5432)),
+                    database=dest_connector.config.get("database"),
+                    user=dest_connector.config.get("username"),
+                    password=dest_connector.config.get("password"),
+                    ssl=ssl_req,
+                    timeout=30,
+                )
+                try:
+                    fq_table = f'"{dest_schema}"."{table_name}"'
+
+                    if write_mode == "replace":
+                        await pg_conn.execute(f"TRUNCATE TABLE {fq_table}")
+                        log(f"Truncated {fq_table} (replace mode)")
+
+                    if processed_rows:
+                        cols = list(processed_rows[0].keys())
+                        col_sql = ", ".join(f'"{c}"' for c in cols)
+                        placeholders = ", ".join(f"${i + 1}" for i in range(len(cols)))
+                        values = [[r.get(c) for c in cols] for r in processed_rows]
+
+                        if write_mode == "upsert" and unique_key:
+                            update_set = ", ".join(
+                                f'"{c}" = EXCLUDED."{c}"'
+                                for c in cols if c != unique_key
+                            )
+                            sql_stmt = (
+                                f'INSERT INTO {fq_table} ({col_sql}) VALUES ({placeholders}) '
+                                f'ON CONFLICT ("{unique_key}") DO UPDATE SET {update_set}'
+                            )
+                        else:
+                            sql_stmt = f"INSERT INTO {fq_table} ({col_sql}) VALUES ({placeholders})"
+
+                        await pg_conn.executemany(sql_stmt, values)
+
+                    log(f"Wrote {len(processed_rows)} rows to {fq_table} (mode: {write_mode})")
+                finally:
+                    await pg_conn.close()
+            else:
+                log(f"Warning: destination connector type '{dest_connector.connector_type}' not yet implemented")
+
+        else:
+            log(f"Warning: destination type '{dest_type}' not yet implemented — data not persisted")
+
+        # ── 4. Persist stats & logs ───────────────────────────────────────────
+        run_update = PipelineRunUpdate(
+            records_processed=len(processed_rows),
+            records_failed=0,
+            logs="\n".join(log_lines),
+        )
+        await crud_pipeline_run.update(self.db, db_obj=run, obj_in=run_update)
+        await self.db.commit()
+
+        logger.info(
+            "Pipeline %s (%s) completed: %d records processed",
+            pipeline.id, pipeline.name, len(processed_rows)
+        )
 
     async def cancel_run(self, run_id: int) -> PipelineRun:
         """Cancel a running pipeline."""

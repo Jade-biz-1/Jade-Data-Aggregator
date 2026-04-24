@@ -97,7 +97,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         } else {
           url = `${baseUrl}/api/v1/files/upload`;
         }
-        const token = getAccessToken();
+        const token = typeof document !== 'undefined'
+          ? document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1]
+          : undefined;
         const formData = new FormData();
         formData.append('file', value);
         const headers: Record<string, string> = {};

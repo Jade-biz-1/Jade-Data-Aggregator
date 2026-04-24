@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Node } from 'reactflow';
+import { Node, Edge } from 'reactflow';
 import { X, Save, TestTube, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SourceNodeConfig } from './SourceNodeConfig';
@@ -9,24 +9,97 @@ import { TransformationNodeConfig } from './TransformationNodeConfig';
 import { DestinationNodeConfig } from './DestinationNodeConfig';
 import { pipelineBuilderService } from '@/services/pipelineBuilderService';
 
-interface NodeConfigPanelProps {
-  selectedNode: Node | null;
-  onClose: () => void;
-  onSave: (nodeId: string, config: any) => void;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined'
+    ? document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1]
+    : undefined;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
-export function NodeConfigPanel({ selectedNode, onClose, onSave }: NodeConfigPanelProps) {
+interface NodeConfigPanelProps {
+  selectedNode: Node | null;
+  allNodes: Node[];
+  allEdges: Edge[];
+  onClose: () => void;
+  onSave: (nodeId: string, config: any, label: string) => void;
+}
+
+export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onSave }: NodeConfigPanelProps) {
   const [config, setConfig] = useState<any>({});
+  const [nodeLabel, setNodeLabel] = useState<string>('');
   const [isValid, setIsValid] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
+  const [sampleValues, setSampleValues] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (selectedNode) {
       setConfig(selectedNode.data?.config || {});
+      setNodeLabel(selectedNode.data?.label || '');
       setTestResult(null);
     }
-  }, [selectedNode]);
+  }, [selectedNode?.id]);
+
+  // Fetch upstream columns when a transformation node is opened
+  useEffect(() => {
+    if (!selectedNode || selectedNode.type !== 'transformation') {
+      setAvailableColumns([]);
+      setSampleValues({});
+      return;
+    }
+
+    // Walk edges backwards to find the first upstream source node
+    let upstreamConnectorId: string | undefined;
+    let upstreamSourceConfig: Record<string, any> = {};
+
+    const visited = new Set<string>();
+    const queue: string[] = [selectedNode.id];
+    outer: while (queue.length) {
+      const current = queue.shift()!;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      for (const edge of allEdges) {
+        if (edge.target === current) {
+          const upstream = allNodes.find(n => n.id === edge.source);
+          if (!upstream) continue;
+          if (upstream.type === 'source') {
+            upstreamConnectorId = upstream.data?.config?.connector_id as string | undefined;
+            upstreamSourceConfig = (upstream.data?.config as Record<string, any>) || {};
+            break outer;
+          }
+          queue.push(upstream.id);
+        }
+      }
+    }
+
+    if (!upstreamConnectorId) return;
+
+    // Build query params — PostgreSQL needs a table name to introspect columns
+    const params = new URLSearchParams();
+    if (upstreamSourceConfig.query_type === 'table' && upstreamSourceConfig.table_name) {
+      params.set('table', upstreamSourceConfig.table_name);
+      if (upstreamSourceConfig.schema) params.set('schema', upstreamSourceConfig.schema);
+    }
+    const qs = params.toString();
+
+    fetch(`${API_URL}/connectors/${upstreamConnectorId}/columns${qs ? `?${qs}` : ''}`, {
+      headers: getAuthHeaders(),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.columns) {
+          setAvailableColumns(data.columns);
+          setSampleValues(data.sample_values || {});
+        }
+      })
+      .catch(() => {/* best-effort */});
+  }, [selectedNode?.id, allEdges, allNodes]);
 
   if (!selectedNode) return null;
 
@@ -43,7 +116,7 @@ export function NodeConfigPanel({ selectedNode, onClose, onSave }: NodeConfigPan
   };
 
   const handleSave = () => {
-    onSave(selectedNode.id, config);
+    onSave(selectedNode.id, config, nodeLabel.trim() || selectedNode.data?.label || '');
     onClose();
   };
 
@@ -74,11 +147,38 @@ export function NodeConfigPanel({ selectedNode, onClose, onSave }: NodeConfigPan
     }
   };
 
+  const DEFAULT_LABELS: Record<string, string> = {
+    source: 'Database Source', api: 'API Source', file: 'File Source',
+    filter: 'Filter', map: 'Map', aggregate: 'Aggregate', join: 'Join', sort: 'Sort',
+    database: 'Database', warehouse: 'Data Warehouse',
+  };
+
+  const isDefaultLabel = (lbl: string) =>
+    !lbl || Object.values(DEFAULT_LABELS).some(d => d === lbl) ||
+    ['Source', 'Transform', 'Destination'].includes(lbl);
+
   const renderConfigForm = () => {
     if (nodeType === 'source') {
-      return <SourceNodeConfig config={config} onChange={handleConfigChange} subtype={nodeSubtype} />;
+      return (
+        <SourceNodeConfig
+          config={config}
+          onChange={handleConfigChange}
+          subtype={nodeSubtype}
+          onConnectorSelect={(name) => {
+            if (isDefaultLabel(nodeLabel)) setNodeLabel(name);
+          }}
+        />
+      );
     } else if (nodeType === 'transformation') {
-      return <TransformationNodeConfig config={config} onChange={handleConfigChange} subtype={nodeSubtype} />;
+      return (
+        <TransformationNodeConfig
+          config={config}
+          onChange={handleConfigChange}
+          subtype={nodeSubtype}
+          availableColumns={availableColumns}
+          sampleValues={sampleValues}
+        />
+      );
     } else if (nodeType === 'destination') {
       return <DestinationNodeConfig config={config} onChange={handleConfigChange} subtype={nodeSubtype} />;
     }
@@ -88,18 +188,25 @@ export function NodeConfigPanel({ selectedNode, onClose, onSave }: NodeConfigPan
   return (
     <div className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-lg z-50 flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Configure Node
+      <div className="px-4 py-3 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            Configure {nodeType}
           </h3>
-          <p className="text-sm text-gray-500">
-            {selectedNode.data?.label || selectedNode.id}
-          </p>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Node Name</label>
+          <input
+            type="text"
+            value={nodeLabel}
+            onChange={e => setNodeLabel(e.target.value)}
+            placeholder="Give this node a descriptive name…"
+            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
       </div>
 
       {/* Config Form */}

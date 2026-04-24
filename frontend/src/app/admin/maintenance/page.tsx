@@ -490,7 +490,7 @@ export default function MaintenancePage() {
               <HardDrive className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {stats ? `${stats.database.size_mb.toFixed(2)} MB` : '—'}
               </div>
               <p className="text-xs text-gray-500">
@@ -505,7 +505,7 @@ export default function MaintenancePage() {
               <Database className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {stats ? Object.values(stats.record_counts).reduce((a, b) => a + b, 0).toLocaleString() : '—'}
               </div>
               <p className="text-xs text-gray-500">Across all tables</p>
@@ -518,7 +518,7 @@ export default function MaintenancePage() {
               <FileText className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {stats ? stats.temp_files.file_count.toLocaleString() : '—'}
               </div>
               <p className="text-xs text-gray-500">
@@ -706,7 +706,7 @@ export default function MaintenancePage() {
                   >
                     <div className="flex items-center space-x-2 mb-2">
                       <FileText className="h-5 w-5" />
-                      <span className="font-semibold">Clean Activity Logs</span>
+                      <span className="font-semibold text-gray-900">Clean Activity Logs</span>
                     </div>
                     <p className="text-xs text-gray-600 text-left">
                       Remove activity logs older than 90 days
@@ -721,7 +721,7 @@ export default function MaintenancePage() {
                   >
                     <div className="flex items-center space-x-2 mb-2">
                       <Trash2 className="h-5 w-5" />
-                      <span className="font-semibold">Clean Temp Files</span>
+                      <span className="font-semibold text-gray-900">Clean Temp Files</span>
                     </div>
                     <p className="text-xs text-gray-600 text-left">
                       Remove temporary files older than 24 hours
@@ -736,7 +736,7 @@ export default function MaintenancePage() {
                   >
                     <div className="flex items-center space-x-2 mb-2">
                       <Database className="h-5 w-5" />
-                      <span className="font-semibold">Clean Orphaned Data</span>
+                      <span className="font-semibold text-gray-900">Clean Orphaned Data</span>
                     </div>
                     <p className="text-xs text-gray-600 text-left">
                       Remove records with no parent associations
@@ -750,7 +750,7 @@ export default function MaintenancePage() {
                   >
                     <div className="flex items-center space-x-2 mb-2">
                       <Play className="h-5 w-5" />
-                      <span className="font-semibold">Run All Cleanup</span>
+                      <span className="font-semibold text-gray-900">Run All Cleanup</span>
                     </div>
                     <p className="text-xs text-white text-opacity-90 text-left">
                       Execute all cleanup operations at once

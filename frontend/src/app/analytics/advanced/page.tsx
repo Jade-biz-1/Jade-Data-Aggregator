@@ -48,6 +48,7 @@ interface ComparativeEntry {
   name: string;
   success_rate: number;
   failure_rate: number;
+  [key: string]: string | number;
 }
 
 const AdvancedAnalyticsPage = () => {

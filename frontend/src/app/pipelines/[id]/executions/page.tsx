@@ -58,20 +58,31 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
   const [statistics, setStatistics] = useState<ExecutionStatistics | null>(null);
   const [pipelineName, setPipelineName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [dateRange, setDateRange] = useState('7d');
   const { features, loading: permissionsLoading } = usePermissions();
   const { success, error: showError, toasts } = useToast();
 
+  const hasRunning = executions.some(e => e.status === 'running');
+
   useEffect(() => {
     if (!permissionsLoading && features?.pipelines?.view) {
-      fetchData();
+      fetchData(true);
     }
   }, [permissionsLoading, features, pipelineId, dateRange, filterStatus]);
 
-  const fetchData = async () => {
+  // Auto-poll every 3s while any run is in progress
+  useEffect(() => {
+    if (!hasRunning) return;
+    const timer = setInterval(() => fetchData(false), 3000);
+    return () => clearInterval(timer);
+  }, [hasRunning, pipelineId, dateRange, filterStatus]);
+
+  const fetchData = async (showSpinner = true) => {
     try {
-      setIsLoading(true);
+      if (showSpinner) setIsLoading(true);
+      else setIsRefreshing(true);
 
       const [pipelineRes, executionsRes, statsRes] = await Promise.all([
         apiClient.fetch(`/pipelines/${pipelineId}`),
@@ -89,9 +100,10 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
       setStatistics((statsRes as any) || null);
     } catch (err: any) {
       console.error('Error fetching execution data:', err);
-      showError('Failed to load execution data');
+      if (showSpinner) showError('Failed to load execution data');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -218,12 +230,18 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {hasRunning && (
+              <span className="flex items-center gap-1.5 text-sm text-blue-600">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Live updating…
+              </span>
+            )}
             <Button
               variant="outline"
-              onClick={fetchData}
+              onClick={() => fetchData(true)}
               disabled={isLoading}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button variant="outline" onClick={handleExport}>
@@ -355,21 +373,21 @@ export default function PipelineExecutionsPage({ params }: { params: Promise<{ i
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <p className="text-gray-600">Started</p>
-                              <p className="font-medium">{formatDateTime(execution.started_at)}</p>
+                              <p className="font-medium text-gray-900">{formatDateTime(execution.started_at)}</p>
                             </div>
                             {execution.completed_at && (
                               <div>
                                 <p className="text-gray-600">Completed</p>
-                                <p className="font-medium">{formatDateTime(execution.completed_at)}</p>
+                                <p className="font-medium text-gray-900">{formatDateTime(execution.completed_at)}</p>
                               </div>
                             )}
                             <div>
                               <p className="text-gray-600">Duration</p>
-                              <p className="font-medium">{formatDuration(execution.duration_seconds)}</p>
+                              <p className="font-medium text-gray-900">{formatDuration(execution.duration_seconds)}</p>
                             </div>
                             <div>
                               <p className="text-gray-600">Records</p>
-                              <p className="font-medium">{execution.records_processed.toLocaleString()}</p>
+                              <p className="font-medium text-gray-900">{execution.records_processed.toLocaleString()}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">

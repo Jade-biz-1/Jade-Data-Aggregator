@@ -102,7 +102,7 @@ async def rate_limit_middleware(request: Request, call_next):
     # Different rate limits for different endpoints
     api_prefix = settings.API_V1_STR.rstrip("/")
     rate_limits = {
-        f"{api_prefix}/auth/login": (5, 60),  # 5 requests per minute
+        f"{api_prefix}/auth/login": (20, 60),  # 20 requests per minute — account lockout fires at 5 failures before this
         f"{api_prefix}/auth/register": (3, 60),  # 3 requests per minute
         f"{api_prefix}/": (100, 60),  # 100 requests per minute for API endpoints
     }

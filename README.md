@@ -136,6 +136,22 @@ bash scripts/load-example.sh
 
 This creates two file connectors using example JSON files under `uploads/examples/` and an "E-commerce Orders Unification (Example)" pipeline, then triggers a run.
 
+## Example Screenshots
+
+Below are example screens from the application illustrating the Dashboard, Pipeline List, and Pipeline Editor.
+
+### Dashboard
+
+![Dashboard example](img/Dashboard.png)
+
+### Pipeline List
+
+![Pipeline List example](img/PipelineList.png)
+
+### Pipeline Editor
+
+![Pipeline Editor example](img/PipelineEditor.png)
+
 ### Run the tutorial (example)
 
 For a guided, end-to-end walkthrough of the example pipeline, see:

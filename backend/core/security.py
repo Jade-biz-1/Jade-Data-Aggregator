@@ -6,7 +6,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import pyotp
-import base64
 
 from backend.core.config import settings
 from backend.schemas.user import User
@@ -124,7 +123,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 def generate_otp_secret() -> str:
     """Generate a new OTP secret key."""
-    return base64.b32encode(pyotp.random_bytes(20)).decode("utf-8")
+    return pyotp.random_base32()
 
 
 def generate_otp_uri(email: str, secret: str, issuer_name: str) -> str:

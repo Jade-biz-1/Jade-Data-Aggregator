@@ -55,6 +55,7 @@ async def create_pipeline(
     """
     Create a new pipeline (Designer, Developer, Admin only)
     """
+    pipeline.owner_id = pipeline.owner_id or current_user.id
     db_pipeline = await crud.pipeline.create(db, obj_in=pipeline)
     await cache_service.invalidate_api_cache("pipelines")  # CACHE-001
     return db_pipeline

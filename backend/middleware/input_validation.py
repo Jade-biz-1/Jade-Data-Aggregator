@@ -192,23 +192,8 @@ async def validate_request_data(request: Request, call_next):
     """
     Middleware to validate request data
     """
-    try:
-        # Get request body if present
-        if request.method in ["POST", "PUT", "PATCH"]:
-            # Note: We can't easily read the body here without consuming it
-            # Individual endpoints should use Pydantic models for validation
-            pass
-
-        response = await call_next(request)
-        return response
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except HTTPException:
-        raise
-    except Exception as e:
-        # Log the error but don't expose details
-        print(f"Validation error: {str(e)}")
-        raise HTTPException(status_code=400, detail="Invalid request data")
+    response = await call_next(request)
+    return response
 
 
 # Base models with validation

@@ -49,59 +49,10 @@ async def create_transformation(
     """
     Create a new transformation (Designer, Developer, Admin only)
     """
+    transformation_in.owner_id = transformation_in.owner_id or current_user.id
     db_transformation = await transformation.create(db, obj_in=transformation_in)
     await cache_service.invalidate_api_cache("transformations")  # CACHE-001
     return db_transformation
-
-
-@router.get("/{transformation_id}", response_model=Transformation)
-async def read_transformation(
-    transformation_id: int,
-    current_user: User = Depends(require_viewer()),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Get a specific transformation by ID (all authenticated users can view)
-    """
-    transformation_obj = await transformation.get(db, id=transformation_id)
-    if not transformation_obj:
-        raise HTTPException(status_code=404, detail="Transformation not found")
-    return transformation_obj
-
-
-@router.put("/{transformation_id}", response_model=Transformation)
-async def update_transformation(
-    transformation_id: int,
-    transformation_in: TransformationUpdate,
-    current_user: User = Depends(require_designer()),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Update a transformation (Designer, Developer, Admin only)
-    """
-    transformation_obj = await transformation.get(db, id=transformation_id)
-    if not transformation_obj:
-        raise HTTPException(status_code=404, detail="Transformation not found")
-    updated_transformation = await transformation.update(db, db_obj=transformation_obj, obj_in=transformation_in)
-    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
-    return updated_transformation
-
-
-@router.delete("/{transformation_id}", response_model=Transformation)
-async def delete_transformation(
-    transformation_id: int,
-    current_user: User = Depends(require_designer()),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Delete a transformation (Designer, Developer, Admin only)
-    """
-    transformation_obj = await transformation.get(db, id=transformation_id)
-    if not transformation_obj:
-        raise HTTPException(status_code=404, detail="Transformation not found")
-    deleted_transformation = await transformation.remove(db, id=transformation_id)
-    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
-    return deleted_transformation
 
 
 @router.get("/metrics")
@@ -153,3 +104,53 @@ async def get_transformation_metrics(
 
     response = {"summary": summary, "metrics": metrics}
     return jsonable_encoder(response)
+
+
+@router.get("/{transformation_id}", response_model=Transformation)
+async def read_transformation(
+    transformation_id: int,
+    current_user: User = Depends(require_viewer()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get a specific transformation by ID (all authenticated users can view)
+    """
+    transformation_obj = await transformation.get(db, id=transformation_id)
+    if not transformation_obj:
+        raise HTTPException(status_code=404, detail="Transformation not found")
+    return transformation_obj
+
+
+@router.put("/{transformation_id}", response_model=Transformation)
+async def update_transformation(
+    transformation_id: int,
+    transformation_in: TransformationUpdate,
+    current_user: User = Depends(require_designer()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update a transformation (Designer, Developer, Admin only)
+    """
+    transformation_obj = await transformation.get(db, id=transformation_id)
+    if not transformation_obj:
+        raise HTTPException(status_code=404, detail="Transformation not found")
+    updated_transformation = await transformation.update(db, db_obj=transformation_obj, obj_in=transformation_in)
+    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
+    return updated_transformation
+
+
+@router.delete("/{transformation_id}", response_model=Transformation)
+async def delete_transformation(
+    transformation_id: int,
+    current_user: User = Depends(require_designer()),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a transformation (Designer, Developer, Admin only)
+    """
+    transformation_obj = await transformation.get(db, id=transformation_id)
+    if not transformation_obj:
+        raise HTTPException(status_code=404, detail="Transformation not found")
+    deleted_transformation = await transformation.remove(db, id=transformation_id)
+    await cache_service.invalidate_api_cache("transformations")  # CACHE-001
+    return deleted_transformation

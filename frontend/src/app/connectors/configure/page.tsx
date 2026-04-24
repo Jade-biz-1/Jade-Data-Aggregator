@@ -171,7 +171,7 @@ const ConnectorConfigContent = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <DynamicForm
               connectorType={selectedType}
-              initialValues={isEditing ? editingConnector?.config : {}}
+              initialValues={isEditing ? { name: editingConnector?.name, ...editingConnector?.config } : {}}
               onSubmit={handleSubmit}
               submitLabel={isEditing ? "Update Connector" : "Create Connector"}
               showTestButton={true}

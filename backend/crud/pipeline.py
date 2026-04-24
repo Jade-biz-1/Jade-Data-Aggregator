@@ -24,6 +24,11 @@ class CRUDPipeline:
             transformation_config=obj_in.transformation_config,
             schedule=obj_in.schedule,
             is_active=obj_in.is_active,
+            owner_id=obj_in.owner_id,
+            pipeline_type=obj_in.pipeline_type,
+            visual_definition=obj_in.visual_definition,
+            node_definitions=obj_in.node_definitions,
+            edge_definitions=obj_in.edge_definitions,
         )
         db.add(db_obj)
         await db.commit()

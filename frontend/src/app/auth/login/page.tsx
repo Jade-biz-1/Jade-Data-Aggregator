@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Database, Eye, EyeOff } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,41 +30,99 @@ export default function LoginPage() {
         : '/dashboard';
       router.replace(safeRedirect);
     } catch (error: any) {
-      // Handle different error response formats
       let errorMessage = 'Invalid username or password';
-      
+
       if (error.response?.data) {
-        // Check if it's a validation error object with multiple fields
         if (typeof error.response.data === 'object' && !Array.isArray(error.response.data)) {
-          // If detail exists, use it
           if (error.response.data.detail) {
-            // Handle both string and array of errors
             if (Array.isArray(error.response.data.detail)) {
               errorMessage = error.response.data.detail.map((err: any) => err.msg || err.detail || 'Validation error').join(', ');
             } else {
               errorMessage = error.response.data.detail;
             }
-          } 
-          // If it's validation error with type/msg properties
-          else if (error.response.data.type && error.response.data.msg) {
+          } else if (error.response.data.type && error.response.data.msg) {
             errorMessage = error.response.data.msg || 'Validation error occurred';
-          }
-          // If it's an array of validation errors
-          else if (Array.isArray(error.response.data)) {
+          } else if (Array.isArray(error.response.data)) {
             errorMessage = error.response.data.map((err: any) => err.msg || err.detail || 'Validation error').join(', ');
           }
         } else {
-          // If it's a simple string
           errorMessage = String(error.response.data);
         }
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setError(errorMessage);
     }
   };
 
+  return (
+    <form className="space-y-6" onSubmit={handleSubmit}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
+      <Input
+        label="Username"
+        type="text"
+        required
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Enter your username"
+      />
+
+      <div className="relative">
+        <Input
+          label="Password"
+          type={showPassword ? 'text' : 'password'}
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
+        />
+        <button
+          type="button"
+          className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
+          onClick={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+            Remember me
+          </label>
+        </div>
+
+        <div className="text-sm">
+          <Link href="/auth/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+            Forgot your password?
+          </Link>
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        loading={isLoading}
+        className="w-full"
+      >
+        Sign in
+      </Button>
+    </form>
+  );
+}
+
+export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -93,68 +151,9 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
-              <Input
-                label="Username"
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-              />
-
-              <div className="relative">
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-8 text-gray-400 hover:text-gray-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                    Remember me
-                  </label>
-                </div>
-
-                <div className="text-sm">
-                  <Link href="/auth/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
-                    Forgot your password?
-                  </Link>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                loading={isLoading}
-                className="w-full"
-              >
-                Sign in
-              </Button>
-            </form>
+            <Suspense fallback={<div className="h-64 flex items-center justify-center text-gray-400">Loading...</div>}>
+              <LoginForm />
+            </Suspense>
           </CardContent>
         </Card>
       </div>

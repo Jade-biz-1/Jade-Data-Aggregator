@@ -20,6 +20,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/a
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -119,10 +120,21 @@ class ApiClient {
 
     const { params, responseType, ...fetchOptions } = options || {};
 
+    const method = (fetchOptions.method ?? 'GET').toUpperCase();
+    const csrfHeaders: Record<string, string> = {};
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const csrfToken = typeof document !== 'undefined'
+        ? document.cookie.split('; ').find(r => r.startsWith('csrf_token='))?.split('=')[1]
+        : undefined;
+      if (csrfToken) csrfHeaders['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(url, {
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...this.getAuthHeaders(),
+        ...csrfHeaders,
         ...(fetchOptions?.headers || {}),
       },
       ...fetchOptions,
@@ -239,7 +251,8 @@ class ApiClient {
 
   // Pipeline methods
   async getPipelines(): Promise<Pipeline[]> {
-    return this.request<Pipeline[]>('/pipelines');
+    const result = await this.request<Pipeline[] | { items: Pipeline[] }>('/pipelines');
+    return Array.isArray(result) ? result : result.items ?? [];
   }
 
   async createPipeline(pipelineData: Omit<Pipeline, 'id' | 'created_at' | 'updated_at'>): Promise<Pipeline> {
@@ -457,7 +470,8 @@ class ApiClient {
 
   // Users management methods - Now using real API endpoints
   async getUsers(): Promise<User[]> {
-    return this.request<User[]>('/users');
+    const result = await this.request<User[] | { items: User[] }>('/users');
+    return Array.isArray(result) ? result : (result as { items: User[] }).items ?? [];
   }
 
   async createUser(userData: Omit<User, 'id' | 'created_at'>): Promise<User> {

@@ -30,6 +30,11 @@ export const useAuthStore = create<AuthState>()(
           // Store token in cookies first
           Cookies.set('access_token', result.access_token, { expires: 7 });
 
+          // Fetch CSRF token (sets csrf_token cookie for subsequent mutations)
+          await fetch(`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1')}/auth/csrf-token`, {
+            credentials: 'include',
+          }).catch(() => undefined);
+
           // Now get the user with the token set
           const user = await apiClient.getCurrentUser();
 
@@ -81,6 +86,10 @@ export const useAuthStore = create<AuthState>()(
         if (token && !get().isAuthenticated) {
           try {
             const user = await apiClient.getCurrentUser();
+            // Refresh CSRF token so mutations work after page reload
+            await fetch(`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1')}/auth/csrf-token`, {
+              credentials: 'include',
+            }).catch(() => undefined);
             set({
               user,
               isAuthenticated: true,

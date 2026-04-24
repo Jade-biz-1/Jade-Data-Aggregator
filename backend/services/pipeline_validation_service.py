@@ -3,12 +3,37 @@ Pipeline Validation Service
 Validates visual pipeline definitions
 """
 
-from typing import List, Dict, Set
+from typing import List, Dict, Optional
 from backend.schemas.pipeline_visual import (
     VisualPipelineDefinition,
     PipelineValidationResult,
-    NodeType
+    ValidationIssue,
+    PipelineNode,
+    NodeType,
 )
+
+_NODE_LABELS: Dict[NodeType, str] = {
+    NodeType.DATABASE_SOURCE: "Database Source",
+    NodeType.API_SOURCE: "API Source",
+    NodeType.FILE_SOURCE: "File Source",
+    NodeType.FILTER: "Filter",
+    NodeType.MAP: "Map / Field Mapping",
+    NodeType.AGGREGATE: "Aggregate",
+    NodeType.JOIN: "Join",
+    NodeType.SORT: "Sort",
+    NodeType.DATABASE_DESTINATION: "Database Destination",
+    NodeType.FILE_DESTINATION: "File Destination",
+    NodeType.API_DESTINATION: "API Destination",
+    NodeType.WAREHOUSE_DESTINATION: "Warehouse Destination",
+}
+
+
+def _node_display(node: PipelineNode) -> str:
+    nt = node.resolve_node_type()
+    label = node.data.get("label") or (
+        _NODE_LABELS.get(nt, str(nt)) if nt else node.type
+    )
+    return f'"{label}" ({node.id})'
 
 
 class PipelineValidationService:
@@ -76,134 +101,189 @@ class PipelineValidationService:
 
     def validate_pipeline(
         self,
-        definition: VisualPipelineDefinition
+        definition: VisualPipelineDefinition,
     ) -> PipelineValidationResult:
-        """
-        Validate a complete pipeline definition
-        """
-        errors = []
-        warnings = []
-        suggestions = []
+        """Validate a complete pipeline definition."""
+        issues: List[ValidationIssue] = []
 
-        # Check if pipeline has nodes
+        def error(msg: str, suggestion: str = "", node: Optional[PipelineNode] = None) -> None:
+            issues.append(ValidationIssue(
+                severity="error", message=msg, suggestion=suggestion,
+                node_id=node.id if node else None,
+                node_label=node.data.get("label") if node else None,
+            ))
+
+        def warning(msg: str, suggestion: str = "", node: Optional[PipelineNode] = None) -> None:
+            issues.append(ValidationIssue(
+                severity="warning", message=msg, suggestion=suggestion,
+                node_id=node.id if node else None,
+                node_label=node.data.get("label") if node else None,
+            ))
+
+        def suggestion(msg: str) -> None:
+            issues.append(ValidationIssue(severity="suggestion", message=msg, suggestion=""))
+
         if not definition.nodes:
-            errors.append("Pipeline must have at least one node")
-            return PipelineValidationResult(
-                is_valid=False,
-                errors=errors,
-                warnings=warnings,
-                suggestions=suggestions
+            error(
+                "Pipeline has no nodes.",
+                "Open the Node Palette on the left and drag at least one Source, "
+                "one Transformation (optional), and one Destination node onto the canvas.",
             )
+            return self._build_result(issues)
 
-        # Create node lookup
-        node_map = {node.id: node for node in definition.nodes}
+        node_map = {n.id: n for n in definition.nodes}
+        type_map = {n.id: n.resolve_node_type() for n in definition.nodes}
 
-        # Validate nodes
-        has_source = False
-        has_destination = False
-
-        for node in definition.nodes:
-            # Check for source and destination
-            if node.type in self.source_nodes:
-                has_source = True
-            if node.type in self.destination_nodes:
-                has_destination = True
+        # ── Source / destination presence ─────────────────────────────────────
+        has_source = any(t in self.source_nodes for t in type_map.values() if t)
+        has_destination = any(t in self.destination_nodes for t in type_map.values() if t)
 
         if not has_source:
-            errors.append("Pipeline must have at least one source node")
+            error(
+                "Pipeline has no source node.",
+                "Drag a Source node (Database, File, or API) from the Node Palette "
+                "onto the canvas and configure it with a connector.",
+            )
 
         if not has_destination:
-            errors.append("Pipeline must have at least one destination node")
-
-        # Validate edges
-        edge_validation = self._validate_edges(definition.edges, node_map)
-        errors.extend(edge_validation["errors"])
-        warnings.extend(edge_validation["warnings"])
-
-        # Check for disconnected nodes
-        disconnected = self._find_disconnected_nodes(definition.nodes, definition.edges)
-        if disconnected:
-            warnings.append(
-                f"Disconnected nodes found: {', '.join(disconnected)}"
+            error(
+                "Pipeline has no destination node.",
+                "Drag a Destination node (File, Database, or API) from the Node Palette "
+                "onto the canvas and configure it with an output path or connector.",
             )
 
-        # Check for cycles
-        if self._has_cycles(definition.edges):
-            errors.append("Pipeline contains cycles - cyclic pipelines are not supported")
+        # ── Unknown node types ────────────────────────────────────────────────
+        for node in definition.nodes:
+            if type_map[node.id] is None:
+                error(
+                    f"Node {_node_display(node)} has an unrecognised type: '{node.type}'.",
+                    "Delete this node and replace it with a node from the Node Palette.",
+                    node,
+                )
 
-        # Check for unreachable destinations
-        unreachable = self._find_unreachable_destinations(
-            definition.nodes,
-            definition.edges
-        )
-        if unreachable:
-            warnings.append(
-                f"Unreachable destination nodes: {', '.join(unreachable)}"
-            )
+        # ── Unconfigured nodes ────────────────────────────────────────────────
+        for node in definition.nodes:
+            if not node.data.get("isConfigured"):
+                nt = type_map[node.id]
+                if nt in self.source_nodes:
+                    hint = "Click the node and select a connector."
+                elif nt in self.destination_nodes:
+                    hint = "Click the node and set the output path or connector."
+                else:
+                    hint = "Click the node to open its configuration panel and fill in the required fields."
+                warning(
+                    f"Node {_node_display(node)} is not configured.",
+                    hint,
+                    node,
+                )
 
-        # Add suggestions
-        if len(definition.nodes) == 1:
-            suggestions.append("Consider adding transformation nodes to process your data")
-
-        is_valid = len(errors) == 0
-
-        return PipelineValidationResult(
-            is_valid=is_valid,
-            errors=errors,
-            warnings=warnings,
-            suggestions=suggestions
-        )
-
-    def _validate_edges(
-        self,
-        edges: List,
-        node_map: Dict
-    ) -> Dict[str, List[str]]:
-        """Validate edge connections"""
-        errors = []
-        warnings = []
-
-        for edge in edges:
-            # Check if source and target nodes exist
+        # ── Edge validation ───────────────────────────────────────────────────
+        for edge in definition.edges:
             if edge.source not in node_map:
-                errors.append(f"Edge source node '{edge.source}' not found")
+                error(
+                    f"Edge references missing source node '{edge.source}'.",
+                    "Delete and re-draw this connection.",
+                )
                 continue
-
             if edge.target not in node_map:
-                errors.append(f"Edge target node '{edge.target}' not found")
+                error(
+                    f"Edge references missing target node '{edge.target}'.",
+                    "Delete and re-draw this connection.",
+                )
                 continue
 
-            source_node = node_map[edge.source]
-            target_node = node_map[edge.target]
+            src_type = type_map[edge.source]
+            tgt_type = type_map[edge.target]
 
-            # Check if connection is valid
-            if source_node.type in self.valid_connections:
-                valid_targets = self.valid_connections[source_node.type]
-                if target_node.type not in valid_targets:
-                    errors.append(
-                        f"Invalid connection: {source_node.type} cannot connect to {target_node.type}"
+            if src_type and tgt_type and src_type in self.valid_connections:
+                if tgt_type not in self.valid_connections[src_type]:
+                    src_label = _NODE_LABELS.get(src_type, str(src_type))
+                    tgt_label = _NODE_LABELS.get(tgt_type, str(tgt_type))
+                    valid_targets = ", ".join(
+                        _NODE_LABELS.get(t, str(t))
+                        for t in self.valid_connections[src_type]
+                    )
+                    error(
+                        f"Invalid connection: {src_label} → {tgt_label}.",
+                        f"A {src_label} node can only connect to: {valid_targets}.",
+                        node_map[edge.source],
                     )
 
-        return {"errors": errors, "warnings": warnings}
+        # ── Disconnected nodes ────────────────────────────────────────────────
+        connected = set()
+        for e in definition.edges:
+            connected.add(e.source)
+            connected.add(e.target)
+        for node in definition.nodes:
+            if node.id not in connected and len(definition.nodes) > 1:
+                nt = type_map[node.id]
+                if nt in self.source_nodes:
+                    hint = "Draw an edge from this source node to a Transformation or Destination node."
+                elif nt in self.destination_nodes:
+                    hint = "Draw an edge from a Source or Transformation node into this destination node."
+                else:
+                    hint = "Connect this node to the pipeline by drawing edges to/from neighbouring nodes."
+                warning(
+                    f"Node {_node_display(node)} is not connected to any other node.",
+                    hint,
+                    node,
+                )
 
-    def _find_disconnected_nodes(
-        self,
-        nodes: List,
-        edges: List
-    ) -> List[str]:
-        """Find nodes that are not connected to any other node"""
-        connected_nodes = set()
+        # ── Cycles ────────────────────────────────────────────────────────────
+        if self._has_cycles(definition.edges):
+            error(
+                "Pipeline contains a cycle.",
+                "Data pipelines must flow in one direction. Remove the edge that "
+                "creates the loop — hover over edges to reveal delete buttons.",
+            )
 
-        for edge in edges:
-            connected_nodes.add(edge.source)
-            connected_nodes.add(edge.target)
+        # ── Unreachable destinations ──────────────────────────────────────────
+        unreachable = self._find_unreachable_destinations(definition.nodes, definition.edges)
+        for node_id in unreachable:
+            node = node_map.get(node_id)
+            if node:
+                warning(
+                    f"Destination node {_node_display(node)} cannot be reached from any source.",
+                    "Ensure there is an unbroken chain of edges from a Source node to this destination.",
+                    node,
+                )
 
-        disconnected = [
-            node.id for node in nodes
-            if node.id not in connected_nodes
-        ]
+        # ── Filter node config check ──────────────────────────────────────────
+        for node in definition.nodes:
+            if type_map[node.id] == NodeType.FILTER:
+                cfg = node.data.get("config") or {}
+                if not cfg.get("condition", "").strip():
+                    warning(
+                        f"Filter node {_node_display(node)} has no condition set.",
+                        "Click the node, enter a condition such as  make == 'BMW'  or  "
+                        "mileage > 20000  in the Filter Condition field, then save.",
+                        node,
+                    )
 
-        return disconnected
+        # ── Suggestions ───────────────────────────────────────────────────────
+        transform_count = sum(
+            1 for t in type_map.values() if t and t not in self.source_nodes | self.destination_nodes
+        )
+        if transform_count == 0 and has_source and has_destination:
+            suggestion(
+                "No transformation nodes are present. Consider adding a Filter or Map node "
+                "between the source and destination to shape your data."
+            )
+
+        return self._build_result(issues)
+
+    @staticmethod
+    def _build_result(issues: List[ValidationIssue]) -> PipelineValidationResult:
+        errors = [i.message for i in issues if i.severity == "error"]
+        warnings = [i.message for i in issues if i.severity == "warning"]
+        suggestions = [i.message for i in issues if i.severity == "suggestion"]
+        return PipelineValidationResult(
+            is_valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            suggestions=suggestions,
+            issues=issues,
+        )
 
     def _has_cycles(self, edges: List) -> bool:
         """Check if the pipeline has cycles using DFS"""
@@ -239,42 +319,27 @@ class PipelineValidationService:
 
         return False
 
-    def _find_unreachable_destinations(
-        self,
-        nodes: List,
-        edges: List
-    ) -> List[str]:
-        """Find destination nodes that cannot be reached from source nodes"""
-        # Build adjacency list
-        graph = {}
+    def _find_unreachable_destinations(self, nodes: List, edges: List) -> List[str]:
+        graph: Dict[str, List[str]] = {}
         for edge in edges:
-            if edge.source not in graph:
-                graph[edge.source] = []
-            graph[edge.source].append(edge.target)
+            graph.setdefault(edge.source, []).append(edge.target)
 
-        # Find all source nodes
-        sources = [node.id for node in nodes if node.type in self.source_nodes]
+        sources = [n.id for n in nodes if n.resolve_node_type() in self.source_nodes]
+        reachable: set = set()
 
-        # Find all reachable nodes from sources
-        reachable = set()
+        def dfs(nid: str) -> None:
+            reachable.add(nid)
+            for nb in graph.get(nid, []):
+                if nb not in reachable:
+                    dfs(nb)
 
-        def dfs(node: str):
-            reachable.add(node)
-            if node in graph:
-                for neighbor in graph[node]:
-                    if neighbor not in reachable:
-                        dfs(neighbor)
+        for src in sources:
+            dfs(src)
 
-        for source in sources:
-            dfs(source)
-
-        # Find unreachable destination nodes
-        unreachable = [
-            node.id for node in nodes
-            if node.type in self.destination_nodes and node.id not in reachable
+        return [
+            n.id for n in nodes
+            if n.resolve_node_type() in self.destination_nodes and n.id not in reachable
         ]
-
-        return unreachable
 
 
 # Global service instance

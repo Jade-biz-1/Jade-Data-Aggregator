@@ -349,21 +349,21 @@ export default function ExecutionDetailPage({ params }: { params: Promise<{ id: 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">Started</p>
-                    <p className="font-medium">{formatDateTime(execution.started_at)}</p>
+                    <p className="font-medium text-gray-900">{formatDateTime(execution.started_at)}</p>
                   </div>
                   {execution.completed_at && (
                     <div>
                       <p className="text-gray-600">Completed</p>
-                      <p className="font-medium">{formatDateTime(execution.completed_at)}</p>
+                      <p className="font-medium text-gray-900">{formatDateTime(execution.completed_at)}</p>
                     </div>
                   )}
                   <div>
                     <p className="text-gray-600">Duration</p>
-                    <p className="font-medium">{formatDuration(execution.duration_seconds)}</p>
+                    <p className="font-medium text-gray-900">{formatDuration(execution.duration_seconds)}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Triggered By</p>
-                    <p className="font-medium">{execution.triggered_by}</p>
+                    <p className="font-medium text-gray-900">{execution.triggered_by}</p>
                   </div>
                 </div>
               </div>

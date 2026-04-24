@@ -35,6 +35,7 @@ class CRUDTransformation:
             target_fields=obj_in.target_fields,
             transformation_rules=obj_in.transformation_rules,
             is_active=obj_in.is_active,
+            owner_id=obj_in.owner_id,
         )
         db.add(db_obj)
         await db.commit()

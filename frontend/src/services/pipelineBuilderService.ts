@@ -223,6 +223,13 @@ export const pipelineBuilderService = {
     errors: string[];
     warnings: string[];
     suggestions: string[];
+    issues?: {
+      severity: 'error' | 'warning' | 'suggestion';
+      message: string;
+      suggestion?: string;
+      node_id?: string;
+      node_label?: string;
+    }[];
   }> {
     const definition = {
       nodes: nodes.map(n => ({
@@ -287,7 +294,16 @@ export const pipelineBuilderService = {
   /**
    * Execute a pipeline
    */
-  async executePipeline(pipelineId: number, nodes: Node[], edges: Edge[]): Promise<any> {
+  async executePipeline(pipelineId: number, nodes: Node[], edges: Edge[]): Promise<{
+    pipeline_id: number;
+    run_id?: number;
+    status: string;
+    records_processed?: number;
+    total_records_processed?: number;
+    records_failed?: number;
+    logs?: string;
+    error_message?: string | null;
+  }> {
     const definition = {
       nodes: nodes.map(n => ({
         id: n.id,
@@ -309,8 +325,13 @@ export const pipelineBuilderService = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Execution failed' }));
-      throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+      const body = await response.json().catch(() => ({ detail: 'Execution failed' }));
+      const msg = typeof body.detail === 'object'
+        ? (body.detail.message || 'Execution failed')
+        : (body.detail || `HTTP error! status: ${response.status}`);
+      const err: any = new Error(msg);
+      err.detail = body.detail;
+      throw err;
     }
 
     return response.json();
