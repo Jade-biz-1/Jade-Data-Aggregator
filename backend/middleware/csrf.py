@@ -45,6 +45,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     """
     Validate X-CSRF-Token header against the csrf_token cookie for all
     state-changing requests.
+
+    Requests that carry an Authorization: Bearer token are exempt — Bearer
+    tokens must be explicitly set by JavaScript and cannot be forged by a
+    cross-site attacker, so CSRF protection is redundant when Bearer auth is
+    already present.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
@@ -57,7 +62,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             if request.url.path.startswith(prefix):
                 return await call_next(request)
 
-        # Read token from cookie and from request header.
+        # Bearer token auth cannot be forged cross-site — skip CSRF check.
+        auth_header: str = request.headers.get("Authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            return await call_next(request)
+
+        # Double-submit cookie validation for cookie-based auth.
         cookie_token: str | None = request.cookies.get("csrf_token")
         header_token: str | None = request.headers.get("X-CSRF-Token")
 

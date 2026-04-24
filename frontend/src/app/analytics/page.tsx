@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
               <Database className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
                 ) : analyticsData ? (
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
               <Clock className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
                 ) : analyticsData ? (
@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
                 ) : analyticsData ? (
@@ -196,7 +196,7 @@ export default function AnalyticsPage() {
               <GitBranch className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
                 ) : analyticsData ? (
@@ -278,12 +278,12 @@ export default function AnalyticsPage() {
                           {index + 1}
                         </div>
                         <div>
-                          <p className="font-medium">{pipeline.name}</p>
+                          <p className="font-medium text-gray-900">{pipeline.name}</p>
                           <p className="text-sm text-gray-500">{pipeline.records.toLocaleString()} records</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{pipeline.successRate}%</p>
+                        <p className="font-medium text-gray-900">{pipeline.successRate}%</p>
                         <p className="text-xs text-gray-500">success rate</p>
                       </div>
                     </div>
@@ -305,7 +305,7 @@ export default function AnalyticsPage() {
                     <Database className="h-5 w-5 text-blue-500 mr-2" />
                     <span>Database Sources</span>
                   </div>
-                  <span className="font-medium">5</span>
+                  <span className="font-medium text-gray-900">5</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -313,7 +313,7 @@ export default function AnalyticsPage() {
                     <Activity className="h-5 w-5 text-green-500 mr-2" />
                     <span>SaaS Integrations</span>
                   </div>
-                  <span className="font-medium">3</span>
+                  <span className="font-medium text-gray-900">3</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
                     <Activity className="h-5 w-5 text-purple-500 mr-2" />
                     <span>File Sources</span>
                   </div>
-                  <span className="font-medium">4</span>
+                  <span className="font-medium text-gray-900">4</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -329,13 +329,13 @@ export default function AnalyticsPage() {
                     <Activity className="h-5 w-5 text-yellow-500 mr-2" />
                     <span>API Endpoints</span>
                   </div>
-                  <span className="font-medium">6</span>
+                  <span className="font-medium text-gray-900">6</span>
                 </div>
                 
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Total Sources</span>
-                    <span className="font-medium">
+                    <span className="font-medium text-gray-900">Total Sources</span>
+                    <span className="font-medium text-gray-900">
                       {isLoading ? (
                         <div className="h-4 w-8 bg-gray-200 rounded animate-pulse"></div>
                       ) : analyticsData ? (

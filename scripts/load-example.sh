@@ -3,7 +3,7 @@ set -euo pipefail
 
 API_BASE="http://localhost:8001/api/v1"
 USERNAME="${USERNAME:-admin}"
-PASSWORD="${PASSWORD:-password}"
+PASSWORD="${PASSWORD:-admin123!}"
 
 echo "[load-example] Logging in as $USERNAME ..."
 TOKEN=$(curl -sS -X POST "$API_BASE/auth/login" \
@@ -18,7 +18,7 @@ fi
 AUTH="Authorization: Bearer $TOKEN"
 
 echo "[load-example] Creating example connectors..."
-SHOPIFY_ID=$(curl -sS -X POST "$API_BASE/connectors" -H "$AUTH" -H 'Content-Type: application/json' -d @- <<'JSON' | jq -r .id
+SHOPIFY_ID=$(curl -sS -X POST "$API_BASE/connectors/" -H "$AUTH" -H 'Content-Type: application/json' -d @- <<'JSON' | jq -r .id
 {
   "name": "Shopify Orders (Example)",
   "connector_type": "file",
@@ -31,7 +31,7 @@ SHOPIFY_ID=$(curl -sS -X POST "$API_BASE/connectors" -H "$AUTH" -H 'Content-Type
 JSON
 )
 
-WOOC_ID=$(curl -sS -X POST "$API_BASE/connectors" -H "$AUTH" -H 'Content-Type: application/json' -d @- <<'JSON' | jq -r .id
+WOOC_ID=$(curl -sS -X POST "$API_BASE/connectors/" -H "$AUTH" -H 'Content-Type: application/json' -d @- <<'JSON' | jq -r .id
 {
   "name": "WooCommerce Orders (Example)",
   "connector_type": "file",
@@ -44,10 +44,14 @@ WOOC_ID=$(curl -sS -X POST "$API_BASE/connectors" -H "$AUTH" -H 'Content-Type: a
 JSON
 )
 
+if [ -z "${SHOPIFY_ID:-}" ] || [ "$SHOPIFY_ID" = "null" ] || [ -z "${WOOC_ID:-}" ] || [ "$WOOC_ID" = "null" ]; then
+  echo "[load-example] Failed to create connectors. Check backend logs." >&2
+  exit 1
+fi
 echo "[load-example] Shopify connector id: $SHOPIFY_ID, WooCommerce connector id: $WOOC_ID"
 
 echo "[load-example] Creating example pipeline..."
-PIPELINE_ID=$(curl -sS -X POST "$API_BASE/pipelines" -H "$AUTH" -H 'Content-Type: application/json' -d @- <<JSON | jq -r .id
+PIPELINE_ID=$(curl -sS -X POST "$API_BASE/pipelines/" -H "$AUTH" -H 'Content-Type: application/json' -d @- <<JSON | jq -r .id
 {
   "name": "E-commerce Orders Unification (Example)",
   "description": "Unify Shopify and WooCommerce orders into a common format.",
@@ -87,9 +91,13 @@ PIPELINE_ID=$(curl -sS -X POST "$API_BASE/pipelines" -H "$AUTH" -H 'Content-Type
 JSON
 )
 
+if [ -z "${PIPELINE_ID:-}" ] || [ "$PIPELINE_ID" = "null" ]; then
+  echo "[load-example] Failed to create pipeline. Check backend logs." >&2
+  exit 1
+fi
 echo "[load-example] Pipeline id: $PIPELINE_ID"
 
 echo "[load-example] Triggering example pipeline execution (if supported)..."
-curl -sS -X POST "$API_BASE/pipelines/$PIPELINE_ID/execute" -H "$AUTH" -H 'Content-Type: application/json' -d '{"triggered_by":"example-script"}' || true
+curl -sS -X POST "$API_BASE/pipelines//$PIPELINE_ID/execute" -H "$AUTH" -H 'Content-Type: application/json' -d '{"triggered_by":"example-script"}' || true
 
 echo "[load-example] Done. Check /uploads/examples/ecommerce inside the repo (mounted to /app/uploads in backend)."

@@ -12,7 +12,7 @@ class ConnectorBase(BaseModel):
 
 
 class ConnectorCreate(ConnectorBase):
-    owner_id: int
+    owner_id: Optional[int] = None
 
 
 class ConnectorUpdate(BaseModel):

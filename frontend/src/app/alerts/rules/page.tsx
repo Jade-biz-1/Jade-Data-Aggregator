@@ -437,13 +437,13 @@ export default function AlertRulesPage() {
                         </div>
                         <p className="text-sm text-gray-600 mb-3">{rule.description}</p>
                         <div className="flex items-center gap-4 text-sm text-gray-700">
-                          <span className="font-medium">
+                          <span className="font-medium text-gray-900">
                             {rule.metric_name.replace(/_/g, ' ')}
                           </span>
                           <span className="text-gray-500">
                             {rule.condition}
                           </span>
-                          <span className="font-medium">
+                          <span className="font-medium text-gray-900">
                             {rule.threshold_value}
                           </span>
                           {rule.time_window_minutes && (

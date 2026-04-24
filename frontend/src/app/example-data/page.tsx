@@ -14,13 +14,14 @@ export default function ExampleDataPage() {
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const getAuthHeader = () => {
-    if (typeof document === 'undefined') return {} as Record<string, string>;
-    const token = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('access_token='))
-      ?.split('=')[1];
-    return token ? { Authorization: `Bearer ${token}` } : {};
+  const getRequestHeaders = () => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (typeof document === 'undefined') return headers;
+    const token = document.cookie.split('; ').find((r) => r.startsWith('access_token='))?.split('=')[1];
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const csrf = document.cookie.split('; ').find((r) => r.startsWith('csrf_token='))?.split('=')[1];
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    return headers;
   };
 
   const createExample = async () => {
@@ -28,14 +29,12 @@ export default function ExampleDataPage() {
     setResultMsg(null);
     setErrorMsg(null);
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
-      } as Record<string, string>;
+      const headers = getRequestHeaders();
 
       // Create Shopify connector
-      const shopifyRes = await fetch(`${API_BASE}/connectors`, {
+      const shopifyRes = await fetch(`${API_BASE}/connectors/`, {
         method: 'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({
           name: 'Shopify Orders (Example)',
@@ -47,12 +46,16 @@ export default function ExampleDataPage() {
           is_active: true,
         }),
       });
-      if (!shopifyRes.ok) throw new Error('Failed to create Shopify connector');
+      if (!shopifyRes.ok) {
+        const errBody = await shopifyRes.json().catch(() => ({}));
+        throw new Error(`Failed to create Shopify connector (${shopifyRes.status}): ${errBody.detail || JSON.stringify(errBody)}`);
+      }
       const shopify = await shopifyRes.json();
 
       // Create WooCommerce connector
-      const wooRes = await fetch(`${API_BASE}/connectors`, {
+      const wooRes = await fetch(`${API_BASE}/connectors/`, {
         method: 'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({
           name: 'WooCommerce Orders (Example)',
@@ -68,8 +71,9 @@ export default function ExampleDataPage() {
       const woo = await wooRes.json();
 
       // Create pipeline
-      const pipeRes = await fetch(`${API_BASE}/pipelines`, {
+      const pipeRes = await fetch(`${API_BASE}/pipelines/`, {
         method: 'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({
           name: 'E-commerce Orders Unification (Example)',
@@ -118,6 +122,7 @@ export default function ExampleDataPage() {
       // Execute pipeline (best-effort)
       await fetch(`${API_BASE}/pipelines/${pipeline.id}/execute`, {
         method: 'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({ triggered_by: 'example-ui' }),
       }).catch(() => undefined);

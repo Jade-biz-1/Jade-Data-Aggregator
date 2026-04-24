@@ -177,7 +177,7 @@ export default function MonitoringPage() {
               <GitBranch className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
                 ) : pipelineStats ? (
@@ -196,7 +196,7 @@ export default function MonitoringPage() {
               <Activity className="h-5 w-5 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
                 ) : pipelineStats ? (
@@ -215,7 +215,7 @@ export default function MonitoringPage() {
               <Database className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
                 ) : pipelineStats ? (
@@ -234,7 +234,7 @@ export default function MonitoringPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isLoading ? (
                   <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
                 ) : pipelineStats ? (
@@ -279,7 +279,7 @@ export default function MonitoringPage() {
                   {pipelinePerformance.map((pipeline) => (
                     <div key={pipeline.id} className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="font-medium">{pipeline.name}</span>
+                        <span className="font-medium text-gray-900">{pipeline.name}</span>
                         <span className="text-gray-500">{formatTime(pipeline.avgProcessingTime)}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">

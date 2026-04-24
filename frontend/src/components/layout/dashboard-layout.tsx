@@ -15,18 +15,22 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const { isAuthenticated, checkAuth } = useAuthStore();
   const { devWarning } = usePermissions();
   const router = useRouter();
 
   useEffect(() => {
-    checkAuth();
-    if (!isAuthenticated) {
+    (checkAuth as () => Promise<void>)().finally(() => setAuthChecked(true));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (authChecked && !isAuthenticated) {
       router.push('/auth/login');
     }
-  }, [isAuthenticated, checkAuth, router]);
+  }, [authChecked, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (!authChecked || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 dark:border-primary-400"></div>

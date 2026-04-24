@@ -347,7 +347,7 @@ const SchemaIntrospectPage = () => {
         {introspectedSchema && (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Introspected Schema</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Introspected Schema</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShowComparePanel(!showComparePanel); setCompareResult(null); }}
@@ -475,7 +475,7 @@ const SchemaIntrospectPage = () => {
                     : 'bg-red-50 border-red-200'
                 }`}>
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold">
+                    <h4 className="font-semibold text-gray-900">
                       {compareResult.schemas_match ? 'Schemas are identical' : 'Schemas differ'}
                     </h4>
                     <span className={`text-2xl font-bold ${
@@ -529,7 +529,7 @@ const SchemaIntrospectPage = () => {
                     <ul className="space-y-1">
                       {compareResult.type_changes.map((tc) => (
                         <li key={tc.field} className="text-sm bg-orange-50 text-orange-800 px-3 py-1 rounded">
-                          <span className="font-medium">{tc.field}</span>: {tc.old_type} → {tc.new_type}
+                          <span className="font-medium text-gray-900">{tc.field}</span>: {tc.old_type} → {tc.new_type}
                         </li>
                       ))}
                     </ul>
@@ -546,7 +546,7 @@ const SchemaIntrospectPage = () => {
                     <ul className="space-y-1">
                       {compareResult.modified_fields.map((mf) => (
                         <li key={mf.field} className="text-sm bg-yellow-50 text-yellow-800 px-3 py-1 rounded">
-                          <span className="font-medium">{mf.field}</span>:{' '}
+                          <span className="font-medium text-gray-900">{mf.field}</span>:{' '}
                           {Object.entries(mf.modifications)
                             .map(([k, v]) => `${k}: ${v.old} → ${v.new}`)
                             .join(', ')}
@@ -586,7 +586,7 @@ const SchemaIntrospectPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Save Schema</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Save Schema</h3>
               <button onClick={() => { setShowSaveModal(false); setSaveSchemaName(''); }}>
                 <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
               </button>

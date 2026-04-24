@@ -160,7 +160,7 @@ export class WebSocketClient {
   }
 
   private handleError(event: Event) {
-    console.error('WebSocket error:', event);
+    console.warn('WebSocket error (live updates unavailable):', event);
 
     if (this.config.onError) {
       this.config.onError(event);
@@ -168,21 +168,18 @@ export class WebSocketClient {
   }
 
   private handleClose() {
-    console.log('WebSocket disconnected');
+    if (!this.isManuallyDisconnected) {
+      this.scheduleReconnect();
+    }
 
     if (this.config.onDisconnect) {
       this.config.onDisconnect();
-    }
-
-    // Attempt to reconnect unless manually disconnected
-    if (!this.isManuallyDisconnected) {
-      this.scheduleReconnect();
     }
   }
 
   private scheduleReconnect() {
     if (this.reconnectAttempts >= (this.config.maxReconnectAttempts || 5)) {
-      console.error('Max reconnection attempts reached');
+      console.warn('WebSocket: live updates unavailable — real-time features are disabled');
       return;
     }
 

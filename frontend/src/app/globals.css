@@ -9,12 +9,9 @@
   --foreground: #111827;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Dark-mode overrides are intentionally omitted. The app uses Tailwind's
+   class-based dark mode (darkMode: 'class') — OS preference must not flip
+   these variables because components use hardcoded light-mode Tailwind classes. */
 
 body {
   background: var(--background);

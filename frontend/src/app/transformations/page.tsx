@@ -345,7 +345,7 @@ export default function TransformationsPage() {
               <Code className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{transformations.length}</div>
+              <div className="text-2xl font-bold text-gray-900">{transformations.length}</div>
               <p className="text-xs text-gray-500">All transformations</p>
             </CardContent>
           </Card>
@@ -356,7 +356,7 @@ export default function TransformationsPage() {
               <Play className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {transformations.filter(t => t.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Active transformations</p>
@@ -369,7 +369,7 @@ export default function TransformationsPage() {
               <Database className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {isMetricsLoading
                   ? '--'
                   : metricsSummary

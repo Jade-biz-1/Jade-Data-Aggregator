@@ -14,7 +14,7 @@ class TransformationBase(BaseModel):
 
 
 class TransformationCreate(TransformationBase):
-    pass
+    owner_id: Optional[int] = None
 
 
 class TransformationUpdate(BaseModel):
