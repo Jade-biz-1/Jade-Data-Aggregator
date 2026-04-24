@@ -10,9 +10,10 @@ interface SourceNodeConfigProps {
   config: any;
   onChange: (config: any) => void;
   subtype: string;
+  onConnectorSelect?: (connectorName: string) => void;
 }
 
-export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfigProps) {
+export function SourceNodeConfig({ config, onChange, subtype, onConnectorSelect }: SourceNodeConfigProps) {
   const [connectors, setConnectors] = useState<any[]>([]);
 
   useEffect(() => {
@@ -44,12 +45,18 @@ export function SourceNodeConfig({ config, onChange, subtype }: SourceNodeConfig
           <Select
             id="connector"
             value={config.connector_id || ''}
-            onChange={(e) => updateConfig('connector_id', e.target.value)}
+            onChange={(e) => {
+              updateConfig('connector_id', e.target.value);
+              if (onConnectorSelect) {
+                const selected = connectors.find(c => String(c.id) === e.target.value);
+                if (selected) onConnectorSelect(selected.name);
+              }
+            }}
           >
             <option value="">Select a connector...</option>
             {connectors.map((conn) => (
               <option key={conn.id} value={conn.id}>
-                {conn.name} ({conn.type})
+                {conn.name} ({conn.connector_type || conn.type})
               </option>
             ))}
           </Select>

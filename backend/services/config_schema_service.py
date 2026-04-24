@@ -69,16 +69,39 @@ class ConfigurationSchemaService:
             description="Connect to PostgreSQL database",
             icon="database",
             groups=[
+                {"id": "general", "label": "General"},
                 {"id": "connection", "label": "Connection Details"},
                 {"id": "advanced", "label": "Advanced Settings"}
             ],
             fields=[
                 FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                
+                FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                FormField(
                     name="host",
                     label="Host",
                     field_type=FieldType.TEXT,
-                    placeholder="localhost",
-                    help_text="Database server hostname or IP address",
+                    default_value="db",
+                    placeholder="db",
+                    help_text="Hostname or IP of the database server. Use 'db' to connect to the built-in Docker PostgreSQL service.",
                     required=True,
                     group="connection",
                     validation=[
@@ -91,7 +114,7 @@ class ConfigurationSchemaService:
                     field_type=FieldType.NUMBER,
                     default_value=5432,
                     placeholder="5432",
-                    help_text="Database server port",
+                    help_text="Database server port (default: 5432)",
                     required=True,
                     group="connection",
                     validation=[
@@ -104,8 +127,9 @@ class ConfigurationSchemaService:
                     name="database",
                     label="Database Name",
                     field_type=FieldType.TEXT,
-                    placeholder="mydatabase",
-                    help_text="Name of the database to connect to",
+                    default_value="dataaggregator",
+                    placeholder="dataaggregator",
+                    help_text="Name of the database. The built-in PostgreSQL service uses 'dataaggregator'.",
                     required=True,
                     group="connection",
                     validation=[
@@ -116,6 +140,7 @@ class ConfigurationSchemaService:
                     name="username",
                     label="Username",
                     field_type=FieldType.TEXT,
+                    default_value="postgres",
                     placeholder="postgres",
                     help_text="Database username",
                     required=True,
@@ -140,8 +165,8 @@ class ConfigurationSchemaService:
                     name="ssl_mode",
                     label="SSL Mode",
                     field_type=FieldType.SELECT,
-                    default_value="prefer",
-                    help_text="SSL connection mode",
+                    default_value="disable",
+                    help_text="SSL connection mode. Use 'Disable' for local/Docker connections without SSL.",
                     group="advanced",
                     options=[
                         {"value": "disable", "label": "Disable"},
@@ -169,15 +194,38 @@ class ConfigurationSchemaService:
             description="Connect to MySQL/MariaDB database",
             icon="database",
             groups=[
+                {"id": "general", "label": "General"},
                 {"id": "connection", "label": "Connection Details"},
                 {"id": "advanced", "label": "Advanced Settings"}
             ],
             fields=[
                 FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                
+                FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                FormField(
                     name="host",
                     label="Host",
                     field_type=FieldType.TEXT,
-                    placeholder="localhost",
+                    placeholder="your-mysql-host",
+                    help_text="Hostname or IP of the MySQL server",
                     required=True,
                     group="connection",
                     validation=[ValidationRule(type="required", message="Host is required")]
@@ -187,6 +235,8 @@ class ConfigurationSchemaService:
                     label="Port",
                     field_type=FieldType.NUMBER,
                     default_value=3306,
+                    placeholder="3306",
+                    help_text="MySQL server port (default: 3306)",
                     required=True,
                     group="connection",
                     validation=[
@@ -199,6 +249,8 @@ class ConfigurationSchemaService:
                     name="database",
                     label="Database Name",
                     field_type=FieldType.TEXT,
+                    placeholder="mydatabase",
+                    help_text="Name of the MySQL database to connect to",
                     required=True,
                     group="connection",
                     validation=[ValidationRule(type="required", message="Database name is required")]
@@ -207,6 +259,8 @@ class ConfigurationSchemaService:
                     name="username",
                     label="Username",
                     field_type=FieldType.TEXT,
+                    placeholder="root",
+                    help_text="MySQL username",
                     required=True,
                     group="connection",
                     validation=[ValidationRule(type="required", message="Username is required")]
@@ -243,11 +297,23 @@ class ConfigurationSchemaService:
             description="Connect to REST API endpoints",
             icon="globe",
             groups=[
+                {"id": "general", "label": "General"},
                 {"id": "endpoint", "label": "Endpoint Configuration"},
                 {"id": "authentication", "label": "Authentication"},
                 {"id": "advanced", "label": "Advanced Settings"}
             ],
             fields=[
+                FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                
                 FormField(
                     name="base_url",
                     label="Base URL",
@@ -356,10 +422,22 @@ class ConfigurationSchemaService:
             description="Connect to Salesforce CRM",
             icon="cloud",
             groups=[
+                {"id": "general", "label": "General"},
                 {"id": "credentials", "label": "Credentials"},
                 {"id": "settings", "label": "Settings"}
             ],
             fields=[
+                FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                
                 FormField(
                     name="instance_url",
                     label="Instance URL",
@@ -429,16 +507,75 @@ class ConfigurationSchemaService:
 
     # File connector schemas
     FILE_SCHEMAS = {
+        "file": ConnectorConfigSchema(
+            connector_type="file",
+            name="File",
+            description="Read from a local or mounted file (JSON, CSV, JSONL, etc.)",
+            icon="file",
+            groups=[
+                {"id": "general", "label": "General"},
+                {"id": "file", "label": "File Configuration"},
+            ],
+            fields=[
+                FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                
+                FormField(
+                    name="path",
+                    label="File Path",
+                    field_type=FieldType.TEXT,
+                    help_text="Absolute path to the file on the server",
+                    required=True,
+                    group="file",
+                    validation=[ValidationRule(type="required", message="File path is required")]
+                ),
+                FormField(
+                    name="format",
+                    label="Format",
+                    field_type=FieldType.SELECT,
+                    default_value="json",
+                    help_text="File format",
+                    required=True,
+                    group="file",
+                    options=[
+                        {"value": "json", "label": "JSON"},
+                        {"value": "jsonl", "label": "JSONL"},
+                        {"value": "csv", "label": "CSV"},
+                        {"value": "tsv", "label": "TSV"},
+                    ]
+                ),
+            ]
+        ),
         "csv_file": ConnectorConfigSchema(
             connector_type="csv_file",
             name="CSV File",
             description="Read from CSV files",
             icon="file-text",
             groups=[
+                {"id": "general", "label": "General"},
                 {"id": "file", "label": "File Configuration"},
                 {"id": "format", "label": "Format Settings"}
             ],
             fields=[
+                FormField(
+                    name="name",
+                    label="Connector Name",
+                    field_type=FieldType.TEXT,
+                    placeholder="e.g. Production DB, Dev API",
+                    help_text="A descriptive name to identify this connector.",
+                    required=True,
+                    group="general",
+                    validation=[ValidationRule(type="required", message="Connector name is required")]
+                ),
+                
                 FormField(
                     name="file_path",
                     label="File Path",
@@ -617,25 +754,14 @@ class ConfigurationSchemaService:
         cls,
         connector_type: str,
         partial_config: Dict[str, Any]
-    ) -> List[Dict[str, str]]:
+    ) -> List[str]:
         """Get configuration recommendations based on partial config"""
         recommendations = []
 
-        # Example recommendations
-        if connector_type in ["postgresql", "mysql"]:
-            if "ssl_mode" not in partial_config or partial_config.get("ssl_mode") == "disable":
-                recommendations.append({
-                    "field": "ssl_mode",
-                    "message": "Consider enabling SSL for secure connections",
-                    "recommendation": "require"
-                })
-
         if connector_type == "rest_api":
             if partial_config.get("auth_type") == "none":
-                recommendations.append({
-                    "field": "auth_type",
-                    "message": "No authentication configured. This may not be secure.",
-                    "recommendation": "api_key"
-                })
+                recommendations.append(
+                    "No authentication configured — consider using API Key or Bearer Token."
+                )
 
         return recommendations

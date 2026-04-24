@@ -38,13 +38,67 @@ Position = NodePosition
 
 
 class PipelineNode(BaseModel):
-    """Visual pipeline node definition"""
+    """Visual pipeline node definition.
+
+    ``type`` accepts both the React-Flow generic types (``source``,
+    ``transformation``, ``destination``) and the specific NodeType enum values
+    (``database_source``, ``filter``, …).  The validation service resolves the
+    semantic type via ``resolve_node_type()``.
+    """
     id: str
-    type: NodeType
+    type: str          # intentionally str — see docstring above
     position: NodePosition
     data: Dict[str, Any] = Field(default_factory=dict)
     label: Optional[str] = None
     config: Optional[Dict[str, Any]] = None
+
+    def resolve_node_type(self) -> Optional[NodeType]:
+        """Map React-Flow generic type + data subtypes → NodeType enum, or None."""
+        raw = self.type.lower().strip()
+
+        # Already a valid NodeType value
+        try:
+            return NodeType(raw)
+        except ValueError:
+            pass
+
+        # Generic React-Flow types — look at data subtypes
+        if raw == "source":
+            subtype = (self.data.get("sourceType") or "").lower()
+            mapping = {
+                "database": NodeType.DATABASE_SOURCE,
+                "db": NodeType.DATABASE_SOURCE,
+                "api": NodeType.API_SOURCE,
+                "file": NodeType.FILE_SOURCE,
+                "csv_file": NodeType.FILE_SOURCE,
+                "json_file": NodeType.FILE_SOURCE,
+            }
+            return mapping.get(subtype, NodeType.DATABASE_SOURCE)
+
+        if raw == "transformation":
+            subtype = (self.data.get("transformationType") or "").lower()
+            mapping = {
+                "filter": NodeType.FILTER,
+                "map": NodeType.MAP,
+                "aggregate": NodeType.AGGREGATE,
+                "join": NodeType.JOIN,
+                "sort": NodeType.SORT,
+            }
+            return mapping.get(subtype, NodeType.MAP)
+
+        if raw == "destination":
+            subtype = (self.data.get("destinationType") or "").lower()
+            mapping = {
+                "file": NodeType.FILE_DESTINATION,
+                "csv_file": NodeType.FILE_DESTINATION,
+                "database": NodeType.DATABASE_DESTINATION,
+                "db": NodeType.DATABASE_DESTINATION,
+                "api": NodeType.API_DESTINATION,
+                "warehouse": NodeType.WAREHOUSE_DESTINATION,
+            }
+            return mapping.get(subtype, NodeType.FILE_DESTINATION)
+
+        return None
 
 
 class PipelineEdge(BaseModel):
@@ -76,12 +130,22 @@ class PipelineTemplate(BaseModel):
     is_public: bool = True
 
 
+class ValidationIssue(BaseModel):
+    """A single validation error or warning with context and a fix suggestion."""
+    severity: str  # "error" | "warning" | "suggestion"
+    message: str
+    suggestion: str = ""
+    node_id: Optional[str] = None
+    node_label: Optional[str] = None
+
+
 class PipelineValidationResult(BaseModel):
     """Result of pipeline validation"""
     is_valid: bool
     errors: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     suggestions: List[str] = Field(default_factory=list)
+    issues: List[ValidationIssue] = Field(default_factory=list)
 
 
 class NodeConfiguration(BaseModel):

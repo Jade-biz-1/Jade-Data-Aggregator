@@ -96,6 +96,12 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
 
   // File Destination
   if (subtype === 'file') {
+    const filePath: string = config.file_path || '';
+    const isHostPath = filePath.length > 0 && !filePath.startsWith('/app/') && !filePath.startsWith('/tmp/');
+    const remappedPath = isHostPath
+      ? `/app/uploads/${filePath.split('/').pop() || 'output.csv'}`
+      : null;
+
     return (
       <div className="space-y-4">
         <div>
@@ -103,10 +109,20 @@ export function DestinationNodeConfig({ config, onChange, subtype }: Destination
           <Input
             id="file_path"
             type="text"
-            value={config.file_path || ''}
+            value={filePath}
             onChange={(e) => updateConfig('file_path', e.target.value)}
-            placeholder="/path/to/output.csv"
+            placeholder="/app/uploads/output.csv"
           />
+          {remappedPath ? (
+            <p className="text-xs text-amber-600 mt-1">
+              The backend runs in Docker — this path will be written as <strong>{remappedPath}</strong> on the server.
+              Use a path starting with <code className="bg-gray-100 px-1 rounded">/app/uploads/</code> to control the exact location.
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 mt-1">
+              Files are written on the server at <code className="bg-gray-100 px-1 rounded">/app/uploads/</code>. Use a path like <code className="bg-gray-100 px-1 rounded">/app/uploads/output.csv</code>.
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor="format" className="block text-sm font-medium text-gray-700 mb-1">File Format</label>

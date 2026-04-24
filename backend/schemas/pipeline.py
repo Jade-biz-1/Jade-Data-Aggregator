@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 
@@ -9,12 +9,16 @@ class PipelineBase(BaseModel):
     source_config: dict
     destination_config: dict
     transformation_config: Optional[dict] = None
-    schedule: Optional[str] = None  # Cron expression
+    schedule: Optional[str] = None
     is_active: bool = True
+    pipeline_type: Optional[str] = None
+    visual_definition: Optional[Any] = None
+    node_definitions: Optional[Any] = None
+    edge_definitions: Optional[Any] = None
 
 
 class PipelineCreate(PipelineBase):
-    pass
+    owner_id: Optional[int] = None
 
 
 class PipelineUpdate(BaseModel):
@@ -25,12 +29,16 @@ class PipelineUpdate(BaseModel):
     transformation_config: Optional[dict] = None
     schedule: Optional[str] = None
     is_active: Optional[bool] = None
+    pipeline_type: Optional[str] = None
+    visual_definition: Optional[Any] = None
+    node_definitions: Optional[Any] = None
+    edge_definitions: Optional[Any] = None
 
 
 class Pipeline(PipelineBase):
     id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

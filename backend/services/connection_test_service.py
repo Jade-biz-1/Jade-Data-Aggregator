@@ -42,49 +42,55 @@ class ConnectionTestService:
     @staticmethod
     async def test_database_connection(config: Dict[str, Any]) -> ConnectionTestResult:
         """
-        Test database connection
+        Test database connection.
 
-        Args:
-            config: Database configuration with host, port, database, username, password, etc.
+        PostgreSQL uses asyncpg (already installed); MySQL uses pymysql via SQLAlchemy.
         """
         start_time = datetime.now()
 
-        try:
-            # Build connection string based on database type
-            connector_type = config.get("connector_type", "postgresql")
+        connector_type = config.get("connector_type", "postgresql")
 
+        try:
             if connector_type == "postgresql":
-                connection_string = ConnectionTestService._build_postgres_connection_string(config)
+                import asyncpg  # already in pyproject.toml
+
+                host = config.get("host", "localhost")
+                port = int(config.get("port", 5432))
+                database = config.get("database")
+                username = config.get("username")
+                password = config.get("password")
+                # Only force SSL for modes that explicitly require it
+                ssl = config.get("ssl_mode", "disable") in ("require", "verify-ca", "verify-full")
+
+                conn = await asyncpg.connect(
+                    host=host,
+                    port=port,
+                    database=database,
+                    user=username,
+                    password=password,
+                    ssl=ssl,
+                    timeout=10,
+                )
+                try:
+                    version = await conn.fetchval("SELECT version()")
+                finally:
+                    await conn.close()
+
             elif connector_type == "mysql":
                 connection_string = ConnectionTestService._build_mysql_connection_string(config)
+                engine = create_engine(connection_string, pool_pre_ping=True)
+                with engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
+                    version = connection.execute(text("SELECT VERSION()")).fetchone()[0]
+                engine.dispose()
+
             else:
                 return ConnectionTestResult(
                     success=False,
-                    message=f"Unsupported database type: {connector_type}"
+                    message=f"Unsupported database type: {connector_type}",
                 )
 
-            # Test connection
-            engine = create_engine(connection_string, pool_pre_ping=True)
-
-            with engine.connect() as connection:
-                # Execute simple query
-                result = connection.execute(text("SELECT 1"))
-                result.fetchone()
-
-                # Get database info
-                if connector_type == "postgresql":
-                    version_result = connection.execute(text("SELECT version()"))
-                    version = version_result.fetchone()[0]
-                elif connector_type == "mysql":
-                    version_result = connection.execute(text("SELECT VERSION()"))
-                    version = version_result.fetchone()[0]
-                else:
-                    version = "Unknown"
-
-            engine.dispose()
-
             duration = (datetime.now() - start_time).total_seconds() * 1000
-
             return ConnectionTestResult(
                 success=True,
                 message="Successfully connected to database",
@@ -93,19 +99,18 @@ class ConnectionTestService:
                     "database_type": connector_type,
                     "host": config.get("host"),
                     "port": config.get("port"),
-                    "database": config.get("database")
+                    "database": config.get("database"),
                 },
-                duration_ms=round(duration, 2)
+                duration_ms=round(duration, 2),
             )
 
         except Exception as e:
             duration = (datetime.now() - start_time).total_seconds() * 1000
-
             return ConnectionTestResult(
                 success=False,
                 message=f"Connection failed: {str(e)}",
                 details={"error_type": type(e).__name__},
-                duration_ms=round(duration, 2)
+                duration_ms=round(duration, 2),
             )
 
     @staticmethod
@@ -375,7 +380,10 @@ class ConnectionTestService:
         elif connector_type == "salesforce":
             return await ConnectionTestService.test_salesforce_connection(config)
 
-        elif connector_type in ["csv_file", "json_file"]:
+        elif connector_type in ["file", "csv_file", "json_file"]:
+            # Normalise key: the generic "file" schema stores path as "path", others as "file_path"
+            if "path" in config and "file_path" not in config:
+                config = {**config, "file_path": config["path"]}
             return await ConnectionTestService.test_file_access(config)
 
         else:

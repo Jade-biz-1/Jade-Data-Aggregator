@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, type ComponentType } from 'react';
+import Link from 'next/link';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart } from '@/components/charts';
@@ -54,7 +55,7 @@ function StatCard({
         <Icon className="h-4 w-4 text-gray-500" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formattedValue}</div>
+        <div className="text-2xl font-bold text-gray-900">{formattedValue}</div>
         {showChange && (
           <p className={`text-xs flex items-center mt-1 ${trendColor}`}>
             <ArrowUpRight className={arrowClasses} />
@@ -127,12 +128,12 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="py-4 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Try the example pipeline (dev)</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Try the example pipeline (dev)</h2>
                 <p className="text-sm text-gray-600">Create demo connectors and run a unification pipeline.</p>
               </div>
-              <a href="/example-data" className="inline-flex items-center px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700">
+              <Link href="/example-data" className="inline-flex items-center px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700">
                 Go to Example Data
-              </a>
+              </Link>
             </CardContent>
           </Card>
         )}
@@ -214,12 +215,12 @@ export default function DashboardPage() {
                             : 'bg-red-500'
                         }`} />
                         <div>
-                          <p className="font-medium">{pipeline.name}</p>
+                          <p className="font-medium text-gray-900">{pipeline.name}</p>
                           <p className="text-sm text-gray-500">Last run: {pipeline.lastRun}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{pipeline.recordsProcessed.toLocaleString()}</p>
+                        <p className="font-medium text-gray-900">{pipeline.recordsProcessed.toLocaleString()}</p>
                         <p className="text-sm text-gray-500">records</p>
                       </div>
                     </div>

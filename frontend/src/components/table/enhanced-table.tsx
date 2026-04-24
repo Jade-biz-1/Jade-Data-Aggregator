@@ -35,6 +35,9 @@ export function EnhancedTable<T extends Record<string, any>>({
     new Set(initialColumns.map(col => col.key))
   );
   const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteKeyword, setDeleteKeyword] = useState('');
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   // Add checkbox column for bulk selection
   const columns: Column<T>[] = enableBulkActions
@@ -85,7 +88,6 @@ export function EnhancedTable<T extends Record<string, any>>({
       ? data.filter((_, i) => selectedRows.has(i))
       : data;
 
-    // Convert to plain objects without render functions
     const plainData = exportData.map(row => {
       const obj: any = {};
       initialColumns.forEach(col => {
@@ -97,15 +99,28 @@ export function EnhancedTable<T extends Record<string, any>>({
       return obj;
     });
 
+    const filename = `${tableName}.csv`;
     exportToCSV(plainData, tableName);
+    setExportNotice(`Downloaded as "${filename}" — check your Downloads folder.`);
+    setTimeout(() => setExportNotice(null), 5000);
   };
 
   const handleBulkDelete = () => {
     if (onDelete && selectedRows.size > 0) {
+      setDeleteKeyword('');
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deleteKeyword !== 'delete') return;
+    if (onDelete) {
       const rowsToDelete = data.filter((_, i) => selectedRows.has(i));
       onDelete(rowsToDelete);
       setSelectedRows(new Set());
     }
+    setShowDeleteConfirm(false);
+    setDeleteKeyword('');
   };
 
   const toggleColumn = (columnKey: string) => {
@@ -172,7 +187,7 @@ export function EnhancedTable<T extends Record<string, any>>({
                           onChange={() => toggleColumn(column.key)}
                           className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 mr-2"
                         />
-                        <span className="text-sm">{column.header}</span>
+                        <span className="text-sm text-gray-900">{column.header}</span>
                       </label>
                     ))}
                   </div>
@@ -193,6 +208,14 @@ export function EnhancedTable<T extends Record<string, any>>({
         </div>
       </div>
 
+      {/* Export notice */}
+      {exportNotice && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+          <Download className="h-4 w-4 flex-shrink-0" />
+          {exportNotice}
+        </div>
+      )}
+
       {/* Data Table */}
       <DataTable
         data={data}
@@ -201,6 +224,53 @@ export function EnhancedTable<T extends Record<string, any>>({
         pageSize={pageSize}
         onRowClick={onRowClick}
       />
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Confirm Deletion</h3>
+                <p className="text-sm text-gray-500">
+                  {selectedRows.size} item{selectedRows.size !== 1 ? 's' : ''} will be permanently deleted.
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 mb-3">
+              This action <strong>cannot be undone</strong>. To confirm, type{' '}
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-red-600">delete</code> below:
+            </p>
+            <input
+              type="text"
+              value={deleteKeyword}
+              onChange={e => setDeleteKeyword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && confirmDelete()}
+              placeholder="type delete to confirm"
+              autoFocus
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent mb-4"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteKeyword(''); }}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteKeyword !== 'delete'}
+                className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Delete {selectedRows.size} item{selectedRows.size !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

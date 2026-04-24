@@ -98,17 +98,27 @@ export default function ConnectorsPage() {
 
   const handleTestConnection = async (id: number) => {
     try {
-      // Call the test connection API
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/connectors/${id}/test`, {
+      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/connectors/${id}/test`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1]}`,
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
       });
-      success('Connection test successful', 'Success');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Test failed (${res.status})`);
+      }
+      const result = await res.json();
+      if (result.success) {
+        success(result.message || 'Connection test successful', 'Success');
+      } else {
+        error(result.message || 'Connection test failed', 'Connection Failed');
+      }
     } catch (err: any) {
       error(err.message || 'Connection test failed', 'Error');
-      console.error('Error testing connection:', err);
     }
   };
 
@@ -202,7 +212,7 @@ export default function ConnectorsPage() {
               <Database className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{connectors.length}</div>
+              <div className="text-2xl font-bold text-gray-900">{connectors.length}</div>
               <p className="text-xs text-gray-500">All connectors</p>
             </CardContent>
           </Card>
@@ -213,7 +223,7 @@ export default function ConnectorsPage() {
               <CheckCircle className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {connectors.filter(c => c.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Active connections</p>
@@ -226,7 +236,7 @@ export default function ConnectorsPage() {
               <XCircle className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {connectors.filter(c => !c.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Need attention</p>
@@ -301,6 +311,7 @@ export default function ConnectorsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          title="Test connection"
                           onClick={() => handleTestConnection(connector.id)}
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -309,6 +320,7 @@ export default function ConnectorsPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            title="Edit connector"
                             onClick={() => handleEditConnector(connector.id)}
                           >
                             <Edit className="h-4 w-4" />
@@ -318,6 +330,7 @@ export default function ConnectorsPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            title="Delete connector"
                             onClick={() => handleDeleteConnector(connector.id)}
                           >
                             <Trash2 className="h-4 w-4" />

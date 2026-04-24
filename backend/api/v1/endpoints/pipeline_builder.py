@@ -89,71 +89,65 @@ async def execute_visual_pipeline(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Execute a visual pipeline
+    Execute a visual pipeline using the real pipeline executor.
+    Runs synchronously and returns the final result.
     """
-    # Validate first
-    validation = pipeline_validation_service.validate_pipeline(definition)
+    from backend.services.pipeline_executor import PipelineExecutor, PipelineExecutionError
 
+    # Validate before executing
+    validation = pipeline_validation_service.validate_pipeline(definition)
     if not validation.is_valid:
         raise HTTPException(
             status_code=400,
             detail={
                 "message": "Pipeline validation failed",
-                "errors": validation.errors
-            }
+                "errors": validation.errors,
+                "issues": [i.dict() for i in (validation.issues or [])],
+            },
         )
 
-    # Execute pipeline
-    state = await pipeline_execution_engine.execute_pipeline(
-        pipeline_id=pipeline_id,
-        definition=definition,
-        dry_run=False
-    )
+    executor = PipelineExecutor(db)
+    try:
+        run = await executor.execute_pipeline(
+            pipeline_id=pipeline_id,
+            triggered_by="builder",
+        )
+    except PipelineExecutionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     return {
         "pipeline_id": pipeline_id,
-        "status": state.status,
-        "total_records_processed": state.total_records_processed,
-        "execution_time_seconds": (
-            (state.end_time - state.start_time).total_seconds()
-            if state.end_time and state.start_time
-            else 0
-        ),
-        "total_steps": len(state.steps)
+        "run_id": run.id,
+        "status": run.status,
+        "records_processed": run.records_processed or 0,
+        "records_failed": run.records_failed or 0,
+        "logs": run.logs or "",
+        "error_message": run.error_message,
     }
 
 
 @router.get("/execution-state/{pipeline_id}")
 async def get_execution_state(
     pipeline_id: int,
-    current_user: User = Depends(require_any_authenticated())
+    current_user: User = Depends(require_any_authenticated()),
+    db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Get current execution state of a running pipeline
+    Return the most recent run record for a pipeline (used for post-execution polling).
     """
-    state = pipeline_execution_engine.get_execution_state(pipeline_id)
-
-    if not state:
-        raise HTTPException(
-            status_code=404,
-            detail="No active execution found for this pipeline"
-        )
-
+    from backend.crud.pipeline_run import pipeline_run as crud_run
+    runs = await crud_run.get_by_pipeline(db, pipeline_id=pipeline_id, skip=0, limit=1)
+    if not runs:
+        raise HTTPException(status_code=404, detail="No runs found for this pipeline")
+    run = runs[0]
     return {
         "pipeline_id": pipeline_id,
-        "status": state.status,
-        "current_step": state.current_step,
-        "total_steps": len(state.steps),
-        "records_processed": state.total_records_processed,
-        "steps": [
-            {
-                "step_number": step.step_number,
-                "node_id": step.node_id,
-                "node_type": step.node_type,
-                "status": step.status
-            }
-            for step in state.steps
-        ]
+        "run_id": run.id,
+        "status": run.status,
+        "records_processed": run.records_processed or 0,
+        "records_failed": run.records_failed or 0,
+        "logs": run.logs or "",
+        "error_message": run.error_message,
     }
 
 
@@ -166,7 +160,6 @@ async def cancel_pipeline_execution(
     Cancel a running pipeline execution
     """
     pipeline_execution_engine.cancel_execution(pipeline_id)
-
     return {"message": f"Pipeline {pipeline_id} execution cancelled"}
 
 

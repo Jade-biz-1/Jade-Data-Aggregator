@@ -22,6 +22,7 @@ interface ExecutionState {
   progress?: number;
   recordsProcessed?: number;
   errorMessage?: string;
+  executionLogs?: string;
   nodeStatuses?: {
     node_id: string;
     status: 'pending' | 'running' | 'completed' | 'failed';
@@ -79,14 +80,27 @@ export function ExecutionPanel({ pipelineId, nodes, edges, isOpen, onToggle }: E
     setExecutionState({ status: 'running', startTime: new Date().toISOString() });
 
     try {
-      await pipelineBuilderService.executePipeline(pipelineId, nodes, edges);
-      // Execution started, polling will update the state
+      const result = await pipelineBuilderService.executePipeline(pipelineId, nodes, edges);
+      setExecutionState({
+        status: result.status === 'completed' ? 'completed' : 'failed',
+        recordsProcessed: result.records_processed ?? result.total_records_processed,
+        errorMessage: result.error_message || undefined,
+        executionLogs: result.logs || undefined,
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+      });
     } catch (error: any) {
+      // The backend may embed validation issues in a structured detail object
+      const detail = error.detail || error.message || 'Execution failed';
+      const message = typeof detail === 'object'
+        ? (detail.message || JSON.stringify(detail))
+        : detail;
       setExecutionState({
         status: 'failed',
-        errorMessage: error.message || 'Execution failed',
-        endTime: new Date().toISOString()
+        errorMessage: message,
+        endTime: new Date().toISOString(),
       });
+    } finally {
       setIsExecuting(false);
     }
   };
@@ -279,6 +293,15 @@ export function ExecutionPanel({ pipelineId, nodes, edges, isOpen, onToggle }: E
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {executionState.executionLogs && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Execution Log</h4>
+            <pre className="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-3 whitespace-pre-wrap break-words leading-relaxed">
+              {executionState.executionLogs}
+            </pre>
           </div>
         )}
 

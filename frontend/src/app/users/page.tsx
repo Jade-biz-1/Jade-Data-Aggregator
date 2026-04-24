@@ -384,7 +384,7 @@ export default function UsersPage() {
               <UserIcon className="h-5 w-5 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold text-gray-900">{users.length}</div>
               <p className="text-xs text-gray-500">All users</p>
             </CardContent>
           </Card>
@@ -395,7 +395,7 @@ export default function UsersPage() {
               <CheckCircle className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {users.filter(u => u.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Active users</p>
@@ -408,7 +408,7 @@ export default function UsersPage() {
               <Shield className="h-5 w-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{getRoleCount('admin')}</div>
+              <div className="text-2xl font-bold text-gray-900">{getRoleCount('admin')}</div>
               <p className="text-xs text-gray-500">Administrators</p>
             </CardContent>
           </Card>
@@ -419,7 +419,7 @@ export default function UsersPage() {
               <XCircle className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-900">
                 {users.filter(u => !u.is_active).length}
               </div>
               <p className="text-xs text-gray-500">Inactive users</p>

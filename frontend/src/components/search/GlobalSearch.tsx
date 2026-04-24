@@ -159,11 +159,11 @@ export default function GlobalSearch() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-72"
       >
-        <Search className="w-4 h-4" />
-        <span>Search...</span>
-        <kbd className="hidden sm:inline-flex px-2 py-1 text-xs font-semibold text-gray-800 bg-white dark:text-gray-200 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded">
+        <Search className="w-4 h-4 flex-shrink-0" />
+        <span className="flex-1 text-left">Search pipelines, connectors…</span>
+        <kbd className="hidden sm:inline-flex px-2 py-1 text-xs font-semibold text-gray-800 bg-white dark:text-gray-200 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded flex-shrink-0">
           ⌘K
         </kbd>
       </button>

@@ -40,11 +40,14 @@ const PipelineBuilderContent = () => {
   const [isExecutionPanelOpen, setIsExecutionPanelOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
-  // Load pipeline if ID is in URL
+  // Load pipeline if ID is in URL, or pre-fill name if provided
   useEffect(() => {
     const pipelineId = searchParams.get('id');
+    const nameParam = searchParams.get('name');
     if (pipelineId) {
       loadPipeline(parseInt(pipelineId));
+    } else if (nameParam) {
+      setPipelineName(decodeURIComponent(nameParam));
     }
   }, [searchParams]);
 
@@ -154,6 +157,30 @@ const PipelineBuilderContent = () => {
       setIsSaving(false);
     }
   }, [pipelineName, pipelineDescription, isEditMode, currentPipelineId, router, success, error, warning]);
+
+  const handleNodeConfigSave = useCallback(async (nodeId: string, config: any, label: string) => {
+    const updatedNodes = nodes.map((node) => {
+      if (node.id === nodeId) {
+        return { ...node, data: { ...node.data, config, isConfigured: true, label: label || node.data.label } };
+      }
+      return node;
+    });
+    setNodes(updatedNodes);
+
+    // Auto-persist to the backend whenever a node config is saved on an existing pipeline
+    if (isEditMode && currentPipelineId && pipelineName.trim()) {
+      try {
+        await pipelineBuilderService.updatePipeline(
+          currentPipelineId,
+          updatedNodes,
+          edges,
+          { name: pipelineName, description: pipelineDescription },
+        );
+      } catch {
+        // silent — the user can still click Update manually
+      }
+    }
+  }, [nodes, edges, isEditMode, currentPipelineId, pipelineName, pipelineDescription]);
 
   const handleCancel = () => {
     router.push('/pipelines');
@@ -306,6 +333,7 @@ const PipelineBuilderContent = () => {
               edges={edges}
               onNodesChange={handleNodesChange}
               onEdgesChange={handleEdgesChange}
+              onNodeConfigSave={handleNodeConfigSave}
               onSave={handleSave}
             />
           </div>
