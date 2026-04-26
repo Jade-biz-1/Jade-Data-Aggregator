@@ -40,21 +40,21 @@ export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
 
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 h-16 flex items-center justify-between px-4 lg:px-6 shadow-soft transition-colors">
-      {/* Left side */}
-      <div className="flex items-center space-x-4">
+      {/* Left side — search takes all available space */}
+      <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
         {showMenuButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onMenuClick}
-            className="lg:hidden hover:bg-primary-50 dark:hover:bg-gray-800"
+            className="lg:hidden hover:bg-primary-50 dark:hover:bg-gray-800 flex-shrink-0"
           >
             <Menu className="h-6 w-6 dark:text-gray-300" />
           </Button>
         )}
 
         {/* Global Search */}
-        <div className="hidden md:block">
+        <div className="hidden md:flex flex-1 min-w-0 max-w-2xl">
           <GlobalSearch />
         </div>
       </div>
@@ -75,8 +75,6 @@ export function Header({ onMenuClick, showMenuButton = true }: HeaderProps) {
             className="hover:bg-primary-50 dark:hover:bg-gray-800 relative"
           >
             <Bell className="h-5 w-5 dark:text-gray-300" />
-            {/* Notification badge */}
-            <span className="absolute -top-1 -right-1 block h-3 w-3 rounded-full bg-gradient-to-r from-red-500 to-red-600 ring-2 ring-white dark:ring-gray-900 shadow-medium animate-pulse" />
           </Button>
 
           {/* Notifications dropdown */}

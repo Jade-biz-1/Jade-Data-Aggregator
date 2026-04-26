@@ -35,7 +35,7 @@ class CRUDUser:
         return db_obj
 
     async def update(self, db: AsyncSession, db_obj: User, obj_in: UserUpdate) -> User:
-        obj_data = obj_in.dict(exclude_unset=True)
+        obj_data = obj_in.model_dump(exclude_unset=True)
         for field in obj_data:
             setattr(db_obj, field, obj_data[field])
         db.add(db_obj)

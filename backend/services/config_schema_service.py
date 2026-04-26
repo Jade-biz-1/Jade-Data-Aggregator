@@ -84,17 +84,6 @@ class ConfigurationSchemaService:
                     group="general",
                     validation=[ValidationRule(type="required", message="Connector name is required")]
                 ),
-                
-                FormField(
-                    name="name",
-                    label="Connector Name",
-                    field_type=FieldType.TEXT,
-                    placeholder="e.g. Production DB, Dev API",
-                    help_text="A descriptive name to identify this connector.",
-                    required=True,
-                    group="general",
-                    validation=[ValidationRule(type="required", message="Connector name is required")]
-                ),
                 FormField(
                     name="host",
                     label="Host",
@@ -199,17 +188,6 @@ class ConfigurationSchemaService:
                 {"id": "advanced", "label": "Advanced Settings"}
             ],
             fields=[
-                FormField(
-                    name="name",
-                    label="Connector Name",
-                    field_type=FieldType.TEXT,
-                    placeholder="e.g. Production DB, Dev API",
-                    help_text="A descriptive name to identify this connector.",
-                    required=True,
-                    group="general",
-                    validation=[ValidationRule(type="required", message="Connector name is required")]
-                ),
-                
                 FormField(
                     name="name",
                     label="Connector Name",

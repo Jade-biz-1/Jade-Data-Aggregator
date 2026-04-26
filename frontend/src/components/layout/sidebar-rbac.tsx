@@ -15,7 +15,8 @@ import {
   FileText,
   HelpCircle,
   Wrench,
-  ClipboardList
+  ClipboardList,
+  FolderOpen
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuthStore } from '@/stores/auth';
@@ -35,18 +36,18 @@ const allNavigationItems: NavigationItem[] = [
   { name: 'Transformations', href: '/transformations', icon: Code, requiredNavKey: 'transformations' },
   { name: 'Analytics', href: '/analytics', icon: BarChart3, requiredNavKey: 'analytics' },
   { name: 'Monitoring', href: '/monitoring', icon: Activity, requiredNavKey: 'monitoring' },
+  { name: 'Files', href: '/files', icon: FolderOpen },
   { name: 'Users', href: '/users', icon: Users, requiredNavKey: 'users' },
 ];
 
 const adminNavigationItems: NavigationItem[] = [
   { name: 'Maintenance', href: '/admin/maintenance', icon: Wrench, requiredNavKey: 'maintenance' },
-  { name: 'Activity Logs', href: '/admin/activity-logs', icon: ClipboardList, requiredNavKey: 'activity_logs' },
+  { name: 'Activity Logs', href: '/admin/activity', icon: ClipboardList, requiredNavKey: 'activity_logs' },
 ];
 
 const baseSecondaryNavigation: NavigationItem[] = [
   { name: 'Documentation', href: '/docs', icon: FileText },
   { name: 'Settings', href: '/settings', icon: Settings, requiredNavKey: 'settings' },
-  { name: 'Help', href: '/help', icon: HelpCircle },
 ];
 
 interface SidebarProps {

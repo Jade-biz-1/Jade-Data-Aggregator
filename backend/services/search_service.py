@@ -190,76 +190,44 @@ class GlobalSearchService:
         Returns:
             Search results dict
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         search_query = f"%{query}%"
         results = {}
 
-        # Default to all entity types if none specified
+        # Core entity types that are always present in the schema
         if not entity_types:
             entity_types = [
-                "pipelines", "connectors", "transformations",
-                "users", "files", "templates", "functions",
-                "logs", "alerts", "alert_rules"
+                "pipelines", "connectors", "transformations", "users",
             ]
 
-        # Search pipelines
-        if "pipelines" in entity_types:
-            results["pipelines"] = await self.search_pipelines(
-                db, search_query, limit, offset
-            )
+        # Map entity type → search method
+        search_map = {
+            "pipelines":       self.search_pipelines,
+            "connectors":      self.search_connectors,
+            "transformations": self.search_transformations,
+            "users":           self.search_users,
+            "files":           self.search_files,
+            "templates":       self.search_templates,
+            "functions":       self.search_functions,
+            "logs":            self.search_logs,
+            "alerts":          self.search_alerts,
+            "alert_rules":     self.search_alert_rules,
+        }
 
-        # Search connectors
-        if "connectors" in entity_types:
-            results["connectors"] = await self.search_connectors(
-                db, search_query, limit, offset
-            )
-
-        # Search transformations
-        if "transformations" in entity_types:
-            results["transformations"] = await self.search_transformations(
-                db, search_query, limit, offset
-            )
-
-        # Search users
-        if "users" in entity_types:
-            results["users"] = await self.search_users(
-                db, search_query, limit, offset
-            )
-
-        # Search files
-        if "files" in entity_types:
-            results["files"] = await self.search_files(
-                db, search_query, limit, offset
-            )
-
-        # Search templates
-        if "templates" in entity_types:
-            results["templates"] = await self.search_templates(
-                db, search_query, limit, offset
-            )
-
-        # Search transformation functions
-        if "functions" in entity_types:
-            results["functions"] = await self.search_functions(
-                db, search_query, limit, offset
-            )
-
-        # Search logs
-        if "logs" in entity_types:
-            results["logs"] = await self.search_logs(
-                db, search_query, limit, offset
-            )
-
-        # Search alerts
-        if "alerts" in entity_types:
-            results["alerts"] = await self.search_alerts(
-                db, search_query, limit, offset
-            )
-
-        # Search alert rules
-        if "alert_rules" in entity_types:
-            results["alert_rules"] = await self.search_alert_rules(
-                db, search_query, limit, offset
-            )
+        for entity_type in entity_types:
+            if entity_type not in search_map:
+                continue
+            try:
+                results[entity_type] = await search_map[entity_type](
+                    db, search_query, limit, offset
+                )
+            except Exception as exc:
+                # A missing table or schema mismatch must not crash the whole search
+                logger.warning("search_all: skipping %s — %s", entity_type, exc)
+                await db.rollback()
+                results[entity_type] = []
 
         # Calculate total results
         total_results = sum(len(v) for v in results.values())

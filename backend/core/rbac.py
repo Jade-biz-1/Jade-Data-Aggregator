@@ -123,7 +123,7 @@ class RBACService:
             return True
         elif action in ["write", "update", "create"]:
             # Editors and admins can write
-            return user.role in [UserRole.EDITOR, UserRole.ADMIN]
+            return user.role in [UserRole.DESIGNER, UserRole.DEVELOPER, UserRole.ADMIN]
         elif action == "delete":
             # Only admins can delete (unless they own the resource)
             return user.role == UserRole.ADMIN
@@ -179,7 +179,7 @@ def check_write_permission(user: User) -> bool:
     """Check if user has write permissions."""
     return (
         user.is_superuser or
-        user.role in [UserRole.ADMIN, UserRole.EDITOR]
+        user.role in [UserRole.ADMIN, UserRole.DESIGNER, UserRole.DEVELOPER]
     )
 
 

@@ -205,7 +205,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   {recentActivity.map((pipeline) => (
-                    <div key={pipeline.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={pipeline.run_id ?? pipeline.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center space-x-4">
                         <div className={`w-3 h-3 rounded-full ${
                           pipeline.status === 'running'

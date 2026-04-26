@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { Search, Code, Play, BookOpen, Copy, Check, Filter, Star, TrendingUp, Download } from 'lucide-react';
+import { Search, Code, Play, BookOpen, Copy, Check, Filter, Star, TrendingUp, Download, ArrowLeft, Plus } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AccessDenied } from '@/components/common/AccessDenied';
 import { apiClient } from '@/lib/api';
@@ -40,7 +41,24 @@ interface FunctionTestResult {
   execution_time_ms?: number;
 }
 
+const BUILTIN_FUNCTIONS: TransformationFunction[] = [
+  { id: 'builtin-upper', name: 'upper(value)', category: 'String', description: 'Convert a string to uppercase.', code: 'upper(row["first_name"])', parameters: [{name:'value',type:'str',required:true,description:'Input string'}], return_type:'str', examples:[{input:{first_name:'alice'},output:'ALICE',description:'Uppercase a name'}], tags:['string','case'] },
+  { id: 'builtin-lower', name: 'lower(value)', category: 'String', description: 'Convert a string to lowercase.', code: 'lower(row["email"])', parameters: [{name:'value',type:'str',required:true,description:'Input string'}], return_type:'str', examples:[{input:{email:'ALICE@EXAMPLE.COM'},output:'alice@example.com'}], tags:['string','case'] },
+  { id: 'builtin-strip', name: 'strip(value)', category: 'String', description: 'Remove leading and trailing whitespace.', code: 'strip(row["name"])', parameters: [{name:'value',type:'str',required:true}], return_type:'str', examples:[{input:{name:'  Alice  '},output:'Alice'}], tags:['string','trim'] },
+  { id: 'builtin-substr', name: 'substr(value, start, length)', category: 'String', description: 'Extract a substring by start position and length.', code: 'substr(row["phone"], 0, 3)', parameters: [{name:'value',type:'str',required:true},{name:'start',type:'int',required:true},{name:'length',type:'int',required:true}], return_type:'str', examples:[{input:{phone:'0412345678'},output:'041',description:'Extract area code'}], tags:['string','extract'] },
+  { id: 'builtin-concat', name: 'concat(a, b, ...)', category: 'String', description: 'Concatenate two or more values into one string.', code: 'concat(row["first_name"], " ", row["last_name"])', parameters: [{name:'values',type:'str',required:true,description:'Two or more values to join'}], return_type:'str', examples:[{input:{first_name:'Alice',last_name:'Smith'},output:'Alice Smith',description:'Full name from parts'}], tags:['string','join'] },
+  { id: 'builtin-replace', name: 'replace(value, old, new)', category: 'String', description: 'Replace all occurrences of a substring.', code: 'replace(row["code"], "-", "")', parameters: [{name:'value',type:'str',required:true},{name:'old',type:'str',required:true},{name:'new',type:'str',required:true}], return_type:'str', examples:[{input:{code:'AU-001-XY'},output:'AU001XY'}], tags:['string','replace'] },
+  { id: 'builtin-int', name: 'int(value)', category: 'Type', description: 'Cast a value to an integer.', code: 'int(row["quantity"])', parameters: [{name:'value',type:'any',required:true}], return_type:'int', examples:[{input:{quantity:'42'},output:42}], tags:['cast','type'] },
+  { id: 'builtin-float', name: 'float(value)', category: 'Type', description: 'Cast a value to a floating-point number.', code: 'float(row["price"])', parameters: [{name:'value',type:'any',required:true}], return_type:'float', examples:[{input:{price:'9.99'},output:9.99}], tags:['cast','type'] },
+  { id: 'builtin-str', name: 'str(value)', category: 'Type', description: 'Cast a value to a string.', code: 'str(row["id"])', parameters: [{name:'value',type:'any',required:true}], return_type:'str', examples:[{input:{id:123},output:'123'}], tags:['cast','type'] },
+  { id: 'builtin-round', name: 'round(value, decimals)', category: 'Math', description: 'Round a number to a given number of decimal places.', code: 'round(float(row["price"]), 2)', parameters: [{name:'value',type:'float',required:true},{name:'decimals',type:'int',required:false,description:'Default 0'}], return_type:'float', examples:[{input:{price:'9.999'},output:10.0}], tags:['math','round'] },
+  { id: 'builtin-abs', name: 'abs(value)', category: 'Math', description: 'Return the absolute value of a number.', code: 'abs(int(row["balance"]))', parameters: [{name:'value',type:'number',required:true}], return_type:'number', examples:[{input:{balance:-150},output:150}], tags:['math'] },
+  { id: 'builtin-coalesce', name: 'coalesce(value, default)', category: 'Null', description: 'Return value if not None/null, otherwise return the default.', code: 'row["middle_name"] or ""', parameters: [{name:'value',type:'any',required:true},{name:'default',type:'any',required:true}], return_type:'any', examples:[{input:{middle_name:null},output:'',description:'Replace null with empty string'}], tags:['null','default'] },
+  { id: 'builtin-date', name: 'date format', category: 'Date', description: 'Format or parse dates using Python strftime/strptime patterns.', code: 'row["created_at"][:10]', parameters: [{name:'value',type:'str',required:true},{name:'format',type:'str',required:false}], return_type:'str', examples:[{input:{created_at:'2024-03-15T10:30:00'},output:'2024-03-15',description:'Extract date part from ISO datetime'}], tags:['date','format'] },
+];
+
 const TransformationFunctionsPage = () => {
+  const router = useRouter();
   const [functions, setFunctions] = useState<TransformationFunction[]>([]);
   const [filteredFunctions, setFilteredFunctions] = useState<TransformationFunction[]>([]);
   const [selectedFunction, setSelectedFunction] = useState<TransformationFunction | null>(null);
@@ -68,10 +86,10 @@ const TransformationFunctionsPage = () => {
     try {
       const response = await apiClient.fetch<any>('/transformation-functions');
       const raw: any[] = (response as any).functions || [];
-      setFunctions(raw.map((f: any) => ({
+      const dbFunctions = raw.map((f: any) => ({
         id: String(f.id),
         name: f.name,
-        category: f.category ?? '',
+        category: f.category ?? 'Custom',
         description: f.description ?? '',
         code: '',
         parameters: f.parameters ?? [],
@@ -81,11 +99,13 @@ const TransformationFunctionsPage = () => {
         tags: f.tags ?? [],
         created_by: f.created_by ? String(f.created_by) : undefined,
         created_at: f.created_at,
-      })));
-      success('Function library loaded');
+      }));
+      // Always show built-in functions first, then user-created ones
+      setFunctions([...BUILTIN_FUNCTIONS, ...dbFunctions]);
     } catch (error: any) {
       console.error('Error fetching functions:', error);
-      showError('Failed to load function library');
+      // Even on error, show built-in functions
+      setFunctions(BUILTIN_FUNCTIONS);
     } finally {
       setLoading(false);
     }
@@ -95,6 +115,8 @@ const TransformationFunctionsPage = () => {
     setSelectedFunction(func);
     setTestInput('');
     setTestResult(null);
+    // Built-in functions only exist client-side — no backend detail call needed
+    if (func.id.startsWith('builtin-')) return;
     try {
       const detail = await apiClient.fetch<any>(`/transformation-functions/${func.id}`);
       const d = detail as any;
@@ -132,6 +154,10 @@ const TransformationFunctionsPage = () => {
   };
 
   const testFunction = async (func: TransformationFunction) => {
+    if (func.id.startsWith('builtin-')) {
+      showError('Built-in functions cannot be tested here — use them in a Map transformation node in the Pipeline Builder.');
+      return;
+    }
     if (!testInput.trim()) {
       showError('Please enter test input');
       return;
@@ -199,12 +225,28 @@ const TransformationFunctionsPage = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Transformation Function Library</h1>
-            <p className="text-gray-600 mt-1">
-              Browse, test, and use pre-built transformation functions
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/transformations')}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Function Library</h1>
+              <p className="text-gray-600 mt-1">
+                Built-in and custom transformation functions — click any function to see examples and copy the expression
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => router.push('/transformations/functions/new')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Create Function
+          </button>
         </div>
 
         {/* Search and Filter */}

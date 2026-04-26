@@ -11,6 +11,7 @@ from backend.core.rbac import require_viewer
 from backend.models.pipeline import Pipeline
 from backend.models.connector import Connector
 from backend.models.transformation import Transformation
+from backend.models.pipeline_run import PipelineRun
 
 router = APIRouter()
 
@@ -33,15 +34,32 @@ async def get_pipeline_stats(
     )
     active_pipelines = active_result.scalar() or 0
 
-    # For now, we'll use mock data for running/failed counts since we don't have execution tracking yet
-    # In a real implementation, this would come from a pipeline_runs table
-    running_pipelines = max(0, min(3, active_pipelines))  # Mock: up to 3 running
-    failed_pipelines = max(0, min(1, total_pipelines - active_pipelines))  # Mock: some failed
+    # Real run stats from pipeline_runs table
+    running_result = await db.execute(
+        select(func.count(PipelineRun.id)).filter(PipelineRun.status == 'running')
+    )
+    running_pipelines = running_result.scalar() or 0
 
-    # Mock execution statistics - these would come from actual pipeline run records
-    successful_runs = 2456
-    failed_runs = 45
-    records_processed = 45230000
+    failed_result = await db.execute(
+        select(func.count(PipelineRun.id)).filter(PipelineRun.status == 'failed')
+    )
+    failed_pipelines = failed_result.scalar() or 0
+
+    successful_result = await db.execute(
+        select(func.count(PipelineRun.id)).filter(PipelineRun.status == 'completed')
+    )
+    successful_runs = successful_result.scalar() or 0
+
+    failed_runs_result = await db.execute(
+        select(func.count(PipelineRun.id)).filter(PipelineRun.status == 'failed')
+    )
+    failed_runs = failed_runs_result.scalar() or 0
+
+    records_result = await db.execute(
+        select(func.sum(PipelineRun.records_processed))
+        .filter(PipelineRun.status == 'completed', PipelineRun.records_processed > 0)
+    )
+    records_processed = records_result.scalar() or 0
 
     return {
         "totalPipelines": total_pipelines,

@@ -59,7 +59,7 @@ class UserWithPermissions(User):
     @property
     def can_write(self) -> bool:
         """Editors and admins can write."""
-        return self.role in [UserRole.ADMIN, UserRole.EDITOR] or self.is_superuser
+        return self.role in [UserRole.ADMIN, UserRole.DESIGNER, UserRole.DEVELOPER] or self.is_superuser
 
     @property
     def can_admin(self) -> bool:

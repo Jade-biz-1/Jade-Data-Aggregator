@@ -80,6 +80,7 @@ export interface DashboardStats {
 
 export interface DashboardRecentActivity {
   id: number;
+  run_id?: number;
   name: string;
   status: string;
   lastRun: string;

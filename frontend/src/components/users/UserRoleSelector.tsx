@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+
 interface Role {
   role: string;
   title: string;
@@ -45,9 +46,7 @@ export function UserRoleSelector({
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('/api/v1/roles', {
-        credentials: 'include',
-      });
+      const response = await fetch('/api/roles');
 
       if (!response.ok) {
         throw new Error('Failed to fetch roles');

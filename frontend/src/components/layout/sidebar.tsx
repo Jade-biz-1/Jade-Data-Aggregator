@@ -46,7 +46,6 @@ export function Sidebar({ className }: SidebarProps) {
   const secondaryNavigation = [
     { name: 'Documentation', href: '/docs', icon: FileText },
     { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Help', href: '/help', icon: HelpCircle },
   ];
 
   // Filter navigation items based on permissions

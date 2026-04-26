@@ -18,7 +18,9 @@ import {
   Columns,
   Shuffle,
   Shield,
-  BookOpen
+  BookOpen,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
@@ -66,6 +68,7 @@ export default function TransformationsPage() {
   const [isFetchingEdit, setIsFetchingEdit] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFormError, setEditFormError] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const { features, loading: permissionsLoading } = usePermissions();
   const { toasts, error, success, warning } = useToast();
 
@@ -319,6 +322,93 @@ export default function TransformationsPage() {
               </Button>
             )}
           </div>
+        </div>
+
+        {/* How to Use — Collapsible Help Panel */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowHelp(!showHelp)}
+            className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-blue-600" />
+              <span className="font-medium text-gray-800 text-sm">How to define and use Data Transformations</span>
+            </div>
+            {showHelp ? <ChevronDown className="h-4 w-4 text-gray-500" /> : <ChevronRight className="h-4 w-4 text-gray-500" />}
+          </button>
+
+          {showHelp && (
+            <div className="p-5 bg-blue-50 border-t border-gray-200 space-y-4">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">What is a Transformation?</h4>
+                <p className="text-sm text-gray-700">
+                  A Transformation is a named, reusable rule set that reshapes data as it flows through a pipeline node.
+                  You create it once here, then attach it to a <em>Transformation</em> node in the Pipeline Builder.
+                  The pipeline engine applies it to every row it processes.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">Transformation Types</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                  {[
+                    { type: 'filter', label: 'Filter', desc: 'Keep only rows matching a condition. Use field + operator + value.' },
+                    { type: 'map', label: 'Map / Rename', desc: 'Rename columns or compute new ones using expressions.' },
+                    { type: 'aggregate', label: 'Aggregate', desc: 'Group rows and calculate sums, counts, averages.' },
+                    { type: 'sort', label: 'Sort', desc: 'Order rows by one or more fields.' },
+                  ].map(t => (
+                    <div key={t.type} className="bg-white rounded p-3 border border-blue-100">
+                      <p className="font-medium text-blue-800 capitalize mb-1">{t.label}</p>
+                      <p className="text-xs text-gray-600">{t.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Examples</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-white rounded p-3 border border-blue-100">
+                    <p className="font-medium text-gray-800 mb-1">Filter — active customers only</p>
+                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{`{"field": "status", "operator": "equals", "value": "active"}`}</pre>
+                  </div>
+                  <div className="bg-white rounded p-3 border border-blue-100">
+                    <p className="font-medium text-gray-800 mb-1">Map — rename + compute full name</p>
+                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{`[
+  {"source": "first_name", "target": "given_name"},
+  {"source": "concat(row[\\"first_name\\"], \" \", row[\\"last_name\\"])",
+   "target": "full_name"}
+]`}</pre>
+                  </div>
+                  <div className="bg-white rounded p-3 border border-blue-100">
+                    <p className="font-medium text-gray-800 mb-1">Aggregate — total sales by region</p>
+                    <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">{`{"group_by": ["region"],
+ "aggregations": [
+   {"field": "sales", "function": "sum", "alias": "total_sales"},
+   {"field": "id",    "function": "count", "alias": "order_count"}
+ ]}`}</pre>
+                  </div>
+                  <div className="bg-white rounded p-3 border border-blue-100">
+                    <p className="font-medium text-gray-800 mb-1">How to attach to a pipeline</p>
+                    <ol className="text-xs text-gray-700 space-y-1 list-decimal list-inside">
+                      <li>Open the Pipeline Builder.</li>
+                      <li>Drag a <strong>Transformation</strong> node onto the canvas.</li>
+                      <li>Click the node → select the transformation type.</li>
+                      <li>Enter the rules JSON (as shown above).</li>
+                      <li>Connect it between your Source and Destination nodes.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-blue-700">
+                Browse built-in functions (upper, lower, substr, concat, round …) in the{' '}
+                <button onClick={() => router.push('/transformations/functions')} className="underline font-medium">
+                  Function Library →
+                </button>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}

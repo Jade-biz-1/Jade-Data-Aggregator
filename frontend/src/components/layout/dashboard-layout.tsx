@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'next/navigation';
 import { usePermissions } from '@/hooks/usePermissions';
-import { SidebarRBAC } from './sidebar-rbac';
+import { Sidebar } from './sidebar-enhanced';
 import { Header } from './header';
 import { DevWarningBanner } from './DevWarningBanner';
 import { cn } from '@/lib/utils';
@@ -48,8 +48,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       )}
 
-      {/* RBAC Sidebar */}
-      <SidebarRBAC
+      {/* Sidebar */}
+      <Sidebar
         className={cn(
           'lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'

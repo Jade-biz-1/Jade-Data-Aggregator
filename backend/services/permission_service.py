@@ -207,6 +207,12 @@ class PermissionService:
                 "create_reports": Permission.CREATE_REPORTS in permissions_set,
                 "export": Permission.EXPORT_DATA in permissions_set,
             },
+            "settings": {
+                "view": True,  # All authenticated users can access their own settings
+            },
+            "search": {
+                "view": True,  # All authenticated users can search
+            },
             "system": {
                 "settings": Permission.SYSTEM_SETTINGS in permissions_set,
                 "maintenance": Permission.SYSTEM_MAINTENANCE in permissions_set,
