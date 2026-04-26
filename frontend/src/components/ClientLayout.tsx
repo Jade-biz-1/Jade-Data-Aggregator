@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { SkipLink } from '@/components/ui/SkipLink';
+import { NavigationProgress } from '@/components/ui/NavigationProgress';
 import { initSentryClient } from '../../lib/sentry';
 
 interface ClientLayoutProps {
@@ -17,6 +18,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
   return (
     <ThemeProvider>
+      <NavigationProgress />
       <SkipLink href="#main-content">Skip to main content</SkipLink>
       <SkipLink href="#navigation">Skip to navigation</SkipLink>
       {children}

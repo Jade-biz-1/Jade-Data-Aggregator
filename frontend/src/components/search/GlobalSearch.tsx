@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, Clock, BookmarkIcon, TrendingUp, FileText, Database, Zap } from 'lucide-react';
-import { api } from '@/lib/api';
 
 interface SearchResult {
   id: string | number;
@@ -76,10 +75,24 @@ export default function GlobalSearch() {
 
     setLoading(true);
     try {
-      const response = await api.get('/search/global', {
-        params: { q: searchQuery, limit: 10 }
-      });
-      setResults(response.data.results || []);
+      // Use the Next.js API proxy to avoid cross-origin fetch issues
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+      if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+      const response = await res.json();
+      // Backend returns {results: {pipelines: [...], connectors: [...], ...}}
+      const raw = response.results || {};
+      const flat: SearchResult[] = Object.entries(raw).flatMap(
+        ([entityType, items]: [string, any]) =>
+          (items as any[]).map((item: any) => ({
+            id: item.id,
+            entity_type: item.type || entityType.replace(/s$/, ''),
+            title: item.name || item.title || item.username || String(item.id),
+            description: item.description || item.connector_type || '',
+            match_score: 0.9,
+            metadata: item,
+          }))
+      );
+      setResults(flat.slice(0, 10));
     } catch (error) {
       console.error('Search error:', error);
       setResults([]);
@@ -99,33 +112,52 @@ export default function GlobalSearch() {
     return () => clearTimeout(timer);
   }, [query, performSearch]);
 
-  // Load suggestions when opened
+  // Load suggestions when opened with a query
   useEffect(() => {
-    if (isOpen && !query) {
-      loadSuggestions();
+    if (isOpen && query.trim().length >= 2) {
+      loadSuggestions(query);
+    } else if (!query) {
+      setsuggestions([]);
     }
-  }, [isOpen]);
+  }, [isOpen, query]);
 
-  const loadSuggestions = async () => {
+  const loadSuggestions = async (partialQuery: string) => {
     try {
-      const response = await api.get('/search/suggestions');
-      setsuggestions(response.data.suggestions || []);
-    } catch (error) {
-      console.error('Failed to load suggestions:', error);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(partialQuery)}&limit=5`);
+      if (!res.ok) return;
+      const data = await res.json();
+      // Reuse the search proxy — show matching result titles as suggestions
+      const raw = data.results || {};
+      const titles = Object.values(raw).flatMap((items: any) =>
+        (items as any[]).map((item: any) => ({ query: item.name || item.title || '' }))
+      ).filter((s: any) => s.query).slice(0, 5);
+      setsuggestions(titles);
+    } catch {
+      // suggestions are best-effort
     }
   };
 
-  // Navigate to result
+  // Navigate to result — use routes that actually exist
   const handleSelect = (result: SearchResult) => {
-    const typeMap: Record<string, string> = {
-      pipeline: '/pipelines',
-      connector: '/connectors',
-      transformation: '/transformations',
-      user: '/users',
-    };
-
-    const basePath = typeMap[result.entity_type] || '/';
-    router.push(`${basePath}/${result.id}`);
+    let path: string;
+    switch (result.entity_type) {
+      case 'pipeline':
+        // Open in pipeline builder with the pipeline pre-loaded
+        path = `/pipeline-builder?id=${result.id}`;
+        break;
+      case 'connector':
+        path = `/connectors/configure?edit=${result.id}`;
+        break;
+      case 'transformation':
+        path = '/transformations';
+        break;
+      case 'user':
+        path = '/users';
+        break;
+      default:
+        path = '/dashboard';
+    }
+    router.push(path);
     setIsOpen(false);
     setQuery('');
   };
@@ -159,7 +191,7 @@ export default function GlobalSearch() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-72"
+        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full"
       >
         <Search className="w-4 h-4 flex-shrink-0" />
         <span className="flex-1 text-left">Search pipelines, connectors…</span>

@@ -11,6 +11,8 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 from backend.core.database import get_db
+from backend.core.rbac import require_viewer
+from backend.schemas.user import User
 from backend.services.search_service import GlobalSearchService
 
 
@@ -25,12 +27,13 @@ class SearchRequest(BaseModel):
     offset: int = 0
 
 
-@router.get("/")
+@router.get("")
 async def global_search(
     q: str = Query(..., min_length=1, description="Search query"),
     entity_types: Optional[str] = Query(None, description="Comma-separated entity types"),
     limit: int = Query(50, le=100),
     offset: int = Query(0, ge=0),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -57,6 +60,7 @@ async def global_search(
 async def get_search_suggestions(
     q: str = Query(..., min_length=1, description="Partial search query"),
     limit: int = Query(10, le=20),
+    current_user: User = Depends(require_viewer()),
     db: AsyncSession = Depends(get_db)
 ):
     """Get search suggestions based on partial query"""

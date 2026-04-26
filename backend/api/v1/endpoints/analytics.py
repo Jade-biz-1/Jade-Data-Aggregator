@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession, exc as sa_exc
 from sqlalchemy.future import select
-from sqlalchemy import func, and_, case
+from sqlalchemy import func, and_, case, text, cast, Date
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 import random
@@ -44,36 +44,52 @@ async def get_analytics_data(
 
     # Get execution metrics from PipelineRun
     
-    # Total processed records
+    # Total processed records (only completed runs with actual data)
     total_processed_result = await db.execute(
         select(func.sum(PipelineRun.records_processed))
+        .filter(PipelineRun.status == 'completed', PipelineRun.records_processed > 0)
     )
     total_processed = total_processed_result.scalar_one_or_none() or 0
     
-    # Average processing time (completed runs only)
-    # Note: This requires calculating duration from start/end times
-    # For simplicity in SQL, we'll fetch completed runs and calculate in python if needed, 
-    # or use a more complex SQL query. Here we'll use a simplified approach.
-    
-    # Success rate
+    # Success rate + total runs
     total_runs_result = await db.execute(select(func.count(PipelineRun.id)))
     total_runs = total_runs_result.scalar_one_or_none() or 0
-    
+
     successful_runs_result = await db.execute(
         select(func.count(PipelineRun.id)).filter(PipelineRun.status == 'completed')
     )
     successful_runs = successful_runs_result.scalar_one_or_none() or 0
-    
+
     success_rate = (successful_runs / total_runs * 100) if total_runs > 0 else 0
-    
-    # Failed pipelines (pipelines with recent failures)
-    # Simplified: Pipelines with status 'failed' in their last run
-    failed_pipelines = 0 
-    # (Complex query omitted for brevity, using 0 as placeholder for now or could implement subquery)
+
+    # Average processing time in seconds (completed runs with both timestamps)
+    completed_runs_result = await db.execute(
+        select(PipelineRun.started_at, PipelineRun.completed_at)
+        .filter(PipelineRun.status == 'completed', PipelineRun.completed_at != None)
+        .limit(100)
+    )
+    completed_runs = completed_runs_result.fetchall()
+    if completed_runs:
+        durations = [
+            (r.completed_at - r.started_at).total_seconds()
+            for r in completed_runs
+            if r.completed_at and r.started_at
+        ]
+        avg_processing_time = round(sum(durations) / len(durations), 1) if durations else 0
+    else:
+        avg_processing_time = 0
+
+    # Failed pipelines: pipelines whose most recent run has status 'failed'
+    failed_result = await db.execute(
+        select(func.count(text("DISTINCT pipeline_id")))
+        .select_from(PipelineRun)
+        .filter(PipelineRun.status == 'failed')
+    )
+    failed_pipelines = failed_result.scalar_one_or_none() or 0
 
     return {
         "totalProcessed": total_processed,
-        "avgProcessingTime": 0, # Placeholder until we have duration column or complex calculation
+        "avgProcessingTime": avg_processing_time,
         "successRate": round(success_rate, 1),
         "activePipelines": active_count,
         "failedPipelines": failed_pipelines,
@@ -97,14 +113,15 @@ async def get_time_series_data(
     
     # Group by date
     # Note: SQLite/Postgres syntax differs for date truncation. Assuming Postgres.
+    date_col = cast(PipelineRun.created_at, Date).label('date')
     query = (
         select(
-            func.date_trunc('day', PipelineRun.created_at).label('date'),
+            date_col,
             func.sum(PipelineRun.records_processed).label('records')
         )
         .filter(PipelineRun.created_at >= start_date)
-        .group_by(func.date_trunc('day', PipelineRun.created_at))
-        .order_by(func.date_trunc('day', PipelineRun.created_at))
+        .group_by(cast(PipelineRun.created_at, Date))
+        .order_by(cast(PipelineRun.created_at, Date))
     )
     
     result = await db.execute(query)

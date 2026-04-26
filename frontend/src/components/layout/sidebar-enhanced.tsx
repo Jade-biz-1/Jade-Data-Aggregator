@@ -15,13 +15,13 @@ import {
   Users,
   Activity,
   FileText,
-  HelpCircle,
   Wrench,
   Shield,
   Bell,
   ScrollText,
   Folder,
-  Share2
+  Share2,
+  ClipboardList,
 } from 'lucide-react';
 
 interface NavVisibilityContext {
@@ -103,11 +103,20 @@ const primaryNavigationItems: NavItem[] = [
     icon: Users,
     isVisible: ({ navigation }) => Boolean(navigation?.users),
   },
+];
+
+const adminNavigationItems: NavItem[] = [
   {
     name: 'Maintenance',
     href: '/admin/maintenance',
     icon: Wrench,
     isVisible: ({ navigation }) => Boolean(navigation?.maintenance),
+  },
+  {
+    name: 'Activity Logs',
+    href: '/admin/activity',
+    icon: ClipboardList,
+    isVisible: ({ navigation }) => Boolean(navigation?.activity_logs),
   },
 ];
 
@@ -124,12 +133,6 @@ const secondaryNavigation: NavItem[] = [
     icon: Settings,
     isVisible: ({ navigation }) => Boolean(navigation?.settings),
   },
-  {
-    name: 'Help',
-    href: '/help',
-    icon: HelpCircle,
-    isVisible: () => true,
-  },
 ];
 
 interface SidebarProps {
@@ -140,10 +143,47 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { navigation, loading, permissions, features } = usePermissions();
 
-  // Filter navigation based on permissions
   const context: NavVisibilityContext = { navigation, features };
   const visibleNavigation = primaryNavigationItems.filter(item => item.isVisible(context));
+  const visibleAdminNav = adminNavigationItems.filter(item => item.isVisible(context));
   const visibleSecondaryNav = secondaryNavigation.filter(item => item.isVisible(context));
+
+  const renderNavLink = (item: NavItem, isAdmin = false) => {
+    const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+    return (
+      <Link
+        key={item.name}
+        href={item.href}
+        className={cn(
+          'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group relative',
+          isActive
+            ? isAdmin
+              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-medium'
+              : 'bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-medium'
+            : isAdmin
+            ? 'text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-700 dark:hover:text-primary-400'
+        )}
+      >
+        <item.icon
+          className={cn(
+            'mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110',
+            isActive
+              ? 'text-white'
+              : isAdmin
+              ? 'text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400'
+              : 'text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400'
+          )}
+        />
+        <span className="relative">
+          {item.name}
+          {isActive && (
+            <div className="absolute -inset-1 bg-white bg-opacity-20 rounded-lg blur-sm"></div>
+          )}
+        </span>
+      </Link>
+    );
+  };
 
   return (
     <aside
@@ -172,15 +212,15 @@ export function Sidebar({ className }: SidebarProps) {
               <span className="text-xs text-gray-500 dark:text-gray-400">Role</span>
               <div className={cn(
                 "px-2 py-1 rounded-full text-xs font-medium",
-                permissions.role === 'admin' && "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
-                permissions.role === 'developer' && "bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300",
+                permissions.role === 'admin' && "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300",
+                permissions.role === 'developer' && "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
                 permissions.role === 'designer' && "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
                 permissions.role === 'executor' && "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300",
                 permissions.role === 'viewer' && "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
-                permissions.role === 'executive' && "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300"
+                permissions.role === 'executive' && "bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300"
               )}>
                 <Shield className="w-3 h-3 inline-block mr-1" />
-                {permissions.role_info?.title || permissions.role}
+                {permissions.role_info?.title || permissions.role.charAt(0).toUpperCase() + permissions.role.slice(1)}
               </div>
             </div>
           </div>
@@ -192,44 +232,33 @@ export function Sidebar({ className }: SidebarProps) {
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 dark:border-primary-400"></div>
             </div>
-          ) : visibleNavigation.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-              No navigation items available
-            </div>
           ) : (
-            visibleNavigation.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group relative',
-                    isActive
-                      ? 'bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-medium'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-700 dark:hover:text-primary-400'
-                  )}
-                >
-                  <item.icon
-                    className={cn(
-                      'mr-3 h-5 w-5 transition-transform duration-200 group-hover:scale-110',
-                      isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400'
-                    )}
-                  />
-                  <span className="relative">
-                    {item.name}
-                    {isActive && (
-                      <div className="absolute -inset-1 bg-white bg-opacity-20 rounded-lg blur-sm"></div>
-                    )}
-                  </span>
-                </Link>
-              );
-            })
+            <>
+              {visibleNavigation.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+                  No navigation items available
+                </div>
+              ) : (
+                visibleNavigation.map(item => renderNavLink(item))
+              )}
+
+              {/* Administration section */}
+              {visibleAdminNav.length > 0 && (
+                <>
+                  <div className="pt-4 pb-2 px-4">
+                    <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Administration
+                    </h3>
+                  </div>
+                  {visibleAdminNav.map(item => renderNavLink(item, true))}
+                </>
+              )}
+            </>
           )}
         </nav>
 
         {/* Secondary Navigation */}
-        <div className="px-4 py-4 border-t border-gray-100 bg-gray-50 dark:bg-gray-800 bg-opacity-50">
+        <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 bg-opacity-50">
           <div className="space-y-1">
             {visibleSecondaryNav.map((item) => {
               const isActive = pathname === item.href;

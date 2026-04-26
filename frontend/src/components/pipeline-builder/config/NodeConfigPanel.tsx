@@ -40,9 +40,11 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
 
   useEffect(() => {
     if (selectedNode) {
-      setConfig(selectedNode.data?.config || {});
+      const existingConfig = selectedNode.data?.config || {};
+      setConfig(existingConfig);
       setNodeLabel(selectedNode.data?.label || '');
       setTestResult(null);
+      setIsValid(Object.keys(existingConfig).length > 0);
     }
   }, [selectedNode?.id]);
 
@@ -111,9 +113,11 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
 
   const handleConfigChange = (newConfig: any) => {
     setConfig(newConfig);
-    // Basic validation - check if required fields are filled
     setIsValid(Object.keys(newConfig).length > 0);
   };
+
+  // Save is enabled if config has data OR a custom label has been set
+  const canSave = isValid || nodeLabel.trim().length > 0;
 
   const handleSave = () => {
     onSave(selectedNode.id, config, nodeLabel.trim() || selectedNode.data?.label || '');
@@ -258,7 +262,7 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!isValid}>
+          <Button onClick={handleSave} disabled={!canSave}>
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>

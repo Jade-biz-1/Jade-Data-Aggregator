@@ -2,7 +2,12 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Upload, X, File, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import { api } from '@/lib/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+
+function getAuthToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  return document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+}
 
 interface FileUploadProps {
   onUploadComplete?: (files: UploadedFile[]) => void;
@@ -84,11 +89,7 @@ export default function FileUpload({
   };
 
   const uploadFile = async (file: File, fileId: string) => {
-    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-
     try {
-      // Validate file size
       if (file.size > maxFileSize * 1024 * 1024) {
         updateFileStatus(fileId, {
           status: 'error',
@@ -97,59 +98,43 @@ export default function FileUpload({
         return;
       }
 
-      // Create upload record
-      const createResponse = await api.post('/files/upload/create', {
-        filename: file.name,
-        file_size: file.size,
-        file_type: file.type,
-        total_chunks: totalChunks,
+      updateFileStatus(fileId, { progress: 10 });
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch(`${API_URL}/files/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: formData,
       });
 
-      const uploadId = createResponse.data.upload_id;
-
-      // Upload chunks
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-
-        const formData = new FormData();
-        formData.append('chunk', chunk);
-        formData.append('chunk_index', chunkIndex.toString());
-        formData.append('upload_id', uploadId);
-
-        await api.post('/files/upload/chunk', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-
-        // Update progress
-        const progress = Math.round(((chunkIndex + 1) / totalChunks) * 100);
-        updateFileStatus(fileId, { progress });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: 'Upload failed' }));
+        throw new Error(err.detail || `Upload failed (${response.status})`);
       }
 
-      // Mark as validating
-      updateFileStatus(fileId, { status: 'validating', progress: 100 });
+      const data = await response.json();
+      updateFileStatus(fileId, {
+        status: 'completed',
+        progress: 100,
+        file_url: data.file_path,
+      });
 
-      // Complete upload and validate
-      const completeResponse = await api.post(`/files/upload/${uploadId}/complete`);
-
-      if (completeResponse.data.validation_passed) {
-        updateFileStatus(fileId, {
-          status: 'completed',
-          progress: 100,
-          file_url: completeResponse.data.file_url,
-        });
-      } else {
-        updateFileStatus(fileId, {
-          status: 'error',
-          error: completeResponse.data.validation_errors?.join(', ') || 'Validation failed',
-        });
+      if (onUploadComplete) {
+        const uploaded = files.filter(f => f.id === fileId || f.status === 'completed');
+        onUploadComplete(uploaded.map(f => ({ ...f, status: 'completed' as const })));
       }
     } catch (error: any) {
       console.error('Upload error:', error);
       updateFileStatus(fileId, {
         status: 'error',
-        error: error.response?.data?.detail || 'Upload failed',
+        error: error.message || 'Upload failed',
       });
     }
   };

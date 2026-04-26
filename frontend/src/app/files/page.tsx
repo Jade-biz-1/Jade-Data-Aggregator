@@ -14,7 +14,7 @@ import {
   Search,
   Filter,
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import FileUpload from '@/components/upload/FileUpload';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -61,10 +61,10 @@ export default function FilesPage() {
   const loadFiles = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/files/uploads', {
-        params: { limit: 100, status: filterType !== 'all' ? filterType : undefined }
+      const response = await apiClient.request<any>('/files/uploads', {
+        params: { limit: 100, ...(filterType !== 'all' ? { status: filterType } : {}) }
       });
-      setFiles(response.data.uploads || []);
+      setFiles(response.uploads || []);
     } catch (err: any) {
       console.error('Failed to load files:', err);
       error(err.message || 'Failed to load files', 'Error');
@@ -84,7 +84,7 @@ export default function FilesPage() {
     if (!confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      await api.delete(`/files/uploads/${fileId}`);
+      await apiClient.request(`/files/uploads/${fileId}`, { method: 'DELETE' });
       success('File deleted successfully', 'Success');
       loadFiles();
     } catch (err: any) {
@@ -96,8 +96,8 @@ export default function FilesPage() {
   const viewPreview = async (file: FileRecord) => {
     setSelectedFile(file);
     try {
-      const response = await api.get(`/files/uploads/${file.id}/preview`);
-      setPreview(response.data);
+      const data = await apiClient.request<any>(`/files/uploads/${file.id}/preview`);
+      setPreview(data);
     } catch (err: any) {
       console.error('Failed to load preview:', err);
       error(err.message || 'Failed to load preview', 'Error');
@@ -107,10 +107,10 @@ export default function FilesPage() {
 
   const downloadFile = async (file: FileRecord) => {
     try {
-      const response = await api.get(`/files/uploads/${file.id}/download`, {
+      const blob = await apiClient.request<Blob>(`/files/uploads/${file.id}/download`, {
         responseType: 'blob',
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', file.filename);

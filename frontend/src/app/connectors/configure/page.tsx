@@ -35,11 +35,15 @@ const ConnectorConfigContent = () => {
   useEffect(() => {
     fetchConnectorTypes();
     checkForEditMode();
-  }, []);
+  }, [searchParams]);
 
   const checkForEditMode = async () => {
     const editId = searchParams.get('edit');
     if (editId) {
+      // Reset previous connector state before loading the new one
+      setEditingConnector(null);
+      setSelectedType(null);
+      setIsEditing(false);
       try {
         setIsEditing(true);
         const response = await api.get(`/connectors/${editId}`);

@@ -34,6 +34,8 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import * as XLSX from 'xlsx';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+
 interface CleanupStats {
   database: {
     size_mb: number;
@@ -105,6 +107,24 @@ const scheduleTypeToCron = (type?: 'daily' | 'weekly' | 'monthly'): string => {
   }
 };
 
+function getAuthToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  return document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+}
+
+function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+}
+
 export default function MaintenancePage() {
   const [stats, setStats] = useState<CleanupStats | null>(null);
   const [cleanupResults, setCleanupResults] = useState<CleanupResult | null>(null);
@@ -138,7 +158,7 @@ export default function MaintenancePage() {
   const fetchStats = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/v1/admin/cleanup/stats', {
+      const response = await authFetch(`${API_URL}/admin/cleanup/stats`, {
         credentials: 'include',
       });
 
@@ -147,7 +167,29 @@ export default function MaintenancePage() {
       }
 
       const data = await response.json();
-      setStats(data);
+      // Normalize backend shape to match CleanupStats interface
+      const normalized: CleanupStats = {
+        database: {
+          size_mb: data.database?.size_mb ?? 0,
+          table_count: Object.keys(data.record_counts ?? {}).length,
+        },
+        record_counts: {
+          activity_logs: data.record_counts?.user_activity_logs ?? 0,
+          execution_logs: data.record_counts?.pipeline_runs ?? 0,
+          auth_tokens: data.record_counts?.users ?? 0,
+          audit_logs: data.record_counts?.transformations ?? 0,
+        },
+        temp_files: {
+          file_count: data.temp_files?.file_count ?? 0,
+          total_size_mb: data.temp_files?.total_size_mb ?? 0,
+        },
+        old_records: {
+          activity_logs: data.old_records?.activity_logs ?? 0,
+          execution_logs: data.old_records?.execution_logs ?? 0,
+          expired_tokens: data.old_records?.expired_tokens ?? 0,
+        },
+      };
+      setStats(normalized);
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
@@ -157,7 +199,7 @@ export default function MaintenancePage() {
 
   const fetchCleanupHistory = async () => {
     try {
-      const response = await fetch('/api/v1/admin/cleanup/history?limit=10', {
+      const response = await authFetch(`${API_URL}/admin/cleanup/history?limit=10`, {
         credentials: 'include',
       });
 
@@ -174,7 +216,7 @@ export default function MaintenancePage() {
 
   const fetchSchedule = async () => {
     try {
-      const response = await fetch('/api/v1/admin/cleanup/schedule', {
+      const response = await authFetch(`${API_URL}/admin/cleanup/schedule`, {
         credentials: 'include',
       });
 
@@ -209,7 +251,7 @@ export default function MaintenancePage() {
         temp_file_retention_hours: 24,
       };
 
-      const response = await fetch('/api/v1/admin/cleanup/schedule', {
+      const response = await authFetch(`${API_URL}/admin/cleanup/schedule`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -278,7 +320,7 @@ export default function MaintenancePage() {
   const executeCleanup = async (type: string) => {
     try {
       setIsCleaningUp(true);
-      const response = await fetch(`/api/v1/admin/cleanup/${type}`, {
+      const response = await authFetch(`${API_URL}/admin/cleanup/${type}`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -413,15 +455,15 @@ export default function MaintenancePage() {
   const COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'];
 
   const recordDistributionData = stats ? [
-    { name: 'Activity Logs', value: stats.record_counts.activity_logs },
-    { name: 'Execution Logs', value: stats.record_counts.execution_logs },
-    { name: 'Auth Tokens', value: stats.record_counts.auth_tokens },
-    { name: 'Audit Logs', value: stats.record_counts.audit_logs },
+    { name: 'Activity Logs', value: stats.record_counts?.activity_logs ?? 0 },
+    { name: 'Execution Logs', value: stats.record_counts?.execution_logs ?? 0 },
+    { name: 'Auth Tokens', value: stats.record_counts?.auth_tokens ?? 0 },
+    { name: 'Audit Logs', value: stats.record_counts?.audit_logs ?? 0 },
   ] : [];
 
   const tempFilesData = stats ? [
-    { name: 'File Count', value: stats.temp_files.file_count },
-    { name: 'Size (MB)', value: parseFloat(stats.temp_files.total_size_mb.toFixed(2)) },
+    { name: 'File Count', value: stats.temp_files?.file_count ?? 0 },
+    { name: 'Size (MB)', value: parseFloat((stats.temp_files?.total_size_mb ?? 0).toFixed(2)) },
   ] : [];
 
   // Check permission to view this page
@@ -491,10 +533,10 @@ export default function MaintenancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">
-                {stats ? `${stats.database.size_mb.toFixed(2)} MB` : '—'}
+                {stats ? `${(stats.database?.size_mb ?? 0).toFixed(2)} MB` : '—'}
               </div>
               <p className="text-xs text-gray-500">
-                {stats ? `${stats.database.table_count} tables` : 'Loading...'}
+                {stats ? `${stats.database?.table_count ?? 0} tables` : 'Loading...'}
               </p>
             </CardContent>
           </Card>
@@ -506,7 +548,7 @@ export default function MaintenancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">
-                {stats ? Object.values(stats.record_counts).reduce((a, b) => a + b, 0).toLocaleString() : '—'}
+                {stats ? Object.values(stats.record_counts ?? {}).reduce((a: number, b: number) => a + (b ?? 0), 0).toLocaleString() : '—'}
               </div>
               <p className="text-xs text-gray-500">Across all tables</p>
             </CardContent>
@@ -519,10 +561,10 @@ export default function MaintenancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">
-                {stats ? stats.temp_files.file_count.toLocaleString() : '—'}
+                {stats ? (stats.temp_files?.file_count ?? 0).toLocaleString() : '—'}
               </div>
               <p className="text-xs text-gray-500">
-                {stats ? `${stats.temp_files.total_size_mb.toFixed(2)} MB` : 'Loading...'}
+                {stats ? `${(stats.temp_files?.total_size_mb ?? 0).toFixed(2)} MB` : 'Loading...'}
               </p>
             </CardContent>
           </Card>
@@ -538,12 +580,12 @@ export default function MaintenancePage() {
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <Activity className="h-6 w-6 text-blue-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-gray-900">
-                  {stats?.record_counts.activity_logs.toLocaleString() ?? '—'}
+                  {(stats?.record_counts?.activity_logs ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-gray-600 mt-1">Activity Logs</p>
-                {stats && stats.old_records.activity_logs > 0 && (
+                {stats && (stats.old_records?.activity_logs ?? 0) > 0 && (
                   <p className="text-xs text-yellow-600 mt-1">
-                    {stats.old_records.activity_logs.toLocaleString()} old
+                    {(stats.old_records?.activity_logs ?? 0).toLocaleString()} old
                   </p>
                 )}
               </div>
@@ -551,12 +593,12 @@ export default function MaintenancePage() {
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <Clock className="h-6 w-6 text-green-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-gray-900">
-                  {stats?.record_counts.execution_logs.toLocaleString() ?? '—'}
+                  {(stats?.record_counts?.execution_logs ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-gray-600 mt-1">Execution Logs</p>
-                {stats && stats.old_records.execution_logs > 0 && (
+                {stats && (stats.old_records?.execution_logs ?? 0) > 0 && (
                   <p className="text-xs text-yellow-600 mt-1">
-                    {stats.old_records.execution_logs.toLocaleString()} old
+                    {(stats.old_records?.execution_logs ?? 0).toLocaleString()} old
                   </p>
                 )}
               </div>
@@ -564,12 +606,12 @@ export default function MaintenancePage() {
               <div className="text-center p-4 bg-purple-50 rounded-lg">
                 <CheckCircle className="h-6 w-6 text-purple-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-gray-900">
-                  {stats?.record_counts.auth_tokens.toLocaleString() ?? '—'}
+                  {(stats?.record_counts?.auth_tokens ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-gray-600 mt-1">Auth Tokens</p>
-                {stats && stats.old_records.expired_tokens > 0 && (
+                {stats && (stats.old_records?.expired_tokens ?? 0) > 0 && (
                   <p className="text-xs text-yellow-600 mt-1">
-                    {stats.old_records.expired_tokens.toLocaleString()} expired
+                    {(stats.old_records?.expired_tokens ?? 0).toLocaleString()} expired
                   </p>
                 )}
               </div>
@@ -577,7 +619,7 @@ export default function MaintenancePage() {
               <div className="text-center p-4 bg-orange-50 rounded-lg">
                 <AlertCircle className="h-6 w-6 text-orange-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-gray-900">
-                  {stats?.record_counts.audit_logs.toLocaleString() ?? '—'}
+                  {(stats?.record_counts?.audit_logs ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-gray-600 mt-1">Audit Logs</p>
               </div>

@@ -168,33 +168,52 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
           />
         );
 
-      case 'file':
+      case 'file': {
+        // Existing saved path (string) vs. newly selected File object vs. upload response
+        const existingPath: string | null =
+          typeof value === 'string' && value ? value
+          : value?.file_path ?? null;
+        const selectedFileName: string | null =
+          value instanceof File ? value.name
+          : (value?.file?.name ?? null);
+
         return (
-          <div>
+          <div className="space-y-2">
+            {existingPath && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                <svg className="h-4 w-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm text-gray-700 truncate flex-1" title={existingPath}>
+                  {existingPath}
+                </span>
+              </div>
+            )}
             <input
               type="file"
               id={field.name}
               name={field.name}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  onChange(field.name, file); // Pass the file object, not just the name
-                } else {
-                  onChange(field.name, undefined);
-                }
+                onChange(field.name, file ?? undefined);
               }}
               className={`w-full px-4 py-2 border rounded-lg ${
                 error ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {/* Show selected file name if present */}
-            {value && ((value.name) || (value.file && value.file.name)) && (
-              <div className="mt-1 text-sm text-gray-700 truncate" data-testid="selected-file-name">
-                Selected file: {value.name || value.file.name}
+            {existingPath && (
+              <p className="text-xs text-gray-500">
+                Choose a file above to replace the current one, or leave blank to keep it.
+              </p>
+            )}
+            {selectedFileName && (
+              <div className="text-sm text-gray-700 truncate" data-testid="selected-file-name">
+                Selected: {selectedFileName}
               </div>
             )}
           </div>
         );
+      }
 
       default:
         return <input type="text" {...commonProps} />;
