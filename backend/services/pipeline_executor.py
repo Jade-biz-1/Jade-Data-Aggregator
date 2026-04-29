@@ -2,9 +2,13 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from backend.models.pipeline import Pipeline
 from backend.models.pipeline_run import PipelineRun
+from backend.models.schema_mapping import SchemaMappingDefinition
+from backend.models.transformation import Transformation
+from backend.models.pipeline_template import TransformationFunction
 from backend.crud.pipeline_run import pipeline_run as crud_pipeline_run
 from backend.crud.pipeline import pipeline as crud_pipeline
 from backend.schemas.pipeline_run import PipelineRunCreate, PipelineRunUpdate
@@ -116,14 +120,23 @@ def _make_expr_builtins() -> dict:
 _EXPR_BUILTINS = _make_expr_builtins()
 
 
-def _eval_expr(expr: str, row: dict):
+def _eval_expr(expr: str, row: dict, custom_fns: dict | None = None):
     """
     Evaluate a Python-like expression against a row dict.
+
+    The evaluation context contains:
+    - Built-in functions (upper, lower, concat, round, …)
+    - Custom functions from the Function Library (called as fn(row) or fn(value))
+    - Column values spread as bare names (e.g. price, name)
+    - 'row' bound to the full typed row dict so Function Library callables
+      (which use row.get("field")) can be invoked as fn(row) in expressions.
+
     Falls back to a plain column lookup if the expression is just a bare name.
     """
     typed = _typed_row(row)
+    ctx = {**_EXPR_BUILTINS, **(custom_fns or {}), **typed, "row": typed}
     try:
-        return eval(expr, {"__builtins__": {}}, {**_EXPR_BUILTINS, **typed})  # noqa: S307
+        return eval(expr, {"__builtins__": {}}, ctx)  # noqa: S307
     except Exception:
         # bare column name that failed as an expression → direct lookup
         return row.get(expr, "")
@@ -265,6 +278,32 @@ class PipelineExecutor:
         def log(msg: str) -> None:
             log_lines.append(msg)
             logger.info("Pipeline %s: %s", pipeline.id, msg)
+
+        # ── Load custom functions from Function Library ───────────────────────
+        custom_fns: dict = {}
+        try:
+            fn_result = await self.db.execute(
+                select(TransformationFunction).where(TransformationFunction.is_builtin == False)  # noqa: E712
+            )
+            _safe_fn_builtins = {
+                "__builtins__": {
+                    "len": len, "str": str, "int": int, "float": float,
+                    "list": list, "dict": dict, "sum": sum, "min": min,
+                    "max": max, "sorted": sorted, "enumerate": enumerate, "zip": zip,
+                }
+            }
+            for fn in fn_result.scalars().all():
+                try:
+                    fn_globals = dict(_safe_fn_builtins)
+                    exec(fn.function_code, fn_globals)  # noqa: S102
+                    if fn.name in fn_globals and callable(fn_globals[fn.name]):
+                        custom_fns[fn.name] = fn_globals[fn.name]
+                except Exception as fn_err:
+                    logger.warning("Could not load custom function '%s': %s", fn.name, fn_err)
+            if custom_fns:
+                log(f"Loaded {len(custom_fns)} custom function(s): {', '.join(custom_fns)}")
+        except Exception as load_err:
+            logger.warning("Could not load custom functions: %s", load_err)
 
         # ── 1. Extract ────────────────────────────────────────────────────────
         connector_id = source_config.get("config", {}).get("connector_id")
@@ -443,7 +482,7 @@ class PipelineExecutor:
                             for r in processed_rows:
                                 new_r = {}
                                 for new_col, expr in mappings.items():
-                                    new_r[new_col] = _eval_expr(expr, r)
+                                    new_r[new_col] = _eval_expr(expr, r, custom_fns)
                                 if not drop_unmapped:
                                     for k, v in r.items():
                                         if k not in plain_sources and k not in new_r:
@@ -457,6 +496,175 @@ class PipelineExecutor:
                                 + ", ".join(f"({expr})→{t}" for t, expr in mappings.items()))
                     except Exception as e:
                         log(f"Warning: map transformation failed: {e}")
+
+            elif ttype == "schema_mapping":
+                mapping_id = cfg.get("mapping_id")
+                if mapping_id:
+                    result = await self.db.execute(
+                        select(SchemaMappingDefinition).filter(
+                            SchemaMappingDefinition.id == int(mapping_id)
+                        )
+                    )
+                    mapping_def = result.scalar_one_or_none()
+                    if mapping_def and mapping_def.field_mappings:
+                        new_rows = []
+                        for row in processed_rows:
+                            new_row = dict(row)
+                            for fm in mapping_def.field_mappings:
+                                mtype = fm.get("mapping_type", "direct")
+                                dest = fm.get("destination_field")
+                                trans = fm.get("transformation") or {}
+                                if not dest:
+                                    continue
+                                if mtype == "direct":
+                                    src = fm.get("source_field")
+                                    if src:
+                                        new_row[dest] = row.get(src)
+                                elif mtype == "concat":
+                                    sources = trans.get("source_fields", [fm.get("source_field")])
+                                    sep = trans.get("separator", " ")
+                                    new_row[dest] = sep.join(
+                                        str(row.get(s) or "") for s in sources if s
+                                    )
+                                elif mtype == "split":
+                                    src = fm.get("source_field")
+                                    sep = trans.get("separator", " ")
+                                    idx = int(trans.get("index", 0))
+                                    parts = str(row.get(src) or "").split(sep)
+                                    new_row[dest] = parts[idx] if idx < len(parts) else None
+                            new_rows.append(new_row)
+                        processed_rows = new_rows
+                        applied_any = True
+                        log(
+                            f"Schema mapping '{mapping_def.name}' applied "
+                            f"{len(mapping_def.field_mappings)} field mapping(s)"
+                        )
+                    elif not mapping_def:
+                        log(f"Warning: schema mapping ID {mapping_id} not found — skipping")
+
+            elif ttype == "saved_transformation":
+                t_id = cfg.get("transformation_id")
+                if t_id:
+                    t_result = await self.db.execute(
+                        select(Transformation).filter(Transformation.id == int(t_id))
+                    )
+                    t = t_result.scalar_one_or_none()
+                    if not t:
+                        log(f"Warning: saved transformation ID {t_id} not found — skipping")
+                    elif not t.is_active:
+                        log(f"Warning: saved transformation '{t.name}' is inactive — skipping")
+                    else:
+                        rules = t.transformation_rules or {}
+                        ttype_saved = t.transformation_type
+
+                        if ttype_saved == "filter":
+                            condition = rules.get("condition", "")
+                            field = rules.get("field", "")
+                            operator = rules.get("operator", "equals")
+                            value = rules.get("value")
+                            before = len(processed_rows)
+                            if condition:
+                                processed_rows = _apply_filter_condition(processed_rows, condition)
+                            elif field and value is not None:
+                                _ops = {
+                                    "equals":      lambda r: str(r.get(field, "")) == str(value),
+                                    "not_equals":  lambda r: str(r.get(field, "")) != str(value),
+                                    "contains":    lambda r: str(value).lower() in str(r.get(field, "")).lower(),
+                                    "starts_with": lambda r: str(r.get(field, "")).lower().startswith(str(value).lower()),
+                                    "greater_than": lambda r: _safe_float(r.get(field)) > _safe_float(value),
+                                    "less_than":   lambda r: _safe_float(r.get(field)) < _safe_float(value),
+                                    "is_null":     lambda r: r.get(field) is None or r.get(field) == "",
+                                    "is_not_null": lambda r: r.get(field) is not None and r.get(field) != "",
+                                }
+                                fn = _ops.get(operator, _ops["equals"])
+                                processed_rows = [r for r in processed_rows if fn(r)]
+                            applied_any = True
+                            log(f"Saved transformation '{t.name}' (filter): {before} → {len(processed_rows)} rows")
+
+                        elif ttype_saved == "map":
+                            mapping_rules = rules if rules else []
+                            if isinstance(mapping_rules, list):
+                                mappings_dict = {
+                                    item["target"]: item["source"]
+                                    for item in mapping_rules
+                                    if item.get("source") and item.get("target")
+                                }
+                            elif isinstance(mapping_rules, dict):
+                                mappings_dict = mapping_rules
+                            else:
+                                mappings_dict = {}
+                            if mappings_dict:
+                                new_rows = []
+                                for r in processed_rows:
+                                    new_r = dict(r)
+                                    for target, expr in mappings_dict.items():
+                                        new_r[target] = _eval_expr(expr, r, custom_fns)
+                                    new_rows.append(new_r)
+                                processed_rows = new_rows
+                                applied_any = True
+                                log(f"Saved transformation '{t.name}' (map): {len(mappings_dict)} field mapping(s)")
+
+                        elif ttype_saved in ("deduplication", "deduplicate"):
+                            unique_fields = rules.get("unique_fields") or t.source_fields or []
+                            if unique_fields:
+                                seen: set = set()
+                                new_rows = []
+                                before = len(processed_rows)
+                                for r in processed_rows:
+                                    key = tuple(str(r.get(f, "")) for f in unique_fields)
+                                    if key not in seen:
+                                        seen.add(key)
+                                        new_rows.append(r)
+                                processed_rows = new_rows
+                                applied_any = True
+                                log(f"Saved transformation '{t.name}' (dedup on {unique_fields}): {before} → {len(processed_rows)} rows")
+
+                        elif ttype_saved == "sort":
+                            sort_by = rules.get("sort_by") or (t.source_fields[0] if t.source_fields else None)
+                            order = rules.get("order", "asc")
+                            if sort_by:
+                                is_num = _is_numeric_col(processed_rows, sort_by)
+                                processed_rows = sorted(
+                                    processed_rows,
+                                    key=lambda r: (_safe_float(r.get(sort_by)) if is_num else str(r.get(sort_by, ""))),
+                                    reverse=(order == "desc"),
+                                )
+                                applied_any = True
+                                log(f"Saved transformation '{t.name}' (sort by '{sort_by}' {order})")
+
+                        elif ttype_saved == "aggregate":
+                            from collections import defaultdict as _dd
+                            group_by = rules.get("group_by", [])
+                            aggregations = rules.get("aggregations", [])
+                            if group_by and aggregations:
+                                groups: dict = _dd(list)
+                                for r in processed_rows:
+                                    key = tuple(str(r.get(f, "")) for f in group_by)
+                                    groups[key].append(r)
+                                new_rows = []
+                                for key, g_rows in groups.items():
+                                    new_r = {group_by[i]: key[i] for i in range(len(group_by))}
+                                    for agg in aggregations:
+                                        agg_field = agg.get("field")
+                                        agg_fn = agg.get("function", "sum").lower()
+                                        alias = agg.get("alias", f"{agg_fn}_{agg_field}")
+                                        vals = [_safe_float(r.get(agg_field, 0)) for r in g_rows]
+                                        if agg_fn == "sum":
+                                            new_r[alias] = sum(vals)
+                                        elif agg_fn == "count":
+                                            new_r[alias] = len(g_rows)
+                                        elif agg_fn in ("avg", "mean"):
+                                            new_r[alias] = sum(vals) / len(vals) if vals else 0
+                                        elif agg_fn == "min":
+                                            new_r[alias] = min(vals) if vals else None
+                                        elif agg_fn == "max":
+                                            new_r[alias] = max(vals) if vals else None
+                                    new_rows.append(new_r)
+                                processed_rows = new_rows
+                                applied_any = True
+                                log(f"Saved transformation '{t.name}' (aggregate): {len(processed_rows)} group(s)")
+                        else:
+                            log(f"Warning: transformation type '{ttype_saved}' not supported in executor — skipping")
 
         # Legacy structured filters (transformation_config.filters)
         if not applied_any:

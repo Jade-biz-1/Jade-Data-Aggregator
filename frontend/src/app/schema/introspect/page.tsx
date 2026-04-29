@@ -240,7 +240,8 @@ const SchemaIntrospectPage = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Example: postgresql://user:password@localhost:5432/dbname
+                  For databases in the same Docker network use the service name as host, e.g.{' '}
+                  <code className="bg-gray-100 px-1 rounded">postgresql://postgres:postgres@db/SampleInpDB</code>
                 </p>
               </div>
             </div>
@@ -248,17 +249,32 @@ const SchemaIntrospectPage = () => {
 
           {schemaType === 'api' && (
             <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900 space-y-1">
+                <p><strong>Two modes — enter either type of URL:</strong></p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li><strong>OpenAPI / Swagger spec</strong> (e.g. <code className="bg-blue-100 px-1 rounded">/openapi.json</code>, <code className="bg-blue-100 px-1 rounded">/swagger.json</code>) — extracts all named schema definitions from the spec.</li>
+                  <li><strong>Regular REST endpoint</strong> (e.g. <code className="bg-blue-100 px-1 rounded">/api/users</code>, <code className="bg-blue-100 px-1 rounded">/api/analytics</code>) — fetches the response and infers the field types from the JSON.</li>
+                </ul>
+                <p className="text-xs mt-2 text-blue-800">
+                  <strong>⚠ Docker note:</strong> This request is made by the <em>server</em>, not your browser.
+                  Use the Docker service name as the host — not <code className="bg-blue-100 px-1 rounded">localhost</code>.
+                  For this platform&apos;s own API use <code className="bg-blue-100 px-1 rounded">http://backend:8001/openapi.json</code>.
+                </p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  OpenAPI/Swagger URL
+                  API URL
                 </label>
                 <input
                   type="text"
                   value={apiUrl}
                   onChange={(e) => setApiUrl(e.target.value)}
-                  placeholder="https://api.example.com/swagger.json"
+                  placeholder="http://backend:8001/openapi.json"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  OpenAPI spec URL or any REST endpoint that returns JSON
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -268,7 +284,7 @@ const SchemaIntrospectPage = () => {
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Optional API key"
+                  placeholder="Optional — sent as Bearer token"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>

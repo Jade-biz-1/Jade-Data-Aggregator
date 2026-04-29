@@ -139,6 +139,28 @@ class SchemaMapping:
         }
 
 
+def _extract_schema_fields(schema: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extract the flat fields list from a schema regardless of shape.
+
+    Handles two layouts:
+      - Flat:    {"fields": [...]}           — JSON/CSV/API introspection
+      - Nested:  {"tables": [{"fields": [...]}]}  — database introspection
+
+    For multi-table database schemas all fields across all tables are
+    collected, which mirrors what the frontend FieldMapper shows the user.
+    """
+    if schema.get('fields'):
+        return list(schema['fields'])
+    tables = schema.get('tables', [])
+    if tables:
+        fields: List[Dict[str, Any]] = []
+        for table in tables:
+            fields.extend(table.get('fields', []))
+        return fields
+    return []
+
+
 class MappingGenerator:
     """Generate mappings automatically based on schema analysis"""
 
@@ -159,8 +181,8 @@ class MappingGenerator:
         """
         mappings = []
 
-        source_fields = {f['name']: f for f in source_schema.get('fields', [])}
-        dest_fields = {f['name']: f for f in destination_schema.get('fields', [])}
+        source_fields = {f['name']: f for f in _extract_schema_fields(source_schema)}
+        dest_fields = {f['name']: f for f in _extract_schema_fields(destination_schema)}
 
         for dest_name, dest_field in dest_fields.items():
             # Try exact name match
@@ -326,7 +348,7 @@ class MappingValidator:
         errors = []
 
         # Check if all required destination fields are mapped
-        dest_fields = schema_mapping.destination_schema.get('fields', [])
+        dest_fields = _extract_schema_fields(schema_mapping.destination_schema)
         dest_required_fields = [
             f['name'] for f in dest_fields
             if not f.get('nullable', True)
@@ -342,19 +364,43 @@ class MappingValidator:
 
         # Validate each field mapping
         source_field_names = {
-            f['name'] for f in schema_mapping.source_schema.get('fields', [])
+            f['name'] for f in _extract_schema_fields(schema_mapping.source_schema)
         }
 
         for mapping in schema_mapping.field_mappings:
-            # Check if source field exists (for non-constant mappings)
-            if mapping.mapping_type != MappingType.CONSTANT:
+            if mapping.mapping_type == MappingType.CONSTANT:
+                continue
+
+            if mapping.mapping_type == MappingType.CONCAT:
+                # Validate all contributing source fields exist
+                concat_sources = (mapping.transformation or {}).get('source_fields', [])
+                if len(concat_sources) < 2:
+                    errors.append(
+                        f"Concat mapping for '{mapping.destination_field}' requires at least 2 source fields"
+                    )
+                for sf in concat_sources:
+                    if sf not in source_field_names:
+                        errors.append(
+                            f"Concat source field '{sf}' does not exist in source schema"
+                        )
+                continue
+
+            if mapping.mapping_type == MappingType.SPLIT:
+                # Validate the single source field exists
                 if mapping.source_field and mapping.source_field not in source_field_names:
                     errors.append(
-                        f"Source field '{mapping.source_field}' does not exist in source schema"
+                        f"Split source field '{mapping.source_field}' does not exist in source schema"
                     )
+                continue
 
-            # Validate transformation if present
-            if mapping.transformation:
+            # Direct / Transform: check the single source field
+            if mapping.source_field and mapping.source_field not in source_field_names:
+                errors.append(
+                    f"Source field '{mapping.source_field}' does not exist in source schema"
+                )
+
+            # Validate TRANSFORM-specific transformation config
+            if mapping.mapping_type == MappingType.TRANSFORM and mapping.transformation:
                 validation_result = MappingValidator._validate_transformation(
                     mapping.transformation
                 )
@@ -498,6 +544,27 @@ class TransformationRuleGenerator:
                     f"    destination_record['{mapping.destination_field}'] = {repr(const_value)}"
                 )
 
+            elif mapping.mapping_type == MappingType.CONCAT:
+                source_fields = mapping.transformation.get('source_fields', [mapping.source_field])
+                separator = mapping.transformation.get('separator', ' ')
+                parts = ", ".join(f"str(source_record.get('{f}', '') or '')" for f in source_fields)
+                code_lines.append(
+                    f"    destination_record['{mapping.destination_field}'] = "
+                    f"{repr(separator)}.join([{parts}])"
+                )
+
+            elif mapping.mapping_type == MappingType.SPLIT:
+                separator = mapping.transformation.get('separator', ' ')
+                index = mapping.transformation.get('index', 0)
+                src = mapping.source_field
+                code_lines.append(
+                    f"    _parts_{index} = (source_record.get('{src}') or '').split({repr(separator)})"
+                )
+                code_lines.append(
+                    f"    destination_record['{mapping.destination_field}'] = "
+                    f"_parts_{index}[{index}] if len(_parts_{index}) > {index} else None"
+                )
+
         code_lines.append("")
         code_lines.append("    return destination_record")
 
@@ -563,6 +630,21 @@ class TransformationRuleGenerator:
                 const_value = mapping.transformation.get('value', 'NULL')
                 select_clauses.append(
                     f"'{const_value}' AS {mapping.destination_field}"
+                )
+
+            elif mapping.mapping_type == MappingType.CONCAT:
+                source_fields = mapping.transformation.get('source_fields', [mapping.source_field])
+                separator = mapping.transformation.get('separator', ' ')
+                parts = f", '{separator}', ".join(f"{table_alias}.{f}" for f in source_fields)
+                select_clauses.append(
+                    f"CONCAT({parts}) AS {mapping.destination_field}"
+                )
+
+            elif mapping.mapping_type == MappingType.SPLIT:
+                separator = mapping.transformation.get('separator', ' ')
+                index = int(mapping.transformation.get('index', 0)) + 1  # SQL SPLIT_PART is 1-based
+                select_clauses.append(
+                    f"SPLIT_PART({table_alias}.{mapping.source_field}, '{separator}', {index}) AS {mapping.destination_field}"
                 )
 
         return "SELECT\n    " + ",\n    ".join(select_clauses)

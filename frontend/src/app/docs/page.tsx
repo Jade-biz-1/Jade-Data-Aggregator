@@ -5,7 +5,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import {
   BookOpen, Code, Database, GitBranch, Search, Zap,
   Users, Shield, BarChart2, Wrench, AlertTriangle,
-  FileText, ChevronDown, ChevronRight
+  FileText, ChevronDown, ChevronRight, Share2
 } from 'lucide-react';
 
 interface Section {
@@ -20,6 +20,7 @@ const NAV: Section[] = [
   { id: 'connectors',      title: 'Connectors',            icon: Database,    subsections: [{ id: 'conn-types', title: 'Connector Types' }, { id: 'conn-create', title: 'Creating a Connector' }, { id: 'conn-test', title: 'Testing a Connection' }, { id: 'conn-csv', title: 'CSV File Connector' }, { id: 'conn-postgres', title: 'PostgreSQL Connector' }] },
   { id: 'pipelines',       title: 'Pipelines',             icon: GitBranch,   subsections: [{ id: 'pipe-concept', title: 'Pipeline Concepts' }, { id: 'pipe-builder', title: 'Pipeline Builder' }, { id: 'pipe-nodes', title: 'Node Types' }, { id: 'pipe-execute', title: 'Running a Pipeline' }, { id: 'pipe-schedule', title: 'Scheduling' }] },
   { id: 'transformations', title: 'Data Transformations',  icon: Zap,         subsections: [{ id: 'tx-concept', title: 'What are Transformations?' }, { id: 'tx-filter', title: 'Filter' }, { id: 'tx-map', title: 'Map / Rename' }, { id: 'tx-aggregate', title: 'Aggregate' }, { id: 'tx-sort', title: 'Sort' }, { id: 'tx-expressions', title: 'Expressions & Functions' }] },
+  { id: 'schema',          title: 'Schema Mapping',        icon: Share2,      subsections: [{ id: 'sm-concept', title: 'What is Schema Mapping?' }, { id: 'sm-introspect', title: 'Step 1 — Schema Introspection' }, { id: 'sm-mapping', title: 'Step 2 — Mapping Fields' }, { id: 'sm-direct', title: 'Direct Mapping' }, { id: 'sm-concat', title: 'Concat Mapping' }, { id: 'sm-split', title: 'Split Mapping' }, { id: 'sm-validate', title: 'Validate & Generate Code' }, { id: 'sm-pipeline', title: 'Using Code in a Pipeline' }] },
   { id: 'users',           title: 'User Management',       icon: Users,       subsections: [{ id: 'roles', title: 'Roles & Permissions' }, { id: 'user-create', title: 'Creating Users' }, { id: 'twofa', title: '2FA Authentication' }] },
   { id: 'analytics',       title: 'Analytics & Monitoring',icon: BarChart2,   subsections: [{ id: 'dashboard', title: 'Dashboard' }, { id: 'analytics-page', title: 'Analytics' }, { id: 'monitoring', title: 'Monitoring' }, { id: 'alerts', title: 'Alerts' }] },
   { id: 'api',             title: 'API Reference',         icon: Code,        subsections: [{ id: 'api-auth', title: 'Authentication' }, { id: 'api-pipelines', title: 'Pipelines' }, { id: 'api-connectors', title: 'Connectors' }, { id: 'api-transformations', title: 'Transformations' }, { id: 'api-users', title: 'Users' }] },
@@ -239,8 +240,30 @@ const CONTENT: Record<string, React.ReactNode> = {
           </div>
           <div className="border-l-4 border-purple-400 pl-4">
             <h3 className="font-semibold text-gray-900">Transformation Node</h3>
-            <p className="text-sm text-gray-700 mt-1">Applies a rule to each row. Sub-types: <em>Filter</em>, <em>Map</em>, <em>Aggregate</em>, <em>Join</em>, <em>Sort</em>.</p>
-            <p className="text-sm text-gray-600 mt-1">The column picker shows available columns from the upstream source so you can build rules without guessing names.</p>
+            <p className="text-sm text-gray-700 mt-1">Processes each row. Seven sub-types are available:</p>
+            <div className="mt-2 overflow-x-auto">
+              <table className="min-w-full text-xs border border-gray-200 rounded overflow-hidden">
+                <thead className="bg-gray-50"><tr>{['Sub-type','What it does','Configured by'].map(h=><th key={h} className="px-3 py-1.5 text-left font-semibold text-gray-700">{h}</th>)}</tr></thead>
+                <tbody className="divide-y divide-gray-100">
+                  {[
+                    ['Filter','Keeps or drops rows matching a condition','Inline Python expression in the node panel'],
+                    ['Map','Renames fields or evaluates expressions per row; custom Function Library functions available','Inline source → target mappings'],
+                    ['Aggregate','Groups rows, calculates sum / count / avg / min / max','Inline group_by and aggregations JSON'],
+                    ['Sort','Orders rows by a field','Inline field name and direction'],
+                    ['Join','Joins two data streams on a key field','Inline join key and join type'],
+                    ['Schema Mapping','Applies a saved Schema Mapping (direct / concat / split rules)','Select a saved mapping by name'],
+                    ['Saved Transformation','Applies a saved Transformation rule set (filter, map, aggregate, sort, dedup)','Select a saved transformation by name'],
+                  ].map(([s,w,c])=>(
+                    <tr key={s} className="hover:bg-gray-50">
+                      <td className="px-3 py-1.5 font-medium text-purple-700 whitespace-nowrap">{s}</td>
+                      <td className="px-3 py-1.5 text-gray-700">{w}</td>
+                      <td className="px-3 py-1.5 text-gray-500 text-xs">{c}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">The column picker shows fields from the upstream Source node so you can build rules without guessing names.</p>
           </div>
           <div className="border-l-4 border-green-400 pl-4">
             <h3 className="font-semibold text-gray-900">Destination Node</h3>
@@ -284,12 +307,15 @@ const CONTENT: Record<string, React.ReactNode> = {
         <h2 className="text-xl font-bold text-gray-900 mb-3">What are Transformations?</h2>
         <p className="text-sm text-gray-700 mb-3">
           A Transformation is a named, reusable rule set stored in the system. You create one here on the
-          Transformations page, then reference it inside a pipeline's Transformation node.
-          The pipeline executor applies it row-by-row during each run.
+          Transformations page, then apply it inside a pipeline using a <strong>Saved Transformation</strong> node.
+          The pipeline executor fetches the rules at runtime and applies them row-by-row.
         </p>
-        <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-900">
-          <strong>Workflow:</strong> Create Transformation here → Open Pipeline Builder → Add a Transformation node →
-          Select the transformation type and enter rules → Connect to Source and Destination nodes.
+        <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-900 space-y-1">
+          <p><strong>Two ways to use transformations in a pipeline:</strong></p>
+          <ol className="list-decimal list-inside space-y-1 text-xs">
+            <li><strong>Saved Transformation node</strong> — drag it onto the canvas, select a named Transformation from the dropdown. The executor applies its rules without any inline config.</li>
+            <li><strong>Inline node</strong> — drag a Filter, Map, Aggregate, Sort, or Join node and configure the rules directly in the node panel. Useful for one-off rules you don't need to reuse.</li>
+          </ol>
         </div>
       </section>
 
@@ -370,26 +396,28 @@ const CONTENT: Record<string, React.ReactNode> = {
 
       <section id="tx-expressions">
         <h2 className="text-xl font-bold text-gray-900 mb-3">Expressions & Functions</h2>
-        <p className="text-sm text-gray-700 mb-3">
-          Map expressions are evaluated as Python expressions. Access columns via <code className="bg-gray-100 px-1 rounded">{'row["column_name"]'}</code>.
+        <p className="text-sm text-gray-700 mb-2">
+          Map node expressions are Python-like. Column values are available as <strong>bare names</strong> —
+          write <code className="bg-gray-100 px-1 rounded">upper(name)</code>, not <code className="bg-gray-100 px-1 rounded">{'upper(row["name"])'}</code>.
+          The full row dict is also available as <code className="bg-gray-100 px-1 rounded">row</code> for custom functions.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
             { cat: 'String', fns: [
-              { fn: 'upper(row["name"])', desc: 'Uppercase' },
-              { fn: 'lower(row["email"])', desc: 'Lowercase' },
-              { fn: 'strip(row["name"])', desc: 'Trim whitespace' },
-              { fn: 'substr(row["code"], 0, 3)', desc: 'First 3 characters' },
-              { fn: 'concat(row["f"], " ", row["l"])', desc: 'Concatenate' },
-              { fn: 'replace(row["phone"], "-", "")', desc: 'Remove hyphens' },
+              { fn: 'upper(name)', desc: 'Uppercase' },
+              { fn: 'lower(email)', desc: 'Lowercase' },
+              { fn: 'trim(name)', desc: 'Strip whitespace' },
+              { fn: 'substr(code, 0, 3)', desc: 'First 3 characters' },
+              { fn: "concat(first_name, ' ', last_name)", desc: 'Concatenate' },
+              { fn: "replace(phone, '-', '')", desc: 'Remove hyphens' },
             ]},
             { cat: 'Math & Type', fns: [
-              { fn: 'int(row["qty"])', desc: 'Cast to integer' },
-              { fn: 'float(row["price"])', desc: 'Cast to float' },
-              { fn: 'round(float(row["price"]), 2)', desc: 'Round to 2dp' },
-              { fn: 'abs(int(row["balance"]))', desc: 'Absolute value' },
-              { fn: 'str(row["id"])', desc: 'Cast to string' },
-              { fn: 'row["val"] or "default"', desc: 'Null coalesce' },
+              { fn: 'int(qty)', desc: 'Cast to integer' },
+              { fn: 'float(price)', desc: 'Cast to float' },
+              { fn: 'round(float(price), 2)', desc: 'Round to 2 d.p.' },
+              { fn: 'abs(balance)', desc: 'Absolute value' },
+              { fn: 'str(id)', desc: 'Cast to string' },
+              { fn: "coalesce(nickname, first_name)", desc: 'First non-empty value' },
             ]},
           ].map(g => (
             <div key={g.cat} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -407,10 +435,284 @@ const CONTENT: Record<string, React.ReactNode> = {
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-600 mt-3">
-          Browse the full list in <strong>Transformations → Function Library</strong>.
+        <div className="mt-3 bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900">
+          <strong>Custom functions from the Function Library</strong> are automatically available in Map expressions.
+          If you saved a function named <code className="bg-green-100 px-1 rounded">my_fn</code> in the Function Library,
+          write <code className="bg-green-100 px-1 rounded">my_fn(row)</code> in a Map expression and the pipeline executor
+          will call it with the current row dict at runtime. No extra wiring needed.
+        </div>
+        <p className="text-xs text-gray-600 mt-2">
+          Browse and test the full function list in <strong>Transformations → Function Library</strong>.
         </p>
       </section>
+    </div>
+  ),
+
+  schema: (
+    <div className="space-y-8">
+
+      <section id="sm-concept">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">What is Schema Mapping?</h2>
+        <p className="text-sm text-gray-700 mb-3">
+          Schema Mapping is a visual tool for defining how fields in one data structure (the <strong>source</strong>) map
+          to fields in another (the <strong>destination</strong>). It solves the common problem of connecting two systems
+          that use different field names, types, or layouts — for example, a CRM that stores <code className="bg-gray-100 px-1 rounded">first_name</code> and
+          {' '}<code className="bg-gray-100 px-1 rounded">last_name</code> separately, while your data warehouse expects a single{' '}
+          <code className="bg-gray-100 px-1 rounded">full_name</code> column.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {[
+            { title: 'Direct', color: 'bg-blue-50 border-blue-100', text: 'One source field → one destination field. Use for simple renames or type-compatible copies.' },
+            { title: 'Concat', color: 'bg-orange-50 border-orange-100', text: 'Multiple source fields → one destination field, joined by a separator. Use to combine names, addresses, codes.' },
+            { title: 'Split', color: 'bg-purple-50 border-purple-100', text: 'One source field → multiple destination fields, split by a separator. Use to break apart composite values.' },
+          ].map(c => (
+            <div key={c.title} className={`rounded-lg p-4 border ${c.color}`}>
+              <h3 className="font-semibold text-gray-900 mb-1">{c.title}</h3>
+              <p className="text-xs text-gray-700">{c.text}</p>
+            </div>
+          ))}
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-900">
+          <strong>Two-step workflow:</strong> First create schemas via <strong>Schema Introspect</strong> (discover the structure
+          of your data sources), then use <strong>Schema Mapping</strong> to define how those structures relate to each other.
+        </div>
+      </section>
+
+      <section id="sm-introspect">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Step 1 — Schema Introspection</h2>
+        <p className="text-sm text-gray-700 mb-3">
+          Go to <strong>Schema Introspect</strong> in the sidebar. This page discovers the field structure of any data source
+          and saves it as a named schema definition for use in mappings.
+        </p>
+        <div className="space-y-4">
+          {[
+            {
+              type: 'Database (PostgreSQL / MySQL / SQLite)',
+              how: 'Enter a connection string. The introspector connects, reads all tables in the public schema, and returns field names, data types, nullability, primary keys, and foreign keys.',
+              example: 'postgresql://user:password@hostname/database_name',
+              note: 'Use the Docker service name as the host when connecting to a database in the same Docker network (e.g. db instead of localhost).',
+            },
+            {
+              type: 'JSON Sample',
+              how: 'Paste a sample JSON object (or array of objects). The introspector infers each field\'s type from the values — detecting strings, integers, floats, booleans, dates, and datetimes automatically.',
+              example: '{"customer_id": 1, "email": "alice@test.com", "joined": "2024-01-15"}',
+              note: 'If you paste an array, only the first element is used for type inference.',
+            },
+            {
+              type: 'CSV File',
+              how: 'Paste the first few rows of a CSV (including the header row). Set the delimiter if it is not a comma. The introspector samples up to 10 data rows to infer each column\'s type.',
+              example: 'id,name,amount\n1,Alice,99.50\n2,Bob,12.00',
+              note: 'Set Has Header to false if your CSV has no header row — columns will be named column_0, column_1, etc.',
+            },
+            {
+              type: 'API (OpenAPI / Swagger)',
+              how: 'Enter the URL of an OpenAPI spec (typically /openapi.json or /swagger.json). The introspector fetches the spec and extracts all schema definitions with their fields and types.',
+              example: 'http://localhost:8001/openapi.json',
+              note: 'Provide an API key if the spec endpoint requires authentication.',
+            },
+          ].map(s => (
+            <div key={s.type} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2 font-semibold text-sm text-gray-800">{s.type}</div>
+              <div className="p-4 space-y-2">
+                <p className="text-sm text-gray-700">{s.how}</p>
+                <div>
+                  <p className="text-xs font-medium text-gray-600 mb-1">Example input:</p>
+                  <pre className="bg-gray-100 rounded px-3 py-2 text-xs overflow-x-auto">{s.example}</pre>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-100 rounded px-3 py-2 text-xs text-yellow-800">
+                  <strong>Note:</strong> {s.note}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900">
+          After introspection, click <strong>Save Schema</strong> and give it a meaningful name (e.g. "Source CRM", "Destination Warehouse").
+          Saved schemas appear in the Schema Mapping dropdowns.
+        </div>
+      </section>
+
+      <section id="sm-mapping">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Step 2 — Mapping Fields</h2>
+        <p className="text-sm text-gray-700 mb-3">
+          Go to <strong>Schema Mapping</strong> in the sidebar. Select a source schema and a destination schema from the
+          dropdowns. Both schemas must have been saved via Schema Introspect first.
+        </p>
+        <p className="text-sm text-gray-700 mb-3">
+          Once both schemas are selected, the field trees appear below each dropdown and the <strong>Field Mappings</strong> panel
+          opens. The panel has three modes — use the toggle at the top to switch between them.
+        </p>
+        <div className="bg-gray-50 rounded-lg p-4 text-sm font-mono space-y-1 border">
+          <div>Source Schema dropdown  →  Destination Schema dropdown</div>
+          <div>        ↓  field tree               ↓  field tree</div>
+          <div>  ┌─────────────────────────────────────────────┐</div>
+          <div>  │  [Direct]  [Concat]  [Split]   Separator: _ │</div>
+          <div>  │                                              │</div>
+          <div>  │  Source Fields      →   Destination Fields  │</div>
+          <div>  └─────────────────────────────────────────────┘</div>
+        </div>
+        <p className="text-sm text-gray-700 mt-3">
+          The hint bar at the bottom of the mapper always tells you exactly what to click next.
+          Mapped destination fields are colour-coded: <span className="text-green-700 font-medium">green = direct</span>,{' '}
+          <span className="text-orange-600 font-medium">orange = concat</span>,{' '}
+          <span className="text-purple-600 font-medium">purple = split</span>.
+          Click the <strong>✕</strong> button on any mapped field to remove that mapping.
+        </p>
+      </section>
+
+      <section id="sm-direct">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Direct Mapping</h2>
+        <p className="text-sm text-gray-700 mb-2">Copies one source field to one destination field, with no transformation applied.</p>
+        <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+          <li>Select <strong>Direct</strong> mode (the default, blue toggle).</li>
+          <li>Click a <strong>destination field</strong> — it highlights blue.</li>
+          <li>Click the <strong>source field</strong> to map it from — the mapping is created instantly.</li>
+        </ol>
+        <div className="mt-3 bg-gray-100 rounded p-3 text-xs font-mono">
+          email → email_address<br />
+          customer_id → client_id
+        </div>
+        <p className="text-xs text-gray-600 mt-2">
+          Auto-Generate (purple button) creates direct mappings automatically using fuzzy field name matching — useful
+          when source and destination schemas are similar.
+        </p>
+      </section>
+
+      <section id="sm-concat">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Concat Mapping</h2>
+        <p className="text-sm text-gray-700 mb-2">
+          Joins two or more source fields into a single destination field, with a configurable separator between them.
+        </p>
+        <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+          <li>Select <strong>Concat</strong> mode (orange toggle).</li>
+          <li>Set the <strong>Separator</strong> field (default is a space; use <code className="bg-gray-100 px-1 rounded">, </code> for comma-space, <code className="bg-gray-100 px-1 rounded">-</code> for hyphen, etc.).</li>
+          <li>Click source fields in order — each one is added to the selection and numbered <strong>#1</strong>, <strong>#2</strong>, etc.</li>
+          <li>Once 2 or more are selected, click a <strong>destination field</strong> — the concat mapping is created.</li>
+        </ol>
+        <div className="mt-3 grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1">Generated Python:</p>
+            <pre className="bg-gray-100 rounded px-3 py-2 text-xs overflow-x-auto">{`destination_record['full_name'] = ' '.join([
+    str(source_record.get('first_name', '') or ''),
+    str(source_record.get('last_name', '') or '')
+])`}</pre>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1">Generated SQL:</p>
+            <pre className="bg-gray-100 rounded px-3 py-2 text-xs overflow-x-auto">{`CONCAT(src.first_name, ' ', src.last_name)
+  AS full_name`}</pre>
+          </div>
+        </div>
+        <div className="mt-3 bg-orange-50 border border-orange-200 rounded p-3 text-xs text-orange-900">
+          <strong>Tip:</strong> The order you click source fields determines the order in the concatenated result.
+          Field <strong>#1</strong> appears first in the output. Click a selected field again to deselect it.
+        </div>
+      </section>
+
+      <section id="sm-split">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Split Mapping</h2>
+        <p className="text-sm text-gray-700 mb-2">
+          Breaks one source field into multiple destination fields by splitting on a separator character.
+          The first destination you click becomes index 0, the second becomes index 1, and so on.
+        </p>
+        <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+          <li>Select <strong>Split</strong> mode (purple toggle).</li>
+          <li>Set the <strong>Separator</strong> to the character used in the source field (e.g. <code className="bg-gray-100 px-1 rounded">,</code> for comma-separated values, <code className="bg-gray-100 px-1 rounded"> </code> for space).</li>
+          <li>Click the <strong>source field</strong> — it highlights purple with a checkmark.</li>
+          <li>Click destination fields in order. The first click maps to split index 0, second to index 1, etc.</li>
+        </ol>
+        <div className="mt-3 grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1">Generated Python (separator = &quot;,&quot;):</p>
+            <pre className="bg-gray-100 rounded px-3 py-2 text-xs overflow-x-auto">{`_parts_0 = (source_record.get('full_address') or '').split(',')
+destination_record['street'] = _parts_0[0] if len(_parts_0) > 0 else None
+
+_parts_1 = (source_record.get('full_address') or '').split(',')
+destination_record['city'] = _parts_1[1] if len(_parts_1) > 1 else None`}</pre>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1">Generated SQL:</p>
+            <pre className="bg-gray-100 rounded px-3 py-2 text-xs overflow-x-auto">{`SPLIT_PART(src.full_address, ',', 1) AS street,
+SPLIT_PART(src.full_address, ',', 2) AS city`}</pre>
+          </div>
+        </div>
+        <div className="mt-3 bg-purple-50 border border-purple-200 rounded p-3 text-xs text-purple-900">
+          <strong>Note:</strong> SQL <code className="bg-purple-100 px-1 rounded">SPLIT_PART</code> is 1-based (index 1 = first part).
+          The generated SQL accounts for this automatically — you always use 0-based indexing in the UI.
+        </div>
+      </section>
+
+      <section id="sm-validate">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Validate & Generate Code</h2>
+        <p className="text-sm text-gray-700 mb-3">
+          Once you have added at least one mapping, the <strong>Actions</strong> panel appears below the mapper.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+            <thead className="bg-gray-50">
+              <tr>{['Button', 'What it does'].map(h => <th key={h} className="px-4 py-2 text-left font-semibold text-gray-700">{h}</th>)}</tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {[
+                ['Save Mapping', 'Persists the current mappings to the database. Always save before validating or generating code.'],
+                ['Validate Mapping', 'Checks that all required destination fields (marked *) are mapped, source fields exist, and types are compatible. Shows any errors in a red list.'],
+                ['Generate Python Code', 'Produces a ready-to-use Python function transform_data(source_record) that applies all the mappings to a single record dict.'],
+                ['Generate SQL', 'Produces a SQL SELECT clause with field aliases and functions (CONCAT, SPLIT_PART, UPPER, etc.) that transforms source rows into the destination shape.'],
+              ].map(([b, d]) => (
+                <tr key={b} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 font-medium text-primary-700 whitespace-nowrap">{b}</td>
+                  <td className="px-4 py-2 text-sm text-gray-700">{d}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm text-gray-700 mt-3">
+          Generated code appears in a dark code block below the actions panel with a <strong>Copy Code</strong> button.
+        </p>
+      </section>
+
+      <section id="sm-pipeline">
+        <h2 className="text-xl font-bold text-gray-900 mb-3">Using a Schema Mapping in a Pipeline</h2>
+        <p className="text-sm text-gray-700 mb-3">
+          Saved schema mappings plug directly into the Pipeline Builder via the <strong>Schema Mapping</strong> node.
+          No code generation or copy-paste is needed.
+        </p>
+
+        <div className="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900 mb-4">
+          <p className="font-semibold mb-1">Direct route (recommended)</p>
+          <ol className="list-decimal list-inside space-y-1 text-xs">
+            <li>Save and name your mapping on this page (the name appears in the Pipeline Builder dropdown).</li>
+            <li>Open the <strong>Pipeline Builder</strong>.</li>
+            <li>Drag a <strong>Schema Mapping</strong> node (purple, in the Transformations group) onto the canvas.</li>
+            <li>Open its config panel and select your saved mapping from the dropdown.</li>
+            <li>Connect it between your Source and Destination nodes — done.</li>
+          </ol>
+          <p className="text-xs text-green-700 mt-2">
+            At runtime the executor applies all direct, concat, and split rules from your mapping row-by-row.
+            Unmapped fields pass through unchanged.
+          </p>
+        </div>
+
+        <div className="bg-gray-50 border border-gray-200 rounded p-3 text-sm text-gray-700">
+          <p className="font-semibold text-gray-800 mb-1">Alternative — register as a custom function</p>
+          <p className="text-xs text-gray-600 mb-2">
+            If you need to combine the mapping logic with other Python logic, you can still generate code and register it in the Function Library:
+          </p>
+          <ol className="list-decimal list-inside space-y-1 text-xs text-gray-600">
+            <li>Click <strong>Generate Python Code</strong> → <strong>Copy Code</strong>.</li>
+            <li>Go to <strong>Transformations → Function Library → Create Function</strong>.</li>
+            <li>Paste the code; rename <code className="bg-gray-100 px-1 rounded">def transform_data</code> to your function name.</li>
+            <li>Save. In a Map node, call it as <code className="bg-gray-100 px-1 rounded">my_fn(row)</code>.</li>
+          </ol>
+        </div>
+
+        <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded p-3 text-xs text-yellow-900">
+          <strong>SQL code</strong> is for database-native use (stored procedures, dbt models).
+          The pipeline executor uses Python — use the Python code or the Schema Mapping node, not the SQL.
+        </div>
+      </section>
+
     </div>
   ),
 

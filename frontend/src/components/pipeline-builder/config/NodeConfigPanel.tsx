@@ -37,6 +37,7 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [availableColumns, setAvailableColumns] = useState<string[]>([]);
   const [sampleValues, setSampleValues] = useState<Record<string, string[]>>({});
+  const [pipelineContext, setPipelineContext] = useState<{ upstreamConfig?: Record<string, any>; downstreamConfig?: Record<string, any>; inputSchema?: any; outputSchema?: any }>({});
 
   useEffect(() => {
     if (selectedNode) {
@@ -60,12 +61,12 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
     let upstreamConnectorId: string | undefined;
     let upstreamSourceConfig: Record<string, any> = {};
 
-    const visited = new Set<string>();
-    const queue: string[] = [selectedNode.id];
-    outer: while (queue.length) {
-      const current = queue.shift()!;
-      if (visited.has(current)) continue;
-      visited.add(current);
+    const visitedUp = new Set<string>();
+    const queueUp: string[] = [selectedNode.id];
+    outerUp: while (queueUp.length) {
+      const current = queueUp.shift()!;
+      if (visitedUp.has(current)) continue;
+      visitedUp.add(current);
       for (const edge of allEdges) {
         if (edge.target === current) {
           const upstream = allNodes.find(n => n.id === edge.source);
@@ -73,12 +74,61 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
           if (upstream.type === 'source') {
             upstreamConnectorId = upstream.data?.config?.connector_id as string | undefined;
             upstreamSourceConfig = (upstream.data?.config as Record<string, any>) || {};
-            break outer;
+            break outerUp;
           }
-          queue.push(upstream.id);
+          queueUp.push(upstream.id);
         }
       }
     }
+
+    // Walk edges forwards to find the first downstream destination node
+    let downstreamDestConfig: Record<string, any> = {};
+    const visitedDown = new Set<string>();
+    const queueDown: string[] = [selectedNode.id];
+    outerDown: while (queueDown.length) {
+      const current = queueDown.shift()!;
+      if (visitedDown.has(current)) continue;
+      visitedDown.add(current);
+      for (const edge of allEdges) {
+        if (edge.source === current) {
+          const downstream = allNodes.find(n => n.id === edge.target);
+          if (!downstream) continue;
+          if (downstream.type === 'destination') {
+            downstreamDestConfig = (downstream.data?.config as Record<string, any>) || {};
+            break outerDown;
+          }
+          queueDown.push(downstream.id);
+        }
+      }
+    }
+
+    // Walk all nodes to find upstream source node and downstream destination node
+    const upstreamNode = allNodes.find(n => allEdges.some(e => e.source === n.id && e.target === selectedNode.id) && n.type === 'source');
+    const downstreamNode = (() => {
+      const visited2 = new Set<string>();
+      const q: string[] = [selectedNode.id];
+      while (q.length) {
+        const cur = q.shift()!;
+        if (visited2.has(cur)) continue;
+        visited2.add(cur);
+        for (const edge of allEdges) {
+          if (edge.source === cur) {
+            const dn = allNodes.find(n => n.id === edge.target);
+            if (!dn) continue;
+            if (dn.type === 'destination') return dn;
+            q.push(dn.id);
+          }
+        }
+      }
+      return null;
+    })();
+
+    setPipelineContext({
+      upstreamConfig: upstreamSourceConfig,
+      downstreamConfig: downstreamDestConfig,
+      inputSchema: (upstreamNode?.data as any)?.outputSchema ?? null,
+      outputSchema: (downstreamNode?.data as any)?.inputSchema ?? null,
+    });
 
     if (!upstreamConnectorId) return;
 
@@ -154,6 +204,7 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
   const DEFAULT_LABELS: Record<string, string> = {
     source: 'Database Source', api: 'API Source', file: 'File Source',
     filter: 'Filter', map: 'Map', aggregate: 'Aggregate', join: 'Join', sort: 'Sort',
+    schema_mapping: 'Schema Mapping', saved_transformation: 'Saved Transformation',
     database: 'Database', warehouse: 'Data Warehouse',
   };
 
@@ -181,6 +232,7 @@ export function NodeConfigPanel({ selectedNode, allNodes, allEdges, onClose, onS
           subtype={nodeSubtype}
           availableColumns={availableColumns}
           sampleValues={sampleValues}
+          pipelineContext={pipelineContext}
         />
       );
     } else if (nodeType === 'destination') {

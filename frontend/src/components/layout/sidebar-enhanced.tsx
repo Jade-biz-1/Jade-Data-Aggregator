@@ -22,6 +22,7 @@ import {
   Folder,
   Share2,
   ClipboardList,
+  ScanSearch,
 } from 'lucide-react';
 
 interface NavVisibilityContext {
@@ -60,6 +61,12 @@ const primaryNavigationItems: NavItem[] = [
     href: '/transformations',
     icon: Code,
     isVisible: ({ navigation }) => Boolean(navigation?.transformations),
+  },
+  {
+    name: 'Schema Introspect',
+    href: '/schema/introspect',
+    icon: ScanSearch,
+    isVisible: ({ features }) => Boolean(features?.transformations?.view),
   },
   {
     name: 'Schema Mapping',

@@ -1,8 +1,18 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, Textarea } from '../../ui';
+
+interface SchemaField { name: string; data_type: string; nullable?: boolean; }
+interface EmbeddedSchema { fields: SchemaField[]; source_type?: string; connector_id?: string; table_name?: string; }
+
+interface PipelineContext {
+  upstreamConfig?: Record<string, any>;
+  downstreamConfig?: Record<string, any>;
+  inputSchema?: EmbeddedSchema | null;   // schema flowing INTO this node from upstream
+  outputSchema?: EmbeddedSchema | null;  // schema expected by downstream node
+}
 
 interface TransformationNodeConfigProps {
   config: any;
@@ -10,6 +20,7 @@ interface TransformationNodeConfigProps {
   subtype: string;
   availableColumns?: string[];
   sampleValues?: Record<string, string[]>;
+  pipelineContext?: PipelineContext;
 }
 
 export function TransformationNodeConfig({
@@ -18,6 +29,7 @@ export function TransformationNodeConfig({
   subtype,
   availableColumns = [],
   sampleValues = {},
+  pipelineContext = {},
 }: TransformationNodeConfigProps) {
   // ── All hooks unconditionally at the top ───────────────────────────────
   const conditionRef = useRef<HTMLTextAreaElement>(null);
@@ -433,5 +445,358 @@ export function TransformationNodeConfig({
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // SCHEMA MAPPING
+  // ══════════════════════════════════════════════════════════════════════
+  if (subtype === 'schema_mapping') {
+    return <SchemaMappingConfig config={config} onChange={onChange} pipelineContext={pipelineContext} />;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // SAVED TRANSFORMATION
+  // ══════════════════════════════════════════════════════════════════════
+  if (subtype === 'saved_transformation') {
+    return <SavedTransformationConfig config={config} onChange={onChange} />;
+  }
+
   return <div className="text-gray-500">Unknown transformation type: {subtype}</div>;
+}
+
+// ── Shared helpers ─────────────────────────────────────────────────────────────
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+
+const TYPE_LABELS: Record<string, string> = {
+  filter: 'Filter', map: 'Map / Rename', aggregate: 'Aggregate',
+  sort: 'Sort', deduplication: 'Deduplication', deduplicate: 'Deduplication',
+};
+
+function getToken(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+}
+
+interface SavedMapping { id: number; name: string; source_schema_id: number; destination_schema_id: number; is_validated: boolean; }
+
+function SchemaMappingConfig({
+  config,
+  onChange,
+  pipelineContext = {},
+}: {
+  config: any;
+  onChange: (c: any) => void;
+  pipelineContext?: PipelineContext;
+}) {
+  const [mappings, setMappings] = useState<SavedMapping[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<SavedMapping | null>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    fetch(`${API_BASE}/schema/mappings`, {
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const list: SavedMapping[] = data?.mappings ?? [];
+        setMappings(list);
+        if (config.mapping_id) {
+          setSelected(list.find(m => m.id === Number(config.mapping_id)) ?? null);
+        }
+      })
+      .catch(() => {/* best-effort */})
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSelect = (id: string) => {
+    const m = mappings.find(x => x.id === Number(id)) ?? null;
+    setSelected(m);
+    onChange({ ...config, mapping_id: id, mapping_name: m?.name ?? '' });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Saved Schema Mapping
+        </label>
+        {loading ? (
+          <p className="text-xs text-gray-400 italic">Loading saved mappings…</p>
+        ) : mappings.length === 0 ? (
+          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+            No saved schema mappings found. Go to{' '}
+            <a href="/schema/mapping" className="underline font-medium">Schema Mapping</a>{' '}
+            to create one, then return here.
+          </div>
+        ) : (
+          <select
+            value={config.mapping_id ?? ''}
+            onChange={e => handleSelect(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— select a mapping —</option>
+            {mappings.map(m => (
+              <option key={m.id} value={m.id}>
+                {m.name}{m.is_validated ? ' ✓' : ''}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {selected && (
+        <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-2 text-xs text-gray-600">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-gray-800">{selected.name}</span>
+            {selected.is_validated
+              ? <span className="text-green-600 font-medium">✓ Validated</span>
+              : <span className="text-yellow-600">Not validated</span>}
+          </div>
+          <p className="text-gray-500">Direct, concat, and split rules are applied row-by-row. Unmapped fields pass through unchanged.</p>
+          <button
+            onClick={() => window.open(`/schema/mapping?id=${selected.id}`, '_blank')}
+            className="w-full px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-300 bg-blue-50 hover:bg-blue-100 rounded-lg"
+          >
+            ✎ Edit this mapping in Schema Mapping Editor →
+          </button>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="space-y-2">
+        {!selected && !pipelineContext.inputSchema && !pipelineContext.outputSchema && (
+          <>
+            <button
+              onClick={() => window.open('/schema/mapping', '_blank')}
+              className="w-full px-3 py-2 text-xs font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50 rounded-lg"
+            >
+              + Create a new Schema Mapping →
+            </button>
+            <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800 space-y-1">
+              <p className="font-medium">Tip: configure the Source and Destination nodes first.</p>
+              <p>Once both are configured, their field schemas will appear here and you can auto-generate a mapping in one click.</p>
+            </div>
+          </>
+        )}
+
+        {/* Both schemas available — offer auto-generate */}
+        {!selected && (pipelineContext.inputSchema || pipelineContext.outputSchema) && (
+          <AutoCreateMappingPanel
+            inputSchema={pipelineContext.inputSchema}
+            outputSchema={pipelineContext.outputSchema}
+            onChange={onChange}
+            config={config}
+            onMappingCreated={(mappingId, mappingName) => {
+              onChange({ ...config, mapping_id: String(mappingId), mapping_name: mappingName });
+              const list: SavedMapping[] = [];
+              setMappings([...list, { id: mappingId, name: mappingName, source_schema_id: 0, destination_schema_id: 0, is_validated: false }]);
+              setSelected({ id: mappingId, name: mappingName, source_schema_id: 0, destination_schema_id: 0, is_validated: false });
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── AutoCreateMappingPanel ─────────────────────────────────────────────────────
+function AutoCreateMappingPanel({
+  inputSchema,
+  outputSchema,
+  onChange,
+  config,
+  onMappingCreated,
+}: {
+  inputSchema?: any;
+  outputSchema?: any;
+  onChange: (c: any) => void;
+  config: any;
+  onMappingCreated: (id: number, name: string) => void;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  const srcFields: { name: string }[] = inputSchema?.fields ?? [];
+  const dstFields: { name: string }[] = outputSchema?.fields ?? [];
+
+  const handleAutoCreate = async () => {
+    setCreating(true);
+    setError('');
+    try {
+      const token = getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      // Save source schema definition
+      const srcRes = await fetch(`${API_BASE}/schema/schemas`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: `Pipeline Source (${inputSchema?.table_name || 'schema'})`,
+          source_type: inputSchema?.source_type || 'connector',
+          schema_data: inputSchema,
+        }),
+      });
+      const srcDef = await srcRes.json();
+
+      // Save destination schema definition
+      const dstRes = await fetch(`${API_BASE}/schema/schemas`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: `Pipeline Destination (${outputSchema?.table_name || 'schema'})`,
+          source_type: outputSchema?.source_type || 'connector',
+          schema_data: outputSchema,
+        }),
+      });
+      const dstDef = await dstRes.json();
+
+      // Create auto-generated mapping
+      const mapRes = await fetch(`${API_BASE}/schema/mappings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: `${inputSchema?.table_name || 'Source'} → ${outputSchema?.table_name || 'Destination'}`,
+          source_schema_id: srcDef.id,
+          destination_schema_id: dstDef.id,
+          auto_generate: true,
+        }),
+      });
+      const mapping = await mapRes.json();
+
+      onMappingCreated(mapping.id, mapping.name);
+    } catch (e) {
+      setError('Failed to auto-create mapping. Please create one manually in the Schema Mapping Editor.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900 space-y-3">
+      <div>
+        <p className="font-medium mb-1">Pipeline schemas detected</p>
+        {srcFields.length > 0 && (
+          <p className="text-blue-700">
+            Source: {srcFields.slice(0, 4).map(f => f.name).join(', ')}{srcFields.length > 4 ? ` + ${srcFields.length - 4} more` : ''}
+          </p>
+        )}
+        {dstFields.length > 0 && (
+          <p className="text-blue-700">
+            Destination: {dstFields.slice(0, 4).map(f => f.name).join(', ')}{dstFields.length > 4 ? ` + ${dstFields.length - 4} more` : ''}
+          </p>
+        )}
+      </div>
+
+      <button
+        onClick={handleAutoCreate}
+        disabled={creating}
+        className="w-full px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+      >
+        {creating ? 'Creating mapping…' : '⚡ Auto-create mapping from pipeline schemas'}
+      </button>
+
+      <button
+        onClick={() => window.open('/schema/mapping', '_blank')}
+        className="w-full px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-300 bg-white hover:bg-blue-100 rounded-lg"
+      >
+        Open Schema Mapping Editor manually →
+      </button>
+
+      {error && <p className="text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+// ── Saved Transformation sub-component ────────────────────────────────────────
+interface SavedTx { id: number; name: string; transformation_type: string; description?: string; is_active: boolean; }
+
+function SavedTransformationConfig({ config, onChange }: { config: any; onChange: (c: any) => void }) {
+  const [transformations, setTransformations] = useState<SavedTx[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<SavedTx | null>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    fetch(`${API_BASE}/transformations/`, {
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: SavedTx[] | null) => {
+        const list = (data ?? []).filter((t: SavedTx) => t.is_active);
+        setTransformations(list);
+        if (config.transformation_id) {
+          setSelected(list.find((t: SavedTx) => t.id === Number(config.transformation_id)) ?? null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSelect = (id: string) => {
+    const t = transformations.find(x => x.id === Number(id)) ?? null;
+    setSelected(t);
+    onChange({ ...config, transformation_id: id, transformation_name: t?.name ?? '' });
+  };
+
+  const typeLabel = (type: string) => TYPE_LABELS[type] ?? type;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Saved Transformation
+        </label>
+        {loading ? (
+          <p className="text-xs text-gray-400 italic">Loading transformations…</p>
+        ) : transformations.length === 0 ? (
+          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+            No active transformations found. Go to{' '}
+            <a href="/transformations" className="underline font-medium">Transformations</a>{' '}
+            to create one, then return here.
+          </div>
+        ) : (
+          <select
+            value={config.transformation_id ?? ''}
+            onChange={e => handleSelect(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— select a transformation —</option>
+            {transformations.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name} [{typeLabel(t.transformation_type)}]
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {selected && (
+        <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-1 text-xs text-gray-600">
+          <div className="flex justify-between items-center">
+            <span className="font-medium text-gray-800">{selected.name}</span>
+            <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
+              {typeLabel(selected.transformation_type)}
+            </span>
+          </div>
+          {selected.description && <p className="text-gray-500">{selected.description}</p>}
+          <p className="text-gray-400 mt-1">ID {selected.id} — rules are applied row-by-row at execution time.</p>
+        </div>
+      )}
+
+      <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800 space-y-1">
+        <p className="font-medium">What each type does at runtime:</p>
+        <ul className="list-disc list-inside space-y-0.5">
+          <li><strong>Filter</strong> — keeps or drops rows matching a condition</li>
+          <li><strong>Map</strong> — renames fields or evaluates expressions (supports custom functions)</li>
+          <li><strong>Aggregate</strong> — groups rows and calculates sum / count / avg / min / max</li>
+          <li><strong>Sort</strong> — orders rows by a field ascending or descending</li>
+          <li><strong>Deduplication</strong> — removes duplicate rows based on specified fields</li>
+        </ul>
+      </div>
+    </div>
+  );
 }
