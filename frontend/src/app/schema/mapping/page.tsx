@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { SchemaTree } from '@/components/schema/schema-tree';
 import { FieldMapper } from '@/components/schema/field-mapper';
@@ -9,7 +10,8 @@ import {
   Save,
   Code,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import useToast from '@/hooks/useToast';
@@ -22,6 +24,8 @@ import type {
 } from '@/types/schema';
 
 const SchemaMappingPage = () => {
+  const searchParams = useSearchParams();
+
   const [sourceSchema, setSourceSchema] = useState<SchemaDefinition | null>(null);
   const [destSchema, setDestSchema] = useState<SchemaDefinition | null>(null);
   const [mappings, setMappings] = useState<SchemaFieldMapping[]>([]);
@@ -35,6 +39,13 @@ const SchemaMappingPage = () => {
   const [isSavingMapping, setIsSavingMapping] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState<'python' | 'sql' | null>(null);
+  const [mappingName, setMappingName] = useState('');
+
+  // Save-name modal state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveModalName, setSaveModalName] = useState('');
+  const [saveModalError, setSaveModalError] = useState('');
+
   const { toasts, success, error, warning } = useToast();
 
   const fetchSavedSchemas = useCallback(async () => {
@@ -51,6 +62,36 @@ const SchemaMappingPage = () => {
   useEffect(() => {
     fetchSavedSchemas();
   }, [fetchSavedSchemas]);
+
+  // Load a specific mapping when ?id=X is in the URL (e.g. opened from Pipeline Builder)
+  useEffect(() => {
+    const idParam = searchParams.get('id');
+    if (!idParam) return;
+    const mappingId = Number(idParam);
+    if (!mappingId) return;
+
+    (async () => {
+      try {
+        const mapping = await apiClient.fetch<any>(`/schema/mappings/${mappingId}`);
+        const m = mapping as any;
+        setCurrentMappingId(m.id);
+        setMappingName(m.name ?? '');
+        setMappings(m.field_mappings ?? []);
+        // Load source and destination schemas
+        const [src, dst] = await Promise.all([
+          apiClient.getSchema(m.source_schema_id),
+          apiClient.getSchema(m.destination_schema_id),
+        ]);
+        setSourceSchema(src);
+        setSelectedSourceId(m.source_schema_id);
+        setDestSchema(dst);
+        setSelectedDestId(m.destination_schema_id);
+      } catch {
+        // Non-critical — proceed without pre-loading
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const resetMappingState = useCallback(() => {
     setMappings([]);
@@ -77,9 +118,17 @@ const SchemaMappingPage = () => {
       if (isSource) {
         setSourceSchema(schema);
         setSelectedSourceId(schemaId);
+        if (!currentMappingId) {
+          const destName = destSchema?.name;
+          setMappingName(destName ? `${schema.name} -> ${destName}` : schema.name);
+        }
       } else {
         setDestSchema(schema);
         setSelectedDestId(schemaId);
+        if (!currentMappingId) {
+          const srcName = sourceSchema?.name;
+          setMappingName(srcName ? `${srcName} -> ${schema.name}` : schema.name);
+        }
       }
 
       resetMappingState();
@@ -97,16 +146,17 @@ const SchemaMappingPage = () => {
     return 'Schema Mapping';
   }, [sourceSchema, destSchema]);
 
-  const syncMappingToServer = useCallback(async () => {
+  const syncMappingToServer = useCallback(async (nameOverride?: string) => {
     if (!selectedSourceId || !selectedDestId) {
       throw new Error('Select both source and destination schemas before saving.');
     }
 
+    const nameToUse = nameOverride ?? mappingName.trim() ?? buildMappingName();
     let mappingId = currentMappingId;
 
     if (!mappingId) {
       const created = await apiClient.createSchemaMapping({
-        name: buildMappingName(),
+        name: nameToUse,
         source_schema_id: selectedSourceId,
         destination_schema_id: selectedDestId,
         auto_generate: false,
@@ -122,7 +172,7 @@ const SchemaMappingPage = () => {
 
     await apiClient.updateSchemaMappingFields(mappingId, mappings);
     return mappingId;
-  }, [buildMappingName, currentMappingId, mappings, selectedDestId, selectedSourceId]);
+  }, [buildMappingName, currentMappingId, mappingName, mappings, selectedDestId, selectedSourceId]);
 
   const handleAutoGenerate = async () => {
     if (!selectedSourceId || !selectedDestId) {
@@ -133,7 +183,7 @@ const SchemaMappingPage = () => {
     setIsGeneratingMapping(true);
     try {
       const response = await apiClient.createSchemaMapping({
-        name: buildMappingName(),
+        name: mappingName.trim() || buildMappingName(),
         source_schema_id: selectedSourceId,
         destination_schema_id: selectedDestId,
         auto_generate: true,
@@ -159,27 +209,49 @@ const SchemaMappingPage = () => {
     setGeneratedCode(null);
   };
 
-  const handleSaveMapping = async () => {
+  const handleSaveMapping = () => {
     if (!mappings.length) {
       warning('Add at least one field mapping before saving.', 'Schema Mapping');
       return;
     }
+    if (!selectedSourceId || !selectedDestId) {
+      warning('Select both source and destination schemas before saving.', 'Schema Mapping');
+      return;
+    }
+    if (currentMappingId) {
+      // Already named — just update field mappings silently
+      doSave(mappingName);
+    } else {
+      // First save — ask for a name
+      setSaveModalName(mappingName || buildMappingName());
+      setSaveModalError('');
+      setShowSaveModal(true);
+    }
+  };
 
+  const doSave = async (nameToUse: string) => {
     setIsSavingMapping(true);
     try {
-      await syncMappingToServer();
-      success('Mapping saved successfully.', 'Success');
+      await syncMappingToServer(nameToUse);
+      setMappingName(nameToUse);
+      success(`Mapping "${nameToUse}" saved. Select it by this name in the Pipeline Builder.`, 'Saved');
     } catch (err: unknown) {
       console.error('Error saving mapping:', err);
       const message = err instanceof Error ? err.message : 'Failed to save mapping';
-      if (message.toLowerCase().includes('select both')) {
-        warning(message, 'Schema Mapping');
-      } else {
-        error(message, 'Error');
-      }
+      error(message, 'Error');
     } finally {
       setIsSavingMapping(false);
     }
+  };
+
+  const handleSaveModalConfirm = () => {
+    const name = saveModalName.trim();
+    if (!name) {
+      setSaveModalError('Please enter a name for this mapping.');
+      return;
+    }
+    setShowSaveModal(false);
+    doSave(name);
   };
 
   const handleValidate = async () => {
@@ -190,7 +262,7 @@ const SchemaMappingPage = () => {
 
     setIsValidating(true);
     try {
-      const mappingId = await syncMappingToServer();
+      const mappingId = await syncMappingToServer(mappingName || buildMappingName());
       const result = await apiClient.validateSchemaMapping(mappingId);
       setValidationResult(result);
 
@@ -220,7 +292,7 @@ const SchemaMappingPage = () => {
 
     setIsGeneratingCode(language);
     try {
-      const mappingId = await syncMappingToServer();
+      const mappingId = await syncMappingToServer(mappingName || buildMappingName());
       const result = await apiClient.generateSchemaMappingCode(mappingId, language);
       setGeneratedCode(result.code);
       success(`Generated ${language.toUpperCase()} code.`, 'Success');
@@ -321,6 +393,18 @@ const SchemaMappingPage = () => {
             )}
           </div>
         </div>
+
+        {/* Saved mapping name banner */}
+        {currentMappingId && mappingName && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
+            <span className="text-sm text-green-900">
+              Editing mapping: <strong>{mappingName}</strong>
+            </span>
+            <span className="text-xs text-green-700">
+              Select this name in the Pipeline Builder → Schema Mapping node
+            </span>
+          </div>
+        )}
 
         {/* Field Mapper */}
         {sourceSchema && destSchema && (
@@ -445,8 +529,69 @@ const SchemaMappingPage = () => {
           </div>
         )}
       </div>
+
+      {/* Save Mapping modal — asks for a name before first save */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Name this Mapping</h2>
+              <button onClick={() => setShowSaveModal(false)} className="p-1 rounded hover:bg-gray-100">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Give your mapping a clear name — this is how you'll identify it in the Pipeline Builder dropdown.
+            </p>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Mapping Name</label>
+              <input
+                type="text"
+                value={saveModalName}
+                onChange={e => { setSaveModalName(e.target.value); setSaveModalError(''); }}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveModalConfirm(); }}
+                placeholder="e.g. CRM Contacts to Warehouse"
+                autoFocus
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {saveModalError && (
+                <p className="text-xs text-red-600">{saveModalError}</p>
+              )}
+              <p className="text-xs text-gray-400">
+                Tip: use a name that describes what data is being reshaped, e.g. &quot;Person to Contact&quot;.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveModalConfirm}
+                disabled={isSavingMapping}
+                className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {isSavingMapping ? 'Saving…' : 'Save Mapping'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };
 
-export default SchemaMappingPage;
+// Wrap in Suspense because useSearchParams() requires it in Next.js App Router
+export default function SchemaMappingPageWrapper() {
+  return (
+    <Suspense>
+      <SchemaMappingPage />
+    </Suspense>
+  );
+}

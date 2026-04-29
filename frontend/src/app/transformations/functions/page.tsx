@@ -176,6 +176,7 @@ const TransformationFunctionsPage = () => {
       setTestResult({
         success: r.success !== false,
         output: r.output ?? r.result,
+        error: r.error,
         execution_time_ms: r.execution_time_ms
       });
       success('Function tested successfully');

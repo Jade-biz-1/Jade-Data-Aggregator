@@ -1,6 +1,6 @@
 'use client';
 
-import { Database, Globe, FileText, Filter, Layers, BarChart3, GitMerge, ArrowUpDown, FileOutput, Warehouse } from 'lucide-react';
+import { Database, Globe, FileText, Filter, Layers, BarChart3, GitMerge, ArrowUpDown, FileOutput, Warehouse, Share2, BookMarked } from 'lucide-react';
 
 const nodeCategories = [
   {
@@ -18,7 +18,9 @@ const nodeCategories = [
       { type: 'transformation', subtype: 'map', label: 'Map', icon: Layers, color: 'purple' },
       { type: 'transformation', subtype: 'aggregate', label: 'Aggregate', icon: BarChart3, color: 'purple' },
       { type: 'transformation', subtype: 'join', label: 'Join', icon: GitMerge, color: 'purple' },
-      { type: 'transformation', subtype: 'sort', label: 'Sort', icon: ArrowUpDown, color: 'purple' }
+      { type: 'transformation', subtype: 'sort', label: 'Sort', icon: ArrowUpDown, color: 'purple' },
+      { type: 'transformation', subtype: 'schema_mapping', label: 'Schema Mapping', icon: Share2, color: 'purple' },
+      { type: 'transformation', subtype: 'saved_transformation', label: 'Saved Transformation', icon: BookMarked, color: 'purple' }
     ]
   },
   {

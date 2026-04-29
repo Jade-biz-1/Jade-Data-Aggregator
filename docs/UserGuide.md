@@ -1012,7 +1012,7 @@ The Visual Pipeline Builder provides an intuitive drag-and-drop interface for cr
    - Navigate to `/pipeline-builder`
    - Drag nodes from the palette onto the canvas:
      - **Source Nodes**: Database, API, File
-     - **Transformation Nodes**: Filter, Map, Sort, Aggregate
+     - **Transformation Nodes**: Filter, Map, Sort, Aggregate, Join, Schema Mapping, Saved Transformation
      - **Destination Nodes**: Database, File, Warehouse, API
    - Connect nodes by dragging from one node's output to another's input
    - Click any node to configure its properties in the right panel
@@ -1061,11 +1061,13 @@ The Visual Pipeline Builder provides an intuitive drag-and-drop interface for cr
 - **Stream Source**: Connect to real-time data streams
 
 **Transformation Nodes**:
-- **Filter**: Remove records based on conditions
-- **Map**: Transform field values
-- **Sort**: Order records by specified fields
-- **Aggregate**: Group and summarize data
-- **Join**: Combine data from multiple sources
+- **Filter**: Remove records based on conditions (inline Python expression)
+- **Map**: Rename fields or compute new values using expressions; custom functions from the Function Library are available automatically
+- **Sort**: Order records by a field ascending or descending
+- **Aggregate**: Group rows and compute sum / count / avg / min / max
+- **Join**: Combine data from multiple sources on a key field
+- **Schema Mapping**: Apply a saved Schema Mapping (direct, concat, split rules) — select by name, no inline config needed
+- **Saved Transformation**: Apply a saved Transformation rule set (filter, map, aggregate, sort, deduplication) — select by name, no inline config needed
 - **Split**: Divide records into multiple streams
 
 **Destination Nodes**:
@@ -1387,6 +1389,91 @@ You can apply transformations conditionally based on field values:
 - **Mathematical Operations**: Perform calculations across multiple fields
 - **Lookup Operations**: Replace values based on lookup tables
 - **Hashing Operations**: Apply cryptographic functions to sensitive fields for privacy
+
+---
+
+### 5.2.7 Schema Mapping
+
+Schema Mapping is a visual tool for defining field-level relationships between two data structures. It sits between Schema Introspection (which discovers the structure of a data source) and the Pipeline Builder (which executes the movement of data). You define mappings once, generate transformation code from them, and register that code as a reusable Function in the Function Library.
+
+#### Concepts
+
+| Term | Meaning |
+|------|---------|
+| **Schema Definition** | A saved snapshot of a data structure — its fields, types, and constraints. Created via Schema Introspect. |
+| **Schema Mapping** | A named set of field-level rules connecting a source schema to a destination schema. |
+| **Field Mapping** | One rule within a schema mapping. Can be Direct, Concat, or Split. |
+
+#### Step 1 — Schema Introspection
+
+Navigate to **Schema Introspect** (sidebar). Discover the structure of your data source and save it as a named schema definition.
+
+| Source Type | What you provide | What you get back |
+|-------------|-----------------|-------------------|
+| **Database** | Connection string, e.g. `postgresql://user:pass@host/db` | All tables in the public schema with columns, types, PK/FK |
+| **JSON sample** | Paste a sample JSON object or array | Fields with inferred types (string, integer, float, boolean, date, datetime) |
+| **CSV sample** | Paste the first few rows including the header | Columns with inferred types sampled from up to 10 data rows |
+| **OpenAPI / Swagger** | URL to a `/openapi.json` or `/swagger.json` endpoint | All schema definitions from the API spec |
+
+After introspection, click **Save Schema** with a descriptive name (e.g. "Source CRM", "Destination Warehouse"). You need at least two saved schemas before you can create a mapping.
+
+#### Step 2 — Creating a Mapping
+
+Navigate to **Schema Mapping** (sidebar). Select a source and destination schema from the dropdowns. The field trees for both schemas appear below. The **Field Mappings** panel has three mapping modes:
+
+**Direct** (blue)
+One source field → one destination field. No transformation applied.
+1. Click the destination field (it highlights blue).
+2. Click the source field — the mapping is created.
+
+**Concat** (orange)
+Multiple source fields → one destination field, joined by a separator.
+1. Set the **Separator** character (default: space).
+2. Click source fields in order — each is numbered #1, #2, etc.
+3. Click the destination field — the concat mapping is created and labelled `← field1 + field2`.
+
+**Split** (purple)
+One source field → multiple destination fields, split by a separator.
+1. Set the **Separator** character (e.g. comma for `"street, city, postcode"`).
+2. Click the source field.
+3. Click destination fields in order — each click assigns the next split index (0, 1, 2…).
+
+#### Step 3 — Validate and Generate Code
+
+Once mappings are in place, the **Actions** panel appears:
+
+| Action | Effect |
+|--------|--------|
+| **Save Mapping** | Persists the mappings to the database. Do this before the other actions. |
+| **Validate Mapping** | Checks required fields are mapped, source fields exist, and types are compatible. |
+| **Generate Python Code** | Produces a `transform_data(source_record)` function that applies all mappings. |
+| **Generate SQL** | Produces a `SELECT` clause using `CONCAT()` and `SPLIT_PART()` for database-native use. |
+
+#### Step 4 — Using a Schema Mapping in a Pipeline
+
+**Recommended: Schema Mapping node (no code needed)**
+
+1. Ensure your mapping is saved and named (the name is what appears in the pipeline dropdown).
+2. Open the **Pipeline Builder**.
+3. Drag a **Schema Mapping** node (purple) from the Transformations palette onto the canvas.
+4. Click the node to open its config panel and select your saved mapping from the dropdown.
+5. Connect it between your Source and Destination nodes — done.
+
+The executor applies all direct, concat, and split rules from the mapping row-by-row. Fields not covered by the mapping pass through unchanged.
+
+**Alternative: register as a custom Function**
+
+If you need to combine the mapping logic with additional Python logic, you can still generate Python code and register it in the Function Library:
+
+1. Click **Generate Python Code** → **Copy Code**.
+2. Go to **Transformations → Function Library → Create Function**.
+3. Set the **Function Name** (e.g. `crm_to_warehouse` — lowercase, underscores only).
+4. Paste the code; rename `def transform_data` to match your function name.
+5. Save. In a **Map** node expression, call it as `crm_to_warehouse(row)`.
+
+> The `def` function name must exactly match the registered Function Name. Custom functions are loaded automatically at pipeline execution start — no extra wiring needed.
+
+---
 
 ### 5.3 Connectors
 

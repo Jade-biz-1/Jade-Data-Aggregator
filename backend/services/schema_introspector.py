@@ -146,10 +146,12 @@ class DatabaseSchemaIntrospector:
             engine = create_engine(connection_string)
             inspector = inspect(engine)
 
-            # Get schema name
+            # Get schema name — skip system schemas, prefer 'public'
+            _system_schemas = {'information_schema', 'pg_catalog', 'pg_toast', 'pg_temp'}
             schemas = inspector.get_schema_names()
             if schema_name is None:
-                schema_name = schemas[0] if schemas else 'public'
+                user_schemas = [s for s in schemas if s not in _system_schemas]
+                schema_name = 'public' if 'public' in user_schemas else (user_schemas[0] if user_schemas else 'public')
 
             # Get all table names
             table_names = inspector.get_table_names(schema=schema_name)
@@ -224,11 +226,18 @@ class APISchemaIntrospector:
         api_key: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Introspect OpenAPI/Swagger schema
+        Introspect an API schema.
 
-        Args:
-            openapi_url: URL to OpenAPI spec (e.g., /swagger.json, /openapi.json)
-            api_key: Optional API key for authentication
+        Accepts two kinds of URL:
+          - OpenAPI/Swagger spec  (e.g. /openapi.json, /swagger.json)
+            → parses the spec and returns all named schema definitions.
+          - Regular REST endpoint (e.g. /api/users, /api/analytics)
+            → fetches the response and infers field types from the JSON,
+              exactly like JSON Sample introspection.
+
+        NOTE: This request is made server-side (inside the Docker container).
+        Use the Docker service name as the host for other containers, e.g.
+        http://backend:8001/openapi.json — not http://localhost:8001/openapi.json.
         """
         try:
             headers = {}
@@ -238,34 +247,54 @@ class APISchemaIntrospector:
             response = requests.get(openapi_url, headers=headers, timeout=10)
             response.raise_for_status()
 
-            spec = response.json()
+            data = response.json()
 
-            # Extract schemas from OpenAPI spec
-            schemas = []
+            # Detect whether this is an OpenAPI spec or a plain data response
+            is_openapi = (
+                'openapi' in data
+                or 'swagger' in data
+                or ('components' in data and 'schemas' in data.get('components', {}))
+                or 'definitions' in data
+            )
 
-            # OpenAPI 3.x
-            if 'components' in spec and 'schemas' in spec['components']:
-                for schema_name, schema_def in spec['components']['schemas'].items():
-                    schemas.append(
-                        APISchemaIntrospector._parse_openapi_schema(schema_name, schema_def)
-                    )
+            if is_openapi:
+                schemas = []
+                if 'components' in data and 'schemas' in data['components']:
+                    for schema_name, schema_def in data['components']['schemas'].items():
+                        schemas.append(
+                            APISchemaIntrospector._parse_openapi_schema(schema_name, schema_def)
+                        )
+                elif 'definitions' in data:
+                    for schema_name, schema_def in data['definitions'].items():
+                        schemas.append(
+                            APISchemaIntrospector._parse_openapi_schema(schema_name, schema_def)
+                        )
 
-            # OpenAPI 2.x (Swagger)
-            elif 'definitions' in spec:
-                for schema_name, schema_def in spec['definitions'].items():
-                    schemas.append(
-                        APISchemaIntrospector._parse_openapi_schema(schema_name, schema_def)
-                    )
+                return {
+                    "source_type": "api",
+                    "api_type": "openapi",
+                    "version": data.get('openapi') or data.get('swagger'),
+                    "title": data.get('info', {}).get('title'),
+                    "schemas": schemas,
+                    "schema_count": len(schemas),
+                    "introspected_at": datetime.now().isoformat()
+                }
 
-            return {
-                "source_type": "api",
-                "api_type": "openapi",
-                "version": spec.get('openapi') or spec.get('swagger'),
-                "title": spec.get('info', {}).get('title'),
-                "schemas": schemas,
-                "schema_count": len(schemas),
-                "introspected_at": datetime.now().isoformat()
-            }
+            # Not an OpenAPI spec — treat the response as a JSON sample
+            schema_name = openapi_url.rstrip('/').split('/')[-1] or 'response'
+            # If the response is a list, use the first item for inference
+            sample = data[0] if isinstance(data, list) and data else data
+            if not isinstance(sample, dict):
+                return {
+                    "error": "Response is not a JSON object or array of objects — cannot infer schema",
+                    "source_type": "api",
+                    "introspected_at": datetime.now().isoformat()
+                }
+
+            result = APISchemaIntrospector.introspect_json_sample(sample, schema_name=schema_name)
+            result["api_type"] = "rest_endpoint"
+            result["endpoint_url"] = openapi_url
+            return result
 
         except Exception as e:
             return {

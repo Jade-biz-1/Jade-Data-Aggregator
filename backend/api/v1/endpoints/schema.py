@@ -3,6 +3,9 @@ Schema Introspection and Mapping API Endpoints
 Updated: Phase 11A - SEC-002 (Fixed error message leakage)
 """
 
+import asyncio
+from functools import partial
+
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -106,9 +109,14 @@ async def introspect_database_schema(
     Returns table structures, columns, types, and constraints
     """
     try:
-        schema = DatabaseSchemaIntrospector.introspect_database(
-            connection_string=request.connection_string,
-            schema_name=request.schema_name
+        loop = asyncio.get_event_loop()
+        schema = await loop.run_in_executor(
+            None,
+            partial(
+                DatabaseSchemaIntrospector.introspect_database,
+                connection_string=request.connection_string,
+                schema_name=request.schema_name
+            )
         )
 
         if "error" in schema:
@@ -116,6 +124,8 @@ async def introspect_database_schema(
 
         return schema
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise safe_error_response(
             500,
